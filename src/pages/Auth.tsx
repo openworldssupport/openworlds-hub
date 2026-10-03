@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertCircle } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
 
@@ -9,6 +11,21 @@ interface AuthProps {
 
 export default function AuthPage({ mode = "login" }: AuthProps) {
   const isCreate = mode === "create";
+  const [attempted, setAttempted] = useState(false);
+  const errorCode = isCreate ? "OW-AUTH-001" : "OW-AUTH-002";
+  const errorTitle = isCreate ? "Account creation unavailable" : "Login unavailable";
+  const errorMessage = isCreate
+    ? "OpenWorlds account creation is not connected yet. This is a temporary website notice, not a server error; no account was created."
+    : "Shared game account login is not connected yet. This is a temporary website notice, not a server error. Your sign-in details were not sent or stored.";
+
+  const handleAttempt = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAttempted(true);
+  };
+
+  const handleCreateAttempt = () => {
+    setAttempted(true);
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -23,12 +40,15 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
           </p>
 
           {isCreate ? (
-            <div className="mt-6 rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50 to-amber-50 p-4">
-              <p className="text-sm font-medium">Create your account in the game</p>
-              <p className="mt-1 text-sm leading-6 text-slate-600">Website account creation is not available. Once the shared account service is connected, your game account will work here too.</p>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50 to-amber-50 p-4">
+                <p className="text-sm font-medium">Create your account in the game</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">Website account creation is not connected yet. Your account will work here once the shared service is ready.</p>
+              </div>
+              <Button type="button" onClick={handleCreateAttempt} className="h-11 w-full rounded-lg bg-[#0066cc]">Create account</Button>
             </div>
           ) : (
-            <form onSubmit={(event) => event.preventDefault()} className="mt-6 space-y-4">
+            <form onSubmit={handleAttempt} className="mt-6 space-y-4">
               <div className="space-y-2">
                 <label htmlFor="identity" className="text-sm font-medium">Username or email</label>
                 <Input id="identity" name="identity" autoComplete="username" placeholder="Username or email" className="h-11 rounded-lg" />
@@ -37,10 +57,20 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
                 <label htmlFor="password" className="text-sm font-medium">Password</label>
                 <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Password" className="h-11 rounded-lg" />
               </div>
-              <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">Game account login is not connected yet. Your details will not be sent or stored.</p>
-              <Button type="submit" disabled className="h-11 w-full rounded-lg bg-[#0066cc]">Log in</Button>
+              <Button type="submit" className="h-11 w-full rounded-lg bg-[#0066cc]">Log in</Button>
               <p className="text-center text-xs text-slate-500">Password recovery will be available when account login is connected.</p>
             </form>
+          )}
+
+          {attempted && (
+            <div role="alert" className="mt-5 flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-left text-red-900">
+              <AlertCircle className="mt-0.5 size-5 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold">{errorTitle}</p>
+                <p className="mt-1 text-sm leading-5">{errorMessage}</p>
+                <p className="mt-2 font-mono text-xs">Website error code: {errorCode}</p>
+              </div>
+            </div>
           )}
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
