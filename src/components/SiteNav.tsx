@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Globe2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Link } from "react-router";
 
 export function SiteNav({ onSignOut }: { onSignOut?: () => void } = {}) {
@@ -7,7 +7,7 @@ export function SiteNav({ onSignOut }: { onSignOut?: () => void } = {}) {
     <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">
         <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-[#0066cc] text-white"><Globe2 className="size-5" /></span>
+          <img src="/logo.svg" alt="" width={36} height={36} className="size-9 rounded-lg" />
           <span className="font-semibold tracking-tight">OpenWorlds</span>
         </Link>
         <div className="flex flex-wrap items-center gap-1 text-xs lg:text-sm">

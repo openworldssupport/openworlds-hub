@@ -19,6 +19,7 @@ const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
 const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
+const CareerApplicationsPage = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -136,7 +137,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
-              <Route path="/applications" element={<CareerApplicationGateway />} />
+              <Route path="/applications" element={<CareerApplicationsPage />} />
               <Route
                 path="/auth"
                 element={<AuthPage />}

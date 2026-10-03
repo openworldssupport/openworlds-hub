@@ -32,12 +32,20 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
-
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    careerApplications: defineTable({
+      roleSlug: v.string(),
+      roleTitle: v.string(),
+      fullName: v.string(),
+      email: v.string(),
+      experience: v.string(),
+      motivation: v.string(),
+      voluntaryConsent: v.boolean(),
+      status: v.string(),
+      submittedAt: v.number(),
+    })
+      .index("by_submitted_at", ["submittedAt"])
+      .index("by_role_slug", ["roleSlug"])
+      .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"]),
   },
   {
     schemaValidation: false,
