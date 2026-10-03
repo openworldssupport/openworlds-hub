@@ -9,10 +9,14 @@ export function SiteNav() {
           <span className="flex size-9 items-center justify-center rounded-lg bg-[#2870e8] text-white"><Globe2 className="size-5" /></span>
           <span className="font-semibold tracking-tight">OpenWorlds</span>
         </Link>
-        <div className="flex items-center gap-1 text-sm">
-          <Link to="/" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">Home</Link>
-          <Link to="/news" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">News</Link>
-          <Link to="/downloads" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">Downloads</Link>
+        <div className="flex flex-wrap items-center gap-1 text-sm">
+          <Link to="/" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Home</Link>
+          <Link to="/about" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">About</Link>
+          <Link to="/community" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Community</Link>
+          <Link to="/news" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">News</Link>
+          <Link to="/downloads" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Downloads</Link>
+          <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
+          <Link to="/contact" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Contact</Link>
         </div>
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
           <Link to="/auth" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Log in</Link>

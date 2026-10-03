@@ -14,6 +14,7 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const CreateAccountPage = lazy(() => import("./pages/Auth.tsx"));
 const News = lazy(() => import("./pages/News.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
+const PlatformInfoPage = lazy(() => import("./pages/PlatformInfo.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -124,6 +125,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
               <Route path="/downloads" element={<Downloads />} />
+              <Route path="/about" element={<PlatformInfoPage page="about" />} />
+              <Route path="/community" element={<PlatformInfoPage page="community" />} />
+              <Route path="/careers" element={<PlatformInfoPage page="careers" />} />
+              <Route path="/contact" element={<PlatformInfoPage page="contact" />} />
               <Route
                 path="/auth"
                 element={<AuthPage />}
