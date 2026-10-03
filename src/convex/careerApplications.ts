@@ -73,7 +73,10 @@ export const listForAdmin = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     const user = await ctx.db.get(userId);
-    if (user?.role !== "admin") return null;
+    const isVerifiedSupportAdmin =
+      user?.email?.trim().toLowerCase() === "openworldssupport@gmail.com" &&
+      user.emailVerificationTime !== undefined;
+    if (user?.role !== "admin" && !isVerifiedSupportAdmin) return null;
 
     return await ctx.db.query("careerApplications").withIndex("by_submitted_at").order("desc").take(100);
   },

@@ -66,7 +66,7 @@ export function CareerApplicationsPage() {
       <section className="ow-page-hero px-5 py-12 text-white sm:px-8 sm:py-16">
         <div className="mx-auto max-w-5xl">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Application review</h1>
-          <p className="mt-3 text-blue-50">Private OpenWorlds team view.</p>
+          <p className="mt-3 text-blue-50">Private OpenWorlds team view · support account only.</p>
         </div>
       </section>
       <section className="mx-auto max-w-5xl px-5 py-10 sm:px-8">
@@ -74,8 +74,8 @@ export function CareerApplicationsPage() {
           <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Checking team access…</p>
         ) : !isAuthenticated ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="font-semibold">Administrator access required</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Application review is limited to OpenWorlds administrators. Staff sign-in is not available until the account service is connected.</p>
+            <h2 className="font-semibold">Sign in with the support email</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">After OpenWorlds email sign-in is connected, the verified openworldssupport@gmail.com account can review applications here.</p>
           </div>
         ) : applications === undefined ? (
           <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading applications…</p>
