@@ -49,7 +49,7 @@ export default function Learning() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
-      <header className="bg-[#0066cc] px-5 py-14 text-white sm:px-8 sm:py-20">
+      <header className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
         <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.4fr_0.8fr] md:items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium"><GraduationCap className="size-4" /> Learning Center</div>
@@ -67,7 +67,7 @@ export default function Learning() {
 
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mb-7">
-          <p className="text-sm font-medium text-[#0066cc]">Choose your path</p>
+          <p className="text-sm font-medium text-[#7651c9]">Choose your path</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Start wherever you are.</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,10 +81,10 @@ export default function Learning() {
         </div>
       </section>
 
-      <section className="bg-slate-50 px-5 py-12 sm:px-8 sm:py-16">
+      <section className="bg-gradient-to-br from-slate-50 via-white to-violet-50 px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-7">
-            <p className="text-sm font-medium text-[#0066cc]">Browse topics</p>
+            <p className="text-sm font-medium text-[#7651c9]">Browse topics</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Learning library</h2>
           </div>
           <div className="mb-6 flex flex-wrap gap-2" role="group" aria-label="Filter lessons by topic">
@@ -113,7 +113,7 @@ export default function Learning() {
 
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mb-7">
-          <p className="text-sm font-medium text-[#0066cc]">Why OpenWorlds Learning?</p>
+          <p className="text-sm font-medium text-[#7651c9]">Why OpenWorlds Learning?</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Built for curious people.</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

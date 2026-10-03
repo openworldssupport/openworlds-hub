@@ -19,18 +19,18 @@ export default function Landing() {
       <section id="home" className="scroll-mt-20 border-b border-slate-100">
         <div className="mx-auto grid min-h-[500px] max-w-6xl items-center gap-12 px-5 py-16 sm:px-8 md:grid-cols-2 md:py-24">
           <div>
-            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#2870e8]"><Gamepad2 className="size-4" /> The Open Worlds UGC platform</p>
+            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#7651c9]"><Gamepad2 className="size-4" /> The Open Worlds UGC platform</p>
             <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Create, share, explore.</h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Open Worlds is a user-generated content platform where creators and communities build worlds together.</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#2870e8] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
+              <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
               <a href="#news" className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">See updates <ArrowDown className="size-4" /></a>
             </div>
             <p className="mt-4 text-sm text-slate-500">No separate website account is needed.</p>
           </div>
-          <div className="flex min-h-[260px] items-center justify-center rounded-2xl bg-[#2870e8] p-8 text-white md:min-h-[340px]">
+          <div className="relative flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#0066cc] via-[#1764bc] to-[#7651c9] p-8 text-white md:min-h-[340px]">
             <div className="text-center">
-              <Globe2 className="mx-auto size-24 sm:size-32" strokeWidth={1.1} />
+              <Globe2 className="mx-auto size-24 text-amber-200 sm:size-32" strokeWidth={1.1} />
               <p className="mt-5 text-lg font-medium">Made by the community</p>
               <p className="mt-1 text-sm text-blue-100">Worlds shaped by creators</p>
             </div>
@@ -38,9 +38,9 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="about" className="scroll-mt-20 border-b border-slate-100">
+      <section id="about" className="scroll-mt-20 border-b border-slate-100 border-t-4 border-t-[#7651c9]">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
-          <p className="text-sm font-medium text-[#2870e8]">About OpenWorlds</p>
+          <p className="text-sm font-medium text-[#7651c9]">About OpenWorlds</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">A platform for creators and communities</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <p className="leading-7 text-slate-600">OpenWorlds is a user-generated content platform designed for creators and communities. It brings people together to make, publish, and explore shared experiences.</p>
@@ -49,10 +49,10 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="learning" className="scroll-mt-20 border-b border-slate-100 bg-slate-50">
+      <section id="learning" className="scroll-mt-20 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-violet-50">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <div className="mb-7">
-            <p className="text-sm font-medium text-[#2870e8]">Learning Center</p>
+            <p className="text-sm font-medium text-[#7651c9]">Learning Center</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Learn to build, create, and ship</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -67,7 +67,7 @@ export default function Landing() {
       <section id="news" className="scroll-mt-20 border-b border-slate-100 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div><p className="text-sm font-medium text-[#2870e8]">Updates</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds news</h2></div>
+            <div><p className="text-sm font-medium text-[#7651c9]">Updates</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds news</h2></div>
             <Link to="/auth" className="text-sm font-medium text-[#2870e8] hover:underline">Log in to your player home <ArrowRight className="ml-1 inline size-4" /></Link>
           </div>
           <div className="mt-7 rounded-xl border border-slate-200 bg-white p-6">
@@ -78,9 +78,9 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="downloads" className="scroll-mt-20">
+      <section id="downloads" className="scroll-mt-20 border-t-4 border-t-[#f3c64e]">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
-          <p className="text-sm font-medium text-[#2870e8]">Play OpenWorlds</p>
+          <p className="text-sm font-medium text-[#7651c9]">Play OpenWorlds</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Downloads</h2>
           <div className="mt-7 flex flex-col justify-between gap-5 rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center">
             <div><p className="font-medium">Official downloads</p><p className="mt-1 max-w-xl text-sm leading-6 text-slate-600">Download links and supported platforms haven’t been published here yet. We’ll only list confirmed versions.</p></div>
@@ -93,19 +93,19 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr]">
             <div>
-              <p className="text-sm font-medium text-[#2870e8]">Contact</p>
+              <p className="text-sm font-medium text-[#7651c9]">Contact</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Get in touch</h2>
               <div className="mt-6 flex items-start gap-3">
-                <Mail className="mt-1 size-5 text-[#2870e8]" />
+                <Mail className="mt-1 size-5 text-[#7651c9]" />
                 <div><p className="font-medium">Email</p><a href="mailto:opwnworldssupport@gmail.com" className="mt-1 inline-block text-sm text-[#2870e8] hover:underline">opwnworldssupport@gmail.com</a></div>
               </div>
             </div>
             <form onSubmit={handleContactSubmit} className="grid gap-4">
               <p className="text-sm leading-6 text-slate-600">Send a message using your email app. The message is not submitted to or stored by this website.</p>
-              <label className="grid gap-1.5 text-sm font-medium">Your name<input name="name" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#2870e8]" /></label>
-              <label className="grid gap-1.5 text-sm font-medium">Your email<input name="email" type="email" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#2870e8]" /></label>
-              <label className="grid gap-1.5 text-sm font-medium">Your message<textarea name="message" required rows={5} className="rounded-lg border border-slate-200 p-3 font-normal outline-none focus:border-[#2870e8]" /></label>
-              <button type="submit" className="inline-flex h-11 w-fit items-center rounded-lg bg-[#2870e8] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Open email app</button>
+              <label className="grid gap-1.5 text-sm font-medium">Your name<input name="name" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#7651c9]" /></label>
+              <label className="grid gap-1.5 text-sm font-medium">Your email<input name="email" type="email" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#7651c9]" /></label>
+              <label className="grid gap-1.5 text-sm font-medium">Your message<textarea name="message" required rows={5} className="rounded-lg border border-slate-200 p-3 font-normal outline-none focus:border-[#7651c9]" /></label>
+              <button type="submit" className="inline-flex h-11 w-fit items-center rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Open email app</button>
             </form>
           </div>
         </div>

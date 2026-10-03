@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Globe2 } from "lucide-react";
 import { Link } from "react-router";
+import { SiteNav } from "@/components/SiteNav";
 
 interface AuthProps {
   mode?: "login" | "create";
@@ -12,27 +12,18 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-[#2870e8] text-white"><Globe2 className="size-5" /></span>
-            <span className="font-semibold">OpenWorlds</span>
-          </Link>
-          <Link to="/" className="text-sm text-slate-600 hover:text-slate-900">Home</Link>
-        </div>
-      </header>
+      <SiteNav />
 
       <div className="mx-auto flex max-w-5xl justify-center px-5 py-12 sm:px-8 sm:py-20">
         <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <Link to="/" className="mb-7 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"><ArrowLeft className="size-4" /> Back to OpenWorlds</Link>
-          <p className="text-sm font-medium text-[#2870e8]">{isCreate ? "New player" : "Existing players"}</p>
+          <p className="text-sm font-medium text-[#7651c9]">{isCreate ? "New player" : "Existing players"}</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{isCreate ? "Create an account" : "Log in"}</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {isCreate ? "OpenWorlds accounts are created in the game. You won't need a separate website account." : "Use the same account details you use in the OpenWorlds game."}
           </p>
 
           {isCreate ? (
-            <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-6 rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50 to-amber-50 p-4">
               <p className="text-sm font-medium">Create your account in the game</p>
               <p className="mt-1 text-sm leading-6 text-slate-600">Website account creation is not available. Once the shared account service is connected, your game account will work here too.</p>
             </div>
@@ -47,13 +38,13 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
                 <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Password" className="h-11 rounded-lg" />
               </div>
               <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-900">Game account login is not connected yet. Your details will not be sent or stored.</p>
-              <Button type="submit" disabled className="h-11 w-full rounded-lg bg-[#2870e8]">Log in</Button>
+              <Button type="submit" disabled className="h-11 w-full rounded-lg bg-[#0066cc]">Log in</Button>
               <p className="text-center text-xs text-slate-500">Password recovery will be available when account login is connected.</p>
             </form>
           )}
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
-            {isCreate ? <>Already have an account? <Link to="/auth" className="font-medium text-[#2870e8] hover:underline">Log in</Link></> : <>New to OpenWorlds? <Link to="/create-account" className="font-medium text-[#2870e8] hover:underline">Create an account</Link></>}
+            {isCreate ? <>Already have an account? <Link to="/auth" className="font-medium text-[#7651c9] hover:underline">Log in</Link></> : <>New to OpenWorlds? <Link to="/create-account" className="font-medium text-[#7651c9] hover:underline">Create an account</Link></>}
           </div>
         </section>
       </div>

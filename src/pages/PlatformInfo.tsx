@@ -58,21 +58,24 @@ export default function PlatformInfoPage({ page }: PlatformInfoPageProps) {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
-      <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-blue-50 text-[#2870e8]"><Icon className="size-5" /></div>
-        <p className="mt-6 text-sm font-medium text-[#2870e8]">{content.eyebrow}</p>
-        <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</h1>
-        <p className="mt-4 max-w-2xl leading-7 text-slate-600">{content.description}</p>
-
-        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-white/15 text-amber-200"><Icon className="size-5" /></div>
+          <p className="mt-6 text-sm font-medium text-blue-100">{content.eyebrow}</p>
+          <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</h1>
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">{content.description}</p>
+        </div>
+      </section>
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {content.sections.map((section) => (
-            <article key={section.title} className="rounded-xl border border-slate-200 p-5">
+            <article key={section.title} className="rounded-xl border border-slate-200 border-t-2 border-t-[#7651c9] p-5">
               <h2 className="font-medium">{section.title}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{section.text}</p>
             </article>
           ))}
         </div>
-        <Link to="/" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#2870e8] hover:underline">Back to home <ArrowRight className="size-4" /></Link>
+        <Link to="/" className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[#7651c9] hover:underline">Back to home <ArrowRight className="size-4" /></Link>
       </section>
     </main>
   );

@@ -13,7 +13,7 @@ export default function Careers() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
-      <section className="bg-[#0066cc] px-5 py-14 text-white sm:px-8 sm:py-20">
+      <section className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-medium text-blue-100">Open Worlds · Careers</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Join Open Worlds</h1>
@@ -26,15 +26,15 @@ export default function Careers() {
       </section>
 
       <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:py-14">
-        <aside className="h-fit rounded-xl border border-slate-200 p-4 lg:sticky lg:top-24">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="size-4 text-[#0066cc]" /> Branches</h2>
+        <aside className="h-fit rounded-xl border border-slate-200 border-t-2 border-t-[#f3c64e] p-4 lg:sticky lg:top-24">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="size-4 text-[#7651c9]" /> Branches</h2>
           <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" aria-label="Career branches">
             {careerBranches.map((branch) => <a key={branch.slug} href={`#${branch.slug}`} className="whitespace-nowrap rounded-md px-2.5 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900">{branch.title}</a>)}
           </nav>
         </aside>
 
         <div>
-          <div className="mb-8 rounded-xl border border-blue-100 bg-blue-50/60 p-5 sm:p-6">
+          <div className="mb-8 rounded-xl border border-violet-100 bg-gradient-to-r from-blue-50 via-white to-amber-50 p-5 sm:p-6">
             <h2 className="font-semibold">What we’re building</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">OpenWorlds is a platform in active development where creators and communities collaborate to build user-generated worlds. The roles listed here are voluntary contributor roles. Review the details for each position before applying.</p>
           </div>
@@ -63,7 +63,7 @@ export default function Careers() {
               </section>
             ))}
 
-            <section id="how-to-apply" className="scroll-mt-24 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+            <section id="how-to-apply" className="scroll-mt-24 rounded-xl border border-violet-100 border-t-2 border-t-[#f3c64e] bg-gradient-to-r from-violet-50 to-amber-50 p-5 sm:p-6">
               <h2 className="text-lg font-semibold">How to apply</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">Choose a branch, open a position, and use the Apply Here link on its details page to reach the position-specific application page. Applications are reviewed manually. Online submission is not available until the application service is connected.</p>
             </section>
