@@ -118,8 +118,8 @@ export default function Landing() {
             <Link to="/careers" className="hover:text-slate-900">Careers</Link>
             <Link to="/community" className="hover:text-slate-900">Community</Link>
             <Link to="/learning" className="hover:text-slate-900">Learning</Link>
-            <a href="https://discord.gg/TRJ8ZmBKDS" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Discord</a>
-            <a href="https://www.youtube.com/@Official-OpenWorlds" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">YouTube</a>
+            <a href="https://discord.gg/JWq5hEsKRX" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Discord</a>
+            <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">YouTube</a>
             <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
           </div>
         </div>

@@ -28,13 +28,13 @@ export default function Community() {
             <div className="flex size-11 items-center justify-center rounded-lg bg-violet-50 text-[#7651c9]"><Users className="size-5" /></div>
             <h3 className="mt-4 text-lg font-semibold">Discord</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">Join the OpenWorlds Discord community to talk with creators, find support, and follow news.</p>
-            <a href="https://discord.gg/TRJ8ZmBKDS" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#0066cc] px-4 text-sm font-medium text-white hover:bg-[#004a99]">Join Discord</a>
+            <a href="https://discord.gg/JWq5hEsKRX" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#0066cc] px-4 text-sm font-medium text-white hover:bg-[#004a99]">Join Discord</a>
           </article>
           <article className="rounded-xl border border-slate-200 p-6">
             <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]"><Youtube className="size-5" /></div>
             <h3 className="mt-4 text-lg font-semibold">YouTube</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">Follow the official channel for OpenWorlds videos and updates.</p>
-            <a href="https://www.youtube.com/@Official-OpenWorlds" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg border border-violet-200 bg-violet-50/40 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Visit YouTube</a>
+            <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg border border-violet-200 bg-violet-50/40 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Visit YouTube</a>
           </article>
         </div>
       </section>
