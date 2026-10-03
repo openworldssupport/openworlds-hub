@@ -91,8 +91,14 @@ export function CareerApplicationsPage() {
                   <div><h2 className="font-semibold">{application.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{application.fullName} · <a href={`mailto:${application.email}`} className="text-[#0066cc] hover:underline">{application.email}</a></p></div>
                   <time className="text-xs text-slate-500" dateTime={new Date(application.submittedAt).toISOString()}>{new Date(application.submittedAt).toLocaleString()}</time>
                 </div>
-                {application.experience && <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700"><strong>Experience:</strong> {application.experience}</p>}
-                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700"><strong>Interest:</strong> {application.motivation}</p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                  <p className="whitespace-pre-wrap"><strong>Experience:</strong> {application.experience}</p>
+                  <p className="whitespace-pre-wrap"><strong>Why this role:</strong> {application.motivation}</p>
+                  <p className="whitespace-pre-wrap"><strong>First weeks:</strong> {application.roleApproach}</p>
+                  <p className="whitespace-pre-wrap"><strong>Collaboration:</strong> {application.collaboration}</p>
+                  <p className="whitespace-pre-wrap"><strong>Availability:</strong> {application.availability}</p>
+                  {application.portfolio && <p className="whitespace-pre-wrap"><strong>Work samples:</strong> {application.portfolio}</p>}
+                </div>
                 <p className="mt-3 text-xs font-medium text-[#7651c9]">Voluntary · unpaid · {application.status}</p>
               </article>
             ))}
@@ -127,6 +133,10 @@ export function CareerApplicationGateway() {
         email: String(formData.get("email") ?? ""),
         experience: String(formData.get("experience") ?? ""),
         motivation: String(formData.get("motivation") ?? ""),
+        roleApproach: String(formData.get("roleApproach") ?? ""),
+        collaboration: String(formData.get("collaboration") ?? ""),
+        availability: String(formData.get("availability") ?? ""),
+        portfolio: String(formData.get("portfolio") ?? ""),
         voluntaryConsent: formData.get("voluntaryConsent") === "on",
       });
       setSubmitted(true);
@@ -160,7 +170,7 @@ export function CareerApplicationGateway() {
             <>
               <p className="mt-4 text-sm font-medium text-[#7651c9]">{role.branch.title.replace(/&/g, "and").replace(/\//g, " · ")}</p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Apply: {role.title}</h1>
-              <p className="mt-3 leading-7 text-slate-600">This is a voluntary, unpaid role. Your name, email, and answers will be saved for the OpenWorlds team to review. Don’t include passwords or sensitive personal details.</p>
+              <p className="mt-3 leading-7 text-slate-600">This is a voluntary, unpaid role. Your answers are saved for the OpenWorlds team to review. Don’t include passwords or sensitive personal details.</p>
               <form onSubmit={handleSubmit} className="mx-auto mt-7 max-w-2xl space-y-4 text-left">
                 <div className="space-y-2">
                   <label htmlFor="fullName" className="text-sm font-medium">Full name</label>
@@ -171,12 +181,31 @@ export function CareerApplicationGateway() {
                   <input id="email" name="email" type="email" required maxLength={254} autoComplete="email" className="h-11 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#7651c9]" />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="experience" className="text-sm font-medium">Relevant experience <span className="font-normal text-slate-500">(optional)</span></label>
-                  <Textarea id="experience" name="experience" maxLength={4000} rows={3} placeholder="Share relevant skills or projects." />
+                  <label htmlFor="experience" className="text-sm font-medium">What relevant skills, experience, or projects would you bring to this role?</label>
+                  <p className="text-xs text-slate-500">Mention tools, responsibilities, or outcomes related to this position.</p>
+                  <Textarea id="experience" name="experience" required minLength={20} maxLength={4000} rows={5} placeholder="Describe your relevant skills and experience (at least 20 characters)." />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="motivation" className="text-sm font-medium">Why are you interested in this role?</label>
-                  <Textarea id="motivation" name="motivation" required minLength={20} maxLength={4000} rows={4} placeholder="Tell us a little about your interest (at least 20 characters)." />
+                  <label htmlFor="motivation" className="text-sm font-medium">Why do you want to contribute to OpenWorlds in this role?</label>
+                  <Textarea id="motivation" name="motivation" required minLength={20} maxLength={4000} rows={4} placeholder="What interests you about this role and the project?" />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="roleApproach" className="text-sm font-medium">What would you focus on during your first few weeks?</label>
+                  <p className="text-xs text-slate-500">Share how you would learn the role, set priorities, and make progress.</p>
+                  <Textarea id="roleApproach" name="roleApproach" required minLength={20} maxLength={4000} rows={5} placeholder="Describe how you would get started (at least 20 characters)." />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="collaboration" className="text-sm font-medium">How do you work with a team, share updates, and handle feedback?</label>
+                  <Textarea id="collaboration" name="collaboration" required minLength={20} maxLength={4000} rows={4} placeholder="Tell us about your communication and collaboration style." />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="availability" className="text-sm font-medium">What is your general availability?</label>
+                  <p className="text-xs text-slate-500">A rough weekly estimate or preferred schedule is enough.</p>
+                  <Textarea id="availability" name="availability" required minLength={10} maxLength={1000} rows={2} placeholder="For example: a few hours on weekends." />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="portfolio" className="text-sm font-medium">Links to relevant work <span className="font-normal text-slate-500">(optional)</span></label>
+                  <Textarea id="portfolio" name="portfolio" maxLength={2000} rows={2} placeholder="Portfolio, project, writing, or code links." />
                 </div>
                 <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-3 text-sm leading-5 text-slate-700">
                   <input name="voluntaryConsent" type="checkbox" required className="mt-1 size-4 accent-[#0066cc]" />
