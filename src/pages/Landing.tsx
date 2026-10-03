@@ -1,75 +1,77 @@
-import { motion } from "framer-motion";
-import { ArrowRight, Globe2, Gamepad2, ShieldCheck } from "lucide-react";
+import { ArrowRight, ArrowDown, Globe2, Gamepad2 } from "lucide-react";
 import { Link } from "react-router";
 
 export default function Landing() {
   return (
-    <main className="min-h-screen bg-[#f5f7fb] text-slate-950">
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
-        <Link to="/" className="flex items-center gap-3" aria-label="OpenWorlds home">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-[#2468e8] text-white">
-            <Globe2 className="size-6" strokeWidth={1.8} />
-          </span>
-          <span className="text-sm font-bold tracking-[0.18em]">OPENWORLDS</span>
-        </Link>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Link to="/auth" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white">Log in</Link>
-          <Link to="/create-account" className="rounded-xl bg-[#2468e8] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d58cc]">Create account</Link>
-        </div>
+    <main className="min-h-screen bg-white text-slate-900">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-[#2870e8] text-white"><Globe2 className="size-5" /></span>
+            <span className="font-semibold tracking-tight">OpenWorlds</span>
+          </Link>
+          <div className="flex items-center gap-1 text-sm">
+            <a href="#home" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">Home</a>
+            <a href="#news" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">News</a>
+            <a href="#downloads" className="rounded-md px-3 py-2 text-slate-600 hover:bg-slate-100">Downloads</a>
+          </div>
+          <div className="ml-auto flex items-center gap-2 sm:ml-0">
+            <Link to="/auth" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Log in</Link>
+            <Link to="/create-account" className="rounded-lg bg-[#2870e8] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#1f5fc9]">Create account</Link>
+          </div>
+        </nav>
       </header>
 
-      <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-20 lg:grid-cols-[1fr_0.92fr] lg:px-12 lg:pb-28 lg:pt-24">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-3.5 py-2 text-xs font-semibold text-[#2468e8]">
-            <Gamepad2 className="size-4" /> THE COMPANION FOR OPENWORLDS PLAYERS
+      <section id="home" className="scroll-mt-20 border-b border-slate-100">
+        <div className="mx-auto grid min-h-[500px] max-w-6xl items-center gap-12 px-5 py-16 sm:px-8 md:grid-cols-2 md:py-24">
+          <div>
+            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#2870e8]"><Gamepad2 className="size-4" /> The OpenWorlds player website</p>
+            <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Welcome to OpenWorlds</h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Check game news and find official downloads. Use your game account to sign in when shared login is ready.</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#2870e8] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
+              <a href="#news" className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">See updates <ArrowDown className="size-4" /></a>
+            </div>
+            <p className="mt-4 text-sm text-slate-500">No separate website account is needed.</p>
           </div>
-          <h1 className="max-w-2xl text-[clamp(3rem,7vw,5.8rem)] font-semibold leading-[0.98] tracking-[-0.065em]">
-            One account.<br />Your <span className="text-[#2468e8]">OpenWorlds.</span>
-          </h1>
-          <p className="mt-7 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-            Your place for OpenWorlds game news and downloads. Sign in with the account you already use in the game — no separate website account.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link to="/auth" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#2468e8] px-6 text-sm font-semibold text-white transition hover:bg-[#1d58cc]">
-              Log in to OpenWorlds <ArrowRight className="size-4" />
-            </Link>
-            <Link to="/create-account" className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
-              Create an account in game
-            </Link>
-          </div>
-          <div className="mt-7 flex items-start gap-2.5 text-sm leading-6 text-slate-500">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#2468e8]" />
-            <span>Shared account sign-in is being prepared. We won’t ask you to create a duplicate account here.</span>
-          </div>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.55, delay: 0.08 }} className="relative mx-auto w-full max-w-[550px]">
-          <div className="absolute -right-5 -top-5 size-28 rounded-full bg-[#f5c84c]/70 blur-2xl" />
-          <div className="relative overflow-hidden rounded-[30px] bg-[#2468e8] p-6 text-white sm:p-8">
-            <div className="absolute -right-20 -top-20 size-72 rounded-full border border-white/10" />
-            <div className="absolute -right-5 -top-5 size-48 rounded-full border border-white/10" />
-            <div className="relative flex min-h-[320px] flex-col justify-between sm:min-h-[390px]">
-              <div className="flex items-center justify-between">
-                <div className="flex size-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10"><Globe2 className="size-7" /></div>
-                <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-semibold tracking-[0.16em] text-blue-50">GAME ↔ WEBSITE</span>
-              </div>
-              <div className="mx-auto flex size-44 items-center justify-center rounded-full border border-white/25 bg-white/[0.07] shadow-[0_0_0_22px_rgba(255,255,255,0.035)] sm:size-52">
-                <Globe2 className="size-32 text-white sm:size-40" strokeWidth={0.9} />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-blue-100">The official web companion</p>
-                <p className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">One OpenWorlds identity.</p>
-              </div>
+          <div className="flex min-h-[260px] items-center justify-center rounded-2xl bg-[#2870e8] p-8 text-white md:min-h-[340px]">
+            <div className="text-center">
+              <Globe2 className="mx-auto size-24 sm:size-32" strokeWidth={1.1} />
+              <p className="mt-5 text-lg font-medium">One OpenWorlds account</p>
+              <p className="mt-1 text-sm text-blue-100">For the game and its website</p>
             </div>
           </div>
-          <p className="mt-4 text-center text-xs text-slate-400">Connected to the game account service when it’s ready.</p>
-        </motion.div>
+        </div>
       </section>
 
-      <footer className="border-t border-slate-200/80 bg-white/60">
-        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
-          <span>OPENWORLDS · OFFICIAL GAME COMPANION</span>
-          <span>One OpenWorlds account. One OpenWorlds community.</span>
+      <section id="news" className="scroll-mt-20 border-b border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div><p className="text-sm font-medium text-[#2870e8]">Updates</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Game news</h2></div>
+            <Link to="/auth" className="text-sm font-medium text-[#2870e8] hover:underline">Log in to your player home <ArrowRight className="ml-1 inline size-4" /></Link>
+          </div>
+          <div className="mt-7 rounded-xl border border-slate-200 bg-white p-6">
+            <p className="font-medium">No news posted yet</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">OpenWorlds announcements will appear here once an official news feed is available.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="downloads" className="scroll-mt-20">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+          <p className="text-sm font-medium text-[#2870e8]">Play OpenWorlds</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Downloads</h2>
+          <div className="mt-7 flex flex-col justify-between gap-5 rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center">
+            <div><p className="font-medium">Official downloads</p><p className="mt-1 max-w-xl text-sm leading-6 text-slate-600">Download links and supported platforms haven’t been published here yet. We’ll only list confirmed versions.</p></div>
+            <span className="w-fit shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800">Not available yet</span>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-200">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
+          <span>OpenWorlds</span>
+          <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
         </div>
       </footer>
     </main>
