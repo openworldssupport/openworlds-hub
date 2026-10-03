@@ -6,18 +6,18 @@ const pages = {
   about: {
     eyebrow: "About Open Worlds",
     title: "A place to make and share worlds",
-    description: "Open Worlds is a user-generated content platform where people can create experiences and share them with others.",
+    description: "Open Worlds is a place where people can make and share their own worlds.",
     icon: BookOpen,
     sections: [
-      { title: "Create", text: "Build your own content and bring your ideas into Open Worlds." },
-      { title: "Explore", text: "Discover experiences made by the Open Worlds community." },
-      { title: "Share", text: "Publish your creations and invite others to take part." },
+      { title: "Create", text: "Bring your ideas to life in Open Worlds." },
+      { title: "Explore", text: "Explore worlds made by the OpenWorlds community." },
+      { title: "Share", text: "Share what you make and invite others to join in." },
     ],
   },
   community: {
     eyebrow: "Community",
     title: "Make something together",
-    description: "Open Worlds is for people who enjoy building, sharing, and exploring user-created experiences.",
+    description: "Open Worlds is for people who enjoy making, sharing, and exploring worlds together.",
     icon: Users,
     sections: [
       { title: "Be respectful", text: "Treat other players and creators with respect. Harassment and hateful behavior are not welcome." },

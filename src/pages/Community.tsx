@@ -14,7 +14,7 @@ export default function Community() {
       <SiteNav />
       <section className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-medium text-blue-100">OpenWorlds UGC Platform</p>
+          <p className="text-sm font-medium text-blue-100">The OpenWorlds community</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Join our community</h1>
           <p className="mt-4 max-w-2xl text-lg leading-7 text-blue-50">Connect with creators and players helping shape OpenWorlds.</p>
         </div>

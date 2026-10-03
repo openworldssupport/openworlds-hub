@@ -17,7 +17,7 @@ export default function Careers() {
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-medium text-blue-100">Open Worlds · Careers</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Join Open Worlds</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Help build a community-driven UGC platform where creators and players shape the future together. Browse branches and review each role before applying.</p>
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Help build a community where people can create and explore new worlds together. Browse branches and review each role before applying.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#browse" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Browse positions</a>
             <a href="#how-to-apply" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">How to apply</a>
@@ -36,7 +36,7 @@ export default function Careers() {
         <div>
           <div className="mb-8 rounded-xl border border-violet-100 bg-gradient-to-r from-blue-50 via-white to-amber-50 p-5 sm:p-6">
             <h2 className="font-semibold">What we’re building</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">OpenWorlds is a platform in active development where creators and communities collaborate to build user-generated worlds. The roles listed here are voluntary contributor roles. Review the details for each position before applying.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">OpenWorlds is being built for people who want to create and explore worlds together. The roles listed here are voluntary contributor roles. Review the details for each position before applying.</p>
           </div>
 
           <div id="browse" className="space-y-10 scroll-mt-24">

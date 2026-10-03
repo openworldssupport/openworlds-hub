@@ -7,7 +7,7 @@ const paths = [
   { title: "Frontend", description: "Explore HTML, CSS, JavaScript, responsive design, and user interfaces.", icon: Palette },
   { title: "Backend", description: "Learn APIs, databases, authentication, server logic, and app architecture.", icon: Database },
   { title: "Full Stack", description: "Connect frontend and backend to build complete products.", icon: GitBranch },
-  { title: "Game Dev", description: "Build game logic, interactivity, UGC systems, and creator tools.", icon: Gamepad2 },
+  { title: "Game Making", description: "Learn how games work and how to make your own.", icon: Gamepad2 },
   { title: "AI & Tools", description: "Explore AI-assisted development, automation, and modern coding workflows.", icon: Brain },
 ];
 
@@ -20,7 +20,7 @@ const lessons = [
   { category: "backend", label: "Backend", title: "Databases & SQL", description: "Learn tables, relationships, queries, and data models.", level: "Intermediate", count: 8 },
   { category: "backend", label: "Backend", title: "Authentication & Security", description: "Understand login, sessions, authorization, and safe app design.", level: "Intermediate", count: 6 },
   { category: "games", label: "Games", title: "Game Logic & Interactivity", description: "Explore movement, collisions, game states, and event systems.", level: "Beginner", count: 7 },
-  { category: "games", label: "Games", title: "UGC & Creator Systems", description: "Learn how user-generated systems are built and moderated.", level: "Intermediate", count: 6 },
+  { category: "games", label: "Games", title: "Building Worlds Together", description: "Learn how shared worlds are made and kept welcoming.", level: "Intermediate", count: 6 },
   { category: "ai", label: "AI", title: "AI for Developers", description: "Use AI tools for coding, testing, automation, and problem solving.", level: "Beginner", count: 5 },
   { category: "ai", label: "AI", title: "Prompt Engineering Basics", description: "Structure prompts and get more useful responses from AI tools.", level: "Beginner", count: 4 },
   { category: "code", label: "Code", title: "Git & GitHub Essentials", description: "Learn version control, branches, collaboration, and pull requests.", level: "Beginner", count: 5 },
@@ -54,12 +54,12 @@ export default function Learning() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium"><GraduationCap className="size-4" /> Learning Center</div>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">Learn coding for everyone.</h1>
-            <p className="mt-4 max-w-2xl leading-7 text-blue-50">OpenWorlds Learning is a beginner-friendly guide to coding, web development, game logic, backend systems, AI tools, and the skills behind modern digital products.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-blue-50">OpenWorlds Learning is a beginner-friendly guide to coding, websites, games, online services, and useful AI tools.</p>
           </div>
           <aside className="rounded-xl border border-white/20 bg-white/10 p-5 sm:p-6">
             <h2 className="font-semibold">What you can explore</h2>
             <ul className="mt-4 grid gap-3 text-sm text-blue-50">
-              {["HTML, CSS, and JavaScript", "Frontend, backend, and full stack", "Game development and UGC systems", "AI tools, APIs, and deployment"].map((item) => <li key={item} className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{item}</li>)}
+              {["HTML, CSS, and JavaScript", "Frontend, backend, and full stack", "Making games and shared worlds", "AI tools, APIs, and deployment"].map((item) => <li key={item} className="flex items-start gap-2"><ShieldCheck className="mt-0.5 size-4 shrink-0" />{item}</li>)}
             </ul>
           </aside>
         </div>

@@ -19,9 +19,9 @@ export default function Landing() {
       <section id="home" className="scroll-mt-20 border-b border-slate-100">
         <div className="mx-auto grid min-h-[500px] max-w-6xl items-center gap-12 px-5 py-16 sm:px-8 md:grid-cols-2 md:py-24">
           <div>
-            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#7651c9]"><Gamepad2 className="size-4" /> The Open Worlds UGC platform</p>
+            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#7651c9]"><Gamepad2 className="size-4" /> The Open Worlds community</p>
             <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Create, share, explore.</h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Open Worlds is a user-generated content platform where creators and communities build worlds together.</p>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Open Worlds is a place to make, share, and explore worlds with other people.</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
               <a href="#news" className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">See updates <ArrowDown className="size-4" /></a>
@@ -41,9 +41,9 @@ export default function Landing() {
       <section id="about" className="scroll-mt-20 border-b border-slate-100 border-t-4 border-t-[#7651c9]">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <p className="text-sm font-medium text-[#7651c9]">About OpenWorlds</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">A platform for creators and communities</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">A place to make and share worlds</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <p className="leading-7 text-slate-600">OpenWorlds is a user-generated content platform designed for creators and communities. It brings people together to make, publish, and explore shared experiences.</p>
+            <p className="leading-7 text-slate-600">OpenWorlds brings people together to create, share, and explore worlds.</p>
             <p className="leading-7 text-slate-600">Our goal is to make it easier for people to bring creative ideas to life. The website is a place to learn about the project and stay up to date.</p>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function Landing() {
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <article className="rounded-xl border border-slate-200 bg-white p-5"><Code2 className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">Code foundations</h3><p className="mt-2 text-sm leading-6 text-slate-600">An introduction to web and software development for beginners.</p></article>
-            <article className="rounded-xl border border-slate-200 bg-white p-5"><Gamepad2 className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">UGC design</h3><p className="mt-2 text-sm leading-6 text-slate-600">Ideas for gameplay, creator tools, and player-friendly systems.</p></article>
+            <article className="rounded-xl border border-slate-200 bg-white p-5"><Gamepad2 className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">Game Design</h3><p className="mt-2 text-sm leading-6 text-slate-600">Ideas for making fun games and tools.</p></article>
             <article className="rounded-xl border border-slate-200 bg-white p-5"><Users className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">Community growth</h3><p className="mt-2 text-sm leading-6 text-slate-600">Ways to welcome people and build creative communities.</p></article>
           </div>
           <p className="mt-5 text-sm text-slate-500">Information only for now. Lessons and progress tracking are not available.</p>
