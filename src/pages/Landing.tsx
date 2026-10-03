@@ -40,7 +40,7 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-14">
           <p className="text-sm font-medium text-[#7651c9]">Contact</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">Get in touch</h2>
-          <a href="mailto:opwnworldssupport@gmail.com" className="mt-4 inline-flex items-center gap-2 text-sm text-[#2870e8] hover:underline"><Mail className="size-4" /> opwnworldssupport@gmail.com</a>
+          <a href="mailto:openworldssupport@gmail.com" className="mt-4 inline-flex items-center gap-2 text-sm text-[#2870e8] hover:underline"><Mail className="size-4" /> openworldssupport@gmail.com</a>
         </div>
       </section>
 
