@@ -10,9 +10,9 @@ export default function Landing() {
       <section id="home" className="scroll-mt-20 border-b border-slate-100">
         <div className="mx-auto grid min-h-[500px] max-w-6xl items-center gap-12 px-5 py-16 sm:px-8 md:grid-cols-2 md:py-24">
           <div>
-            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#2870e8]"><Gamepad2 className="size-4" /> The OpenWorlds player website</p>
-            <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Welcome to OpenWorlds</h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Check game news and find official downloads. Use your game account to sign in when shared login is ready.</p>
+            <p className="mb-4 flex items-center gap-2 text-sm font-medium text-[#2870e8]"><Gamepad2 className="size-4" /> The Open Worlds UGC platform</p>
+            <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Create, share, explore.</h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Open Worlds is a user-generated content platform where creators and communities build worlds together.</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#2870e8] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
               <a href="#news" className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">See updates <ArrowDown className="size-4" /></a>
@@ -22,8 +22,8 @@ export default function Landing() {
           <div className="flex min-h-[260px] items-center justify-center rounded-2xl bg-[#2870e8] p-8 text-white md:min-h-[340px]">
             <div className="text-center">
               <Globe2 className="mx-auto size-24 sm:size-32" strokeWidth={1.1} />
-              <p className="mt-5 text-lg font-medium">One OpenWorlds account</p>
-              <p className="mt-1 text-sm text-blue-100">For the game and its website</p>
+              <p className="mt-5 text-lg font-medium">Made by the community</p>
+              <p className="mt-1 text-sm text-blue-100">Worlds shaped by creators</p>
             </div>
           </div>
         </div>
@@ -55,8 +55,12 @@ export default function Landing() {
 
       <footer className="border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
-          <span>OpenWorlds © 2026</span>
-          <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
+          <span>OpenWorlds © 2026. All rights reserved.</span>
+          <div className="flex gap-4">
+            <Link to="/careers" className="hover:text-slate-900">Careers</Link>
+            <Link to="/community" className="hover:text-slate-900">Community</Link>
+            <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
+          </div>
         </div>
       </footer>
     </main>
