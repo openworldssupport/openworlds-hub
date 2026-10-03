@@ -1,21 +1,11 @@
 import { SiteNav } from "@/components/SiteNav";
-import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { ArrowDownToLine, ArrowUpRight, Gamepad2, Globe2, Megaphone, ShieldCheck } from "lucide-react";
-import { useNavigate } from "react-router";
 
 export default function Dashboard() {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <SiteNav onSignOut={handleSignOut} />
+      <SiteNav />
 
       <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12 lg:px-12">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>

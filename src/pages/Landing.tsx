@@ -1,4 +1,4 @@
-import { ArrowRight, Globe2, Gamepad2, Mail } from "lucide-react";
+import { Globe2, Gamepad2, Mail } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 
@@ -14,7 +14,6 @@ export default function Landing() {
             <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">Create, share, explore.</h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">Open Worlds is a place to make, share, and explore worlds with other people.</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/auth" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Log in <ArrowRight className="size-4" /></Link>
               <Link to="/community" className="inline-flex h-11 items-center rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">Join the community</Link>
             </div>
           </div>

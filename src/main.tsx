@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/sonner";
-import { RequireAuth } from "@/components/RequireAuth";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -10,8 +9,6 @@ import "./index.css";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const CreateAccountPage = lazy(() => import("./pages/Auth.tsx"));
 const News = lazy(() => import("./pages/News.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
@@ -20,7 +17,6 @@ const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
 const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
 const CareerApplicationsPage = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -138,19 +134,6 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
               <Route path="/applications" element={<CareerApplicationsPage />} />
-              <Route
-                path="/auth"
-                element={<AuthPage />}
-              />
-              <Route path="/create-account" element={<CreateAccountPage mode="create" />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
