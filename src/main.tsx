@@ -14,7 +14,8 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const CreateAccountPage = lazy(() => import("./pages/Auth.tsx"));
 const News = lazy(() => import("./pages/News.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
-const PlatformInfoPage = lazy(() => import("./pages/PlatformInfo.tsx"));
+const Community = lazy(() => import("./pages/Community.tsx"));
+const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
 const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
@@ -128,13 +129,14 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
               <Route path="/downloads" element={<Downloads />} />
-              <Route path="/about" element={<PlatformInfoPage page="about" />} />
-              <Route path="/community" element={<PlatformInfoPage page="community" />} />
+              <Route path="/about" element={<Landing />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/learning" element={<Learning />} />
+              <Route path="/contact" element={<Landing />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
               <Route path="/applications" element={<CareerApplicationGateway />} />
-              <Route path="/contact" element={<PlatformInfoPage page="contact" />} />
               <Route
                 path="/auth"
                 element={<AuthPage />}

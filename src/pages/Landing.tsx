@@ -1,8 +1,17 @@
-import { ArrowRight, ArrowDown, Globe2, Gamepad2 } from "lucide-react";
+import { ArrowRight, ArrowDown, Globe2, Gamepad2, Code2, Users, Mail } from "lucide-react";
+import type { FormEvent } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 
 export default function Landing() {
+  const handleContactSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const subject = encodeURIComponent(`OpenWorlds message from ${formData.get("name")}`);
+    const body = encodeURIComponent(`${formData.get("message")}\n\nReply to: ${formData.get("email")}`);
+    window.location.href = `mailto:opwnworldssupport@gmail.com?subject=${subject}&body=${body}`;
+  };
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
@@ -29,16 +38,43 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="news" className="scroll-mt-20 border-b border-slate-100 bg-slate-50">
+      <section id="about" className="scroll-mt-20 border-b border-slate-100">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+          <p className="text-sm font-medium text-[#2870e8]">About OpenWorlds</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">A platform for creators and communities</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <p className="leading-7 text-slate-600">OpenWorlds is a user-generated content platform designed for creators and communities. It brings people together to make, publish, and explore shared experiences.</p>
+            <p className="leading-7 text-slate-600">Our goal is to make it easier for people to bring creative ideas to life. The website is a place to learn about the project and stay up to date.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="learning" className="scroll-mt-20 border-b border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mb-7">
+            <p className="text-sm font-medium text-[#2870e8]">Learning Center</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Learn to build, create, and ship</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-xl border border-slate-200 bg-white p-5"><Code2 className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">Code foundations</h3><p className="mt-2 text-sm leading-6 text-slate-600">An introduction to web and software development for beginners.</p></article>
+            <article className="rounded-xl border border-slate-200 bg-white p-5"><Gamepad2 className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">UGC design</h3><p className="mt-2 text-sm leading-6 text-slate-600">Ideas for gameplay, creator tools, and player-friendly systems.</p></article>
+            <article className="rounded-xl border border-slate-200 bg-white p-5"><Users className="size-6 text-[#2870e8]" /><h3 className="mt-4 font-semibold">Community growth</h3><p className="mt-2 text-sm leading-6 text-slate-600">Ways to welcome people and build creative communities.</p></article>
+          </div>
+          <p className="mt-5 text-sm text-slate-500">Information only for now. Lessons and progress tracking are not available.</p>
+        </div>
+      </section>
+
+      <section id="news" className="scroll-mt-20 border-b border-slate-100 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div><p className="text-sm font-medium text-[#2870e8]">Updates</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Game news</h2></div>
+            <div><p className="text-sm font-medium text-[#2870e8]">Updates</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds news</h2></div>
             <Link to="/auth" className="text-sm font-medium text-[#2870e8] hover:underline">Log in to your player home <ArrowRight className="ml-1 inline size-4" /></Link>
           </div>
           <div className="mt-7 rounded-xl border border-slate-200 bg-white p-6">
             <p className="font-medium">No news posted yet</p>
-            <p className="mt-1 text-sm leading-6 text-slate-600">OpenWorlds announcements will appear here once an official news feed is available.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Announcements will appear here once an official news feed is available.</p>
           </div>
+          <Link to="/learning" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#2870e8] hover:underline">Visit the Learning Center <ArrowRight className="size-4" /></Link>
         </div>
       </section>
 
@@ -53,12 +89,37 @@ export default function Landing() {
         </div>
       </section>
 
+      <section id="contact" className="scroll-mt-20 border-t border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <p className="text-sm font-medium text-[#2870e8]">Contact</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Get in touch</h2>
+              <div className="mt-6 flex items-start gap-3">
+                <Mail className="mt-1 size-5 text-[#2870e8]" />
+                <div><p className="font-medium">Email</p><a href="mailto:opwnworldssupport@gmail.com" className="mt-1 inline-block text-sm text-[#2870e8] hover:underline">opwnworldssupport@gmail.com</a></div>
+              </div>
+            </div>
+            <form onSubmit={handleContactSubmit} className="grid gap-4">
+              <p className="text-sm leading-6 text-slate-600">Send a message using your email app. The message is not submitted to or stored by this website.</p>
+              <label className="grid gap-1.5 text-sm font-medium">Your name<input name="name" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#2870e8]" /></label>
+              <label className="grid gap-1.5 text-sm font-medium">Your email<input name="email" type="email" required className="h-11 rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-[#2870e8]" /></label>
+              <label className="grid gap-1.5 text-sm font-medium">Your message<textarea name="message" required rows={5} className="rounded-lg border border-slate-200 p-3 font-normal outline-none focus:border-[#2870e8]" /></label>
+              <button type="submit" className="inline-flex h-11 w-fit items-center rounded-lg bg-[#2870e8] px-5 text-sm font-medium text-white hover:bg-[#1f5fc9]">Open email app</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <footer className="border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
           <span>OpenWorlds © 2026. All rights reserved.</span>
           <div className="flex gap-4">
             <Link to="/careers" className="hover:text-slate-900">Careers</Link>
             <Link to="/community" className="hover:text-slate-900">Community</Link>
+            <Link to="/learning" className="hover:text-slate-900">Learning</Link>
+            <a href="https://discord.gg/TRJ8ZmBKDS" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Discord</a>
+            <a href="https://www.youtube.com/@Official-OpenWorlds" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">YouTube</a>
             <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
           </div>
         </div>
