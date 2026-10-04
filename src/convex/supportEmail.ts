@@ -111,8 +111,8 @@ async function sendViaVly({
     });
 
     if (!response.ok) {
-      const detail = await response.text();
-      console.error("[support] Email integration rejected the notification:", response.status, detail);
+      // Log only the status: the provider body can echo the recipient address.
+      console.error("[support] Email integration rejected the notification with status", response.status);
       return { sent: false, reason: "provider-error" as const };
     }
 
@@ -154,8 +154,8 @@ async function sendViaResend({
     });
 
     if (!response.ok) {
-      const detail = await response.text();
-      console.error("[support] Resend rejected the notification email:", response.status, detail);
+      // Log only the status: the provider body can echo the recipient address.
+      console.error("[support] Resend rejected the notification email with status", response.status);
       return { sent: false, reason: "provider-error" as const };
     }
 

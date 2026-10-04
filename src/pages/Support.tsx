@@ -129,6 +129,10 @@ export default function Support() {
                   <span className="font-medium text-slate-900">Stay safe</span>
                   <p className="mt-1 leading-6">Never include your password or payment details in a ticket.</p>
                 </li>
+                <li className="rounded-lg border border-violet-200 bg-violet-50/50 p-4">
+                  <span className="font-medium text-slate-900">Your details stay private</span>
+                  <p className="mt-1 leading-6">Only the OpenWorlds support team can read your ticket. We use your email to reply to you and never sell or share your details with anyone else.</p>
+                </li>
               </ul>
             </div>
 

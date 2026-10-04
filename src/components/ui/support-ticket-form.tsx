@@ -132,6 +132,11 @@ export function SupportTicketForm() {
         </p>
       )}
 
+      <p className="text-xs leading-5 text-slate-500">
+        Your name, email, username, and message are sent only to the OpenWorlds support team so we can
+        reply to you. We never sell or share them. Do not include passwords or payment details.
+      </p>
+
       <Button type="submit" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? "Opening ticket..." : "Open support ticket"}
       </Button>
