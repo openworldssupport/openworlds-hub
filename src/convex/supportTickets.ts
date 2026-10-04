@@ -4,6 +4,16 @@ import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 import { isAdmin, requireAdmin } from "./admin";
 
+/** Generate a short, unambiguous ticket reference (same version as the UUID). */
+function createId(): string {
+  const randomBytes = new Uint8Array(16);
+  crypto.getRandomValues(randomBytes);
+  const hex = Array.from(randomBytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return hex.substring(0, 16).toUpperCase();
+}
+
 /** Unambiguous alphabet (no 0/O/1/I/L) for human-readable ticket codes. */
 const REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -103,7 +113,7 @@ export const create = mutation({
       throw new Error("Too many support tickets from this email recently. Please try again later.");
     }
 
-    const reference = generateReference();
+    const reference = createId();
     const submittedAt = Date.now();
     await ctx.db.insert("supportTickets", {
       reference,
@@ -164,6 +174,7 @@ export const lookup = query({
   },
 });
 
+/** Team-only: record that a reply was sent to the contacting user. */
 /** Team-only: record that a reply was sent to the contacting user. */
 export const markResponded = mutation({
   args: { ticketId: v.id("supportTickets") },
