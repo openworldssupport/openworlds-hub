@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { supportReasons } from "@/lib/support";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function SupportTicketForm() {
@@ -30,6 +32,7 @@ export function SupportTicketForm() {
         reason: String(payload.get("reason") ?? ""),
         message: String(payload.get("message") ?? ""),
         honeypot: String(payload.get("company_website") ?? ""),
+        privacyAndTermsAccepted: payload.get("privacyAndTerms") === "on",
       });
       setReference(result?.reference ?? null);
       setStatus("sent");
@@ -159,6 +162,27 @@ export function SupportTicketForm() {
         Your name, email, username, and message are sent only to the OpenWorlds support team so we can
         reply to you. We never sell or share them. Do not include passwords or payment details.
       </p>
+
+      <div className="space-y-3 pt-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <label
+            className="flex items-center gap-2 text-sm font-medium text-slate-700"
+            htmlFor="privacy-and-terms"
+          >
+            <Checkbox
+              id="privacy-and-terms"
+              name="privacyAndTerms"
+              required
+              value="on"
+            />
+            I agree to the OpenWorlds <Link to="/privacy" className="font-medium text-[#0066cc] hover:underline">Privacy Policy</Link> and <Link to="/terms" className="font-medium text-[#0066cc] hover:underline">Terms of Service</Link>.
+          </label>
+        </div>
+        <p className="text-xs leading-5 text-slate-500">
+          We use your email to reply to you and never sell or share your details. You can withdraw or
+          adjust your consent anytime using support@openworlds.dk.
+        </p>
+      </div>
 
       <Button type="submit" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? "Opening ticket..." : "Open support ticket"}
