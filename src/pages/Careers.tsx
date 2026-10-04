@@ -14,7 +14,7 @@ export default function Careers() {
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">Help build OpenWorlds through a voluntary, unpaid contributor role. Browse departments and apply for a position that fits your skills.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#browse" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Browse positions</a>
-            <a href="#how-to-apply" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">How to apply</a>
+            <a href="#how-to-apply" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Contact the team</a>
           </div>
         </div>
       </section>

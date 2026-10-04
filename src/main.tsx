@@ -12,6 +12,9 @@ const Landing = lazy(() => import("./pages/Landing.tsx"));
 const News = lazy(() => import("./pages/News.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
+const About = lazy(() => import("./pages/About.tsx"));
+const Contact = lazy(() => import("./pages/Contact.tsx"));
+const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
@@ -126,10 +129,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
               <Route path="/downloads" element={<Downloads />} />
-              <Route path="/about" element={<Landing />} />
+              <Route path="/about" element={<About />} />
               <Route path="/community" element={<Community />} />
               <Route path="/learning" element={<Learning />} />
-              <Route path="/contact" element={<Landing />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />

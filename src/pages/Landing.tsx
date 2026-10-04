@@ -33,15 +33,13 @@ export default function Landing() {
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">A place to make and share worlds</h2>
           <p className="mt-5 max-w-3xl leading-7 text-slate-600">OpenWorlds brings people together to create, share, and explore worlds.</p>
         </div>
-      </section>
-
-      <section id="contact" className="scroll-mt-20 border-t border-slate-100 bg-slate-50">
-        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-14">
-          <p className="text-sm font-medium text-[#7651c9]">Contact</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">Get in touch</h2>
-          <a href="mailto:support@openworlds.dk" className="mt-4 inline-flex items-center gap-2 text-sm text-[#2870e8] hover:underline"><Mail className="size-4" /> support@openworlds.dk</a>
-        </div>
-      </section>
+      </section>        <section id="contact" className="scroll-mt-20 border-t border-slate-100 bg-slate-50">
+          <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-14">
+            <p className="text-sm font-medium text-[#7651c9]">Contact</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Get in touch</h2>
+            <a href="/contact#contact" className="mt-4 inline-flex items-center gap-2 text-sm text-[#2870e8] hover:underline"><Mail className="size-4" /> support@openworlds.dk</a>
+          </div>
+        </section>
 
       <footer className="border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
