@@ -119,7 +119,7 @@ export function ContactForm() {
           )}
 
           <Button type="submit" className="w-full" disabled={status === "sending"}>
-            {status === "sending" ? "Sending…” : "Send message"}
+            {status === "sending" ? "Sending..." : "Send message"}
           </Button>
         </>
       )}

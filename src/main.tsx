@@ -14,7 +14,6 @@ const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
-const Contact = lazy(() => import("./pages/Contact.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
