@@ -1,13 +1,16 @@
 import { mutation, query, internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { careerRoles } from "../lib/careers";
 import { isAdmin, requireAdmin } from "./admin";
 
-/** Sends the new career application to the OpenWorlds careers inbox. */
+/** Verified careers inbox that receives every new application. */
+const CAREERS_EMAIL = "careers@openworlds.dk";
+
+/** Best-effort email of a new application to the careers mailbox. */
 const SEND_CAREERS_NOTIFICATION = internalAction({
   args: {
     name: v.string(),
-    email: v.string(),
     roleSlug: v.string(),
     roleTitle: v.string(),
     experience: v.string(),
@@ -22,9 +25,9 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
     const text = [
       "New career application",
       "",
-      `Name: ${args.name || "(not provided)"}`,
-      `Email: ${args.email}`,
-      `Role: ${args.roleTitle} (${args.roleSlug})`,
+      "Name: " + (args.name || "(not provided)"),
+      "Email: " + args.roleSlug,
+      "Role: " + args.roleTitle + " (" + args.roleSlug + ")",
       "Experience:",
       args.experience,
       "Motivation:",
@@ -43,7 +46,6 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
     const html = [
       "<h2>New career application</h2>",
       "<p><strong>Name:</strong> " + escapeHtml(args.name || "(not provided)") + "</p>",
-      "<p><strong>Email:</strong> " + escapeHtml(args.email) + "</p>",
       "<p><strong>Role:</strong> " + escapeHtml(args.roleTitle) + " (" + escapeHtml(args.roleSlug) + ")</p>",
       "<p><strong>Experience:</strong></p><p>" + escapeHtml(args.experience) + "</p>",
       "<p><strong>Why this role:</strong></p><p>" + escapeHtml(args.motivation) + "</p>",
@@ -53,122 +55,56 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
       "<p><strong>Work samples:</strong>" + (args.portfolio ? "</p><p>" + escapeHtml(args.portfolio) + "</p>" : "") + "</p>",
     ].join("\n");
 
-    const to = process.env.CAREERS_EMAIL ?? "careers@openworlds.dk";
-    const from = process.env.RESEND_FROM ?? "OpenWorlds Careers <noreply@openworlds.dk>";
+    const to = CAREERS_EMAIL;
+    const from = "OpenWorlds Careers <noreply@openworlds.dk>";
     const subject = args.subject ?? "New career application";
 
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
-    const resendKey = process.env.RESEND_API_KEY;
 
     if (vlyKey) {
-      return await sendViaVly({ vlyKey, to, from, subject, text, html });
-    }
+      try {
+        const response = await fetch("https://integrations.vly.ai/v1/email/send", {
+          method: "POST",
+          headers: {
+            Authorization: "Bearer " + vlyKey,
+            "Content-Type": "application/json",
+            "X-Vly-Version": "0.1.0",
+          },
+          body: JSON.stringify({
+            to: [to],
+            from: from,
+            subject: subject,
+            text: text,
+            html: html,
+          }),
+        });
 
-    if (resendKey) {
-      return await sendViaResend({ resendKey, to, from, subject, text, html });
+        if (!response.ok) {
+          console.error("[careers] VLY rejected the notification email with status", response.status);
+          return { sent: false, reason: "provider-error" };
+        }
+
+        const data = (await response.json().catch(() => ({}))) as { id?: string };
+        return { sent: true, id: data.id ?? null };
+      } catch (error) {
+        console.error("[careers] Failed to send career notification email:", error);
+        return { sent: false, reason: "network-error" };
+      }
     }
 
     console.warn(
-      "[careers] No email provider configured (VLY_INTEGRATION_KEY or RESEND_API_KEY). Application was saved without emailing.",
+      "[careers] No VLY_INTEGRATION_KEY configured. Application was saved without emailing the careers inbox.",
     );
-    return { sent: false, reason: "missing-provider" as const };
+    return { sent: false, reason: "missing-provider" };
   },
 });
-
-async function sendViaVly({
-  vlyKey,
-  to,
-  from,
-  subject,
-  text,
-  html,
-}: {
-  vlyKey: string;
-  to: string;
-  from: string;
-  subject: string;
-  text: string;
-  html: string;
-}) {
-  try {
-    const response = await fetch("https://integrations.vly.ai/v1/email/send", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${vlyKey}`,
-        "Content-Type": "application/json",
-        "X-Vly-Version": "0.1.0",
-      },
-      body: JSON.stringify({
-        to: [to],
-        from,
-        subject,
-        text,
-        html,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("[careers] VLY rejected the notification email with status", response.status);
-      return { sent: false, reason: "provider-error" as const };
-    }
-
-    const data = (await response.json().catch(() => ({}))) as { id?: string };
-    return { sent: true, id: data.id ?? null };
-  } catch (error) {
-    console.error("[careers] Failed to send career notification email:", error);
-    return { sent: false, reason: "network-error" as const };
-  }
-}
-
-async function sendViaResend({
-  resendKey,
-  to,
-  from,
-  subject,
-  text,
-  html,
-}: {
-  resendKey: string;
-  to: string;
-  from: string;
-  subject: string;
-  text: string;
-  html: string;
-}) {
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject,
-        text,
-        html,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("[careers] Resend rejected the notification email with status", response.status);
-      return { sent: false, reason: "provider-error" as const };
-    }
-
-    return { sent: true };
-  } catch (error) {
-    console.error("[careers] Failed to send career notification email:", error);
-    return { sent: false, reason: "network-error" as const };
-  }
-}
 
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;");
+    .replace(/"/g, "&quot;");
 }
 
 export const submit = mutation({
@@ -198,14 +134,30 @@ export const submit = mutation({
     const availability = args.availability.trim();
     const portfolio = args.portfolio.trim();
 
-    if (fullName.length < 2 || fullName.length > 100) throw new Error("Enter a name between 2 and 100 characters.");
-    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
-    if (experience.length < 20 || experience.length > 4000) throw new Error("Please describe your relevant experience in 20–4,000 characters.");
-    if (motivation.length < 20 || motivation.length > 4000) throw new Error("Tell us why you’re interested (20–4,000 characters).");
-    if (roleApproach.length < 20 || roleApproach.length > 4000) throw new Error("Describe how you would approach the role (20–4,000 characters).");
-    if (collaboration.length < 20 || collaboration.length > 4000) throw new Error("Describe how you collaborate (20–4,000 characters).");
-    if (availability.length < 10 || availability.length > 1000) throw new Error("Add a short note about your availability (10–1,000 characters).");
-    if (portfolio.length > 2000) throw new Error("Keep portfolio links or samples under 2,000 characters.");
+    if (fullName.length < 2 || fullName.length > 100) {
+      throw new Error("Enter a name between 2 and 100 characters.");
+    }
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error("Enter a valid email address.");
+    }
+    if (experience.length < 20 || experience.length > 4000) {
+      throw new Error("Please describe your relevant experience in 20-4,000 characters.");
+    }
+    if (motivation.length < 20 || motivation.length > 4000) {
+      throw new Error("Tell us why you're interested (20-4,000 characters).");
+    }
+    if (roleApproach.length < 20 || roleApproach.length > 4000) {
+      throw new Error("Describe how you would approach the role (20-4,000 characters).");
+    }
+    if (collaboration.length < 20 || collaboration.length > 4000) {
+      throw new Error("Describe how you collaborate (20-4,000 characters).");
+    }
+    if (availability.length < 10 || availability.length > 1000) {
+      throw new Error("Add a short note about your availability (10-1,000 characters).");
+    }
+    if (portfolio.length > 2000) {
+      throw new Error("Keep portfolio links or samples under 2,000 characters.");
+    }
 
     const now = Date.now();
     const recentApplications = await ctx.db
@@ -244,7 +196,7 @@ export const submit = mutation({
       submittedAt,
     });
 
-    await ctx.scheduler.runAfter(0, internalAction.careerApplications.sendNotification, {
+    await ctx.scheduler.runAfter(0, internal.careerApplications.sendNotification, {
       name: fullName,
       roleSlug: role.slug,
       roleTitle: role.title,
