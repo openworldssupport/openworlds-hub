@@ -32,14 +32,24 @@ export const create = mutation({
       throw new Error("Describe your request in 20–5,000 characters.");
     }
 
+    const now = Date.now();
     const recentTickets = await ctx.db
       .query("supportTickets")
       .withIndex("by_email_submitted_at", (q) => q.eq("email", email))
       .order("desc")
-      .take(3);
-    const cutoff = Date.now() - 60 * 1000;
+      .take(10);
+
+    // Short burst guard: one ticket per email per minute.
+    const cutoff = now - 60 * 1000;
     if (recentTickets.some((ticket) => ticket.submittedAt > cutoff)) {
       throw new Error("A ticket was just submitted with this email. Please wait a minute before trying again.");
+    }
+
+    // Sustained abuse guard: at most 5 tickets per email per hour.
+    const hourCutoff = now - 60 * 60 * 1000;
+    const lastHourCount = recentTickets.filter((ticket) => ticket.submittedAt > hourCutoff).length;
+    if (lastHourCount >= 5) {
+      throw new Error("Too many support tickets from this email recently. Please try again later.");
     }
 
     const submittedAt = Date.now();

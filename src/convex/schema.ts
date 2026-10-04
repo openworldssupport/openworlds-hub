@@ -65,7 +65,9 @@ const schema = defineSchema(
       .index("by_email_submitted_at", ["email", "submittedAt"]),
   },
   {
-    schemaValidation: false,
+    // Enforce the schema on every write so unknown/typo'd fields cannot be
+    // persisted. This is a security and data-integrity safeguard.
+    schemaValidation: true,
   },
 );
 

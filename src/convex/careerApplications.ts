@@ -39,14 +39,24 @@ export const submit = mutation({
     if (availability.length < 10 || availability.length > 1000) throw new Error("Add a short note about your availability (10–1,000 characters).");
     if (portfolio.length > 2000) throw new Error("Keep portfolio links or samples under 2,000 characters.");
 
+    const now = Date.now();
     const recentApplications = await ctx.db
       .query("careerApplications")
       .withIndex("by_role_email_submitted_at", (q) => q.eq("roleSlug", role.slug).eq("email", email))
       .order("desc")
-      .take(5);
-    const cutoff = Date.now() - 10 * 60 * 1000;
+      .take(10);
+
+    // Short burst guard: one application per role per email every 10 minutes.
+    const cutoff = now - 10 * 60 * 1000;
     if (recentApplications.some((application) => application.submittedAt > cutoff)) {
       throw new Error("An application was recently submitted with this email. Please wait 10 minutes before trying again.");
+    }
+
+    // Sustained abuse guard: at most 5 applications per role per email per day.
+    const dayCutoff = now - 24 * 60 * 60 * 1000;
+    const lastDayCount = recentApplications.filter((application) => application.submittedAt > dayCutoff).length;
+    if (lastDayCount >= 5) {
+      throw new Error("Too many applications for this role from this email recently. Please try again tomorrow.");
     }
 
     return await ctx.db.insert("careerApplications", {
