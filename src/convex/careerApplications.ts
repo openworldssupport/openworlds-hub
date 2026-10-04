@@ -74,7 +74,7 @@ export const listForAdmin = query({
     if (!userId) return null;
     const user = await ctx.db.get(userId);
     const isVerifiedSupportAdmin =
-      user?.email?.trim().toLowerCase() === "openworldssupport@gmail.com" &&
+      user?.email?.trim().toLowerCase() === "support@openworlds.dk" &&
       user.emailVerificationTime !== undefined;
     if (user?.role !== "admin" && !isVerifiedSupportAdmin) return null;
 
