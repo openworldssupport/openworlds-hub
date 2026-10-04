@@ -12,6 +12,7 @@ export function SupportTicketForm() {
   const createTicket = useMutation(api.supportTickets.create);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState("");
+  const [reference, setReference] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,7 +23,7 @@ export function SupportTicketForm() {
     setError("");
 
     try {
-      await createTicket({
+      const result = await createTicket({
         name: String(payload.get("name") ?? ""),
         email: String(payload.get("email") ?? ""),
         username: String(payload.get("username") ?? ""),
@@ -30,6 +31,7 @@ export function SupportTicketForm() {
         message: String(payload.get("message") ?? ""),
         honeypot: String(payload.get("company_website") ?? ""),
       });
+      setReference(result?.reference ?? null);
       setStatus("sent");
     } catch (submissionError) {
       setStatus("error");
@@ -51,6 +53,20 @@ export function SupportTicketForm() {
             Thanks for reaching out. Your ticket has been saved and sent to the OpenWorlds support team,
             who will reply to the email address you provided.
           </p>
+          {reference && (
+            <p className="mt-3 rounded-lg border border-emerald-300 bg-white p-3">
+              Your reference: <span className="font-mono font-semibold tracking-wide">{reference}</span>
+              <span className="mt-1 block text-xs text-slate-600">
+                Keep this to check your ticket status later at any time.
+              </span>
+            </p>
+          )}
+          <a
+            href="/support/status"
+            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#0066cc] hover:underline"
+          >
+            Check ticket status
+          </a>
         </div>
       </div>
     );

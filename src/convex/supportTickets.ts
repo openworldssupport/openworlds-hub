@@ -4,6 +4,19 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 
+/** Unambiguous alphabet (no 0/O/1/I/L) for human-readable ticket codes. */
+const REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+function generateReference(): string {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  let code = "";
+  for (const byte of bytes) {
+    code += REFERENCE_ALPHABET[byte % REFERENCE_ALPHABET.length];
+  }
+  return `OW-${code}`;
+}
+
 export const create = mutation({
   args: {
     name: v.optional(v.string()),
@@ -18,7 +31,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     // Silently accept and discard bot submissions so automated scripts get no signal.
     if (args.honeypot && args.honeypot.trim() !== "") {
-      return { ticketId: null };
+      return { reference: null };
     }
 
     const email = args.email.trim().toLowerCase();
@@ -59,8 +72,10 @@ export const create = mutation({
       throw new Error("Too many support tickets from this email recently. Please try again later.");
     }
 
+    const reference = generateReference();
     const submittedAt = Date.now();
-    const ticketId = await ctx.db.insert("supportTickets", {
+    await ctx.db.insert("supportTickets", {
+      reference,
       name: name || undefined,
       email,
       username: username || undefined,
@@ -72,6 +87,7 @@ export const create = mutation({
     });
 
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendSupportNotification, {
+      reference,
       name: name || undefined,
       email,
       username: username || undefined,
@@ -81,7 +97,39 @@ export const create = mutation({
       submittedAt,
     });
 
-    return { ticketId };
+    return { reference };
+  },
+});
+
+/**
+ * Lets the person who opened a ticket check its status.
+ * Requires BOTH the ticket reference and the exact email used to submit it, so
+ * tickets cannot be enumerated. Returns only non-sensitive fields.
+ */
+export const lookup = query({
+  args: {
+    reference: v.string(),
+    email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const reference = args.reference.trim().toUpperCase();
+    const email = args.email.trim().toLowerCase();
+    if (!reference || !email) return null;
+
+    const ticket = await ctx.db
+      .query("supportTickets")
+      .withIndex("by_reference", (q) => q.eq("reference", reference))
+      .first();
+
+    // Return null for both "not found" and "email mismatch" so nothing is disclosed.
+    if (!ticket || ticket.email !== email) return null;
+
+    return {
+      reference: ticket.reference ?? reference,
+      reasonLabel: supportReasonLabel(ticket.reason),
+      status: ticket.status,
+      submittedAt: ticket.submittedAt,
+    };
   },
 });
 

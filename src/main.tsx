@@ -14,6 +14,9 @@ const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Support = lazy(() => import("./pages/Support.tsx"));
+const TicketStatus = lazy(() => import("./pages/TicketStatus.tsx"));
+const Privacy = lazy(() => import("./pages/Privacy.tsx"));
+const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
@@ -132,6 +135,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/community" element={<Community />} />
               <Route path="/learning" element={<Learning />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/support/status" element={<TicketStatus />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />

@@ -50,9 +50,11 @@ export default function Landing() {
       <footer className="border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
           <span>OpenWorlds © 2026. All rights reserved.</span>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <a href="https://discord.gg/JWq5hEsKRX" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Discord</a>
             <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">YouTube</a>
+            <Link to="/privacy" className="hover:text-slate-900">Privacy</Link>
+            <Link to="/terms" className="hover:text-slate-900">Terms</Link>
             <a href="#home" className="hover:text-slate-900">Back to top ↑</a>
           </div>
         </div>

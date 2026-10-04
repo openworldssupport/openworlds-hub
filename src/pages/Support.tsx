@@ -1,7 +1,7 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SupportTicketForm } from "@/components/ui/support-ticket-form";
-import { LifeBuoy, Mail } from "lucide-react";
+import { ClipboardCheck, LifeBuoy, Mail } from "lucide-react";
 
 const faqs = [
   {
@@ -102,6 +102,11 @@ export default function Support() {
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
             <Mail className="size-5 text-[#0066cc]" />
             <span>Prefer email? Write to <a href="mailto:support@openworlds.dk" className="font-medium text-[#0066cc] hover:underline">support@openworlds.dk</a>.</span>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+            <ClipboardCheck className="size-5 text-[#0066cc]" />
+            <span>Already opened a ticket? <a href="/support/status" className="font-medium text-[#0066cc] hover:underline">Check its status</a> with your reference number.</span>
           </div>
         </div>
       </section>

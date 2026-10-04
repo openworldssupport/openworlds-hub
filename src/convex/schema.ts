@@ -52,6 +52,7 @@ const schema = defineSchema(
       .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"]),
 
     supportTickets: defineTable({
+      reference: v.optional(v.string()),
       name: v.optional(v.string()),
       email: v.string(),
       username: v.optional(v.string()),
@@ -62,6 +63,7 @@ const schema = defineSchema(
       submittedAt: v.number(),
     })
       .index("by_submitted_at", ["submittedAt"])
+      .index("by_reference", ["reference"])
       .index("by_email_submitted_at", ["email", "submittedAt"]),
   },
   {

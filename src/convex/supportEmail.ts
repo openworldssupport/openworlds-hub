@@ -17,6 +17,7 @@ const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
  */
 export const sendSupportNotification = internalAction({
   args: {
+    reference: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.string(),
     username: v.optional(v.string()),
@@ -35,6 +36,7 @@ export const sendSupportNotification = internalAction({
     const text = [
       "New OpenWorlds support ticket",
       "",
+      `Reference: ${args.reference || "(none)"}`,
       `Reason: ${args.reasonLabel}`,
       `Name: ${args.name || "(not provided)"}`,
       `Email: ${args.email}`,
@@ -50,6 +52,7 @@ export const sendSupportNotification = internalAction({
 
     const html = [
       "<h2>New OpenWorlds support ticket</h2>",
+      "<p><strong>Reference:</strong> " + escapeHtml(args.reference || "(none)") + "</p>",
       "<p><strong>Reason:</strong> " + escapeHtml(args.reasonLabel) + "</p>",
       "<p><strong>Name:</strong> " + escapeHtml(args.name || "(not provided)") + "</p>",
       "<p><strong>Email:</strong> " + escapeHtml(args.email) + "</p>",
