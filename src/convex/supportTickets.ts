@@ -1,8 +1,8 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
+import { isAdmin, requireAdmin } from "./admin";
 
 /** Unambiguous alphabet (no 0/O/1/I/L) for human-readable ticket codes. */
 const REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -46,17 +46,6 @@ export function effectiveStatus(ticket: TicketStatusInput, now = Date.now()): st
   if (age >= AUTO_CLOSE_MS) return "closed";
   if (age >= RESPONSE_WINDOW_MS) return "responded";
   return ticket.status;
-}
-
-async function requireAdmin(ctx: MutationCtx) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error("Not authorized.");
-  const user = await ctx.db.get(userId);
-  const isVerifiedSupportAdmin =
-    user?.email?.trim().toLowerCase() === "support@openworlds.dk" &&
-    user.emailVerificationTime !== undefined;
-  if (user?.role !== "admin" && !isVerifiedSupportAdmin) throw new Error("Not authorized.");
-  return user;
 }
 
 export const create = mutation({
@@ -195,16 +184,30 @@ export const closeTicket = mutation({
   },
 });
 
+/** Team-only: reopen a ticket and clear any reply/close timestamps. */
+export const reopenTicket = mutation({
+  args: { ticketId: v.id("supportTickets") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(args.ticketId, { respondedAt: undefined, closedAt: undefined, status: "open" });
+    return { ok: true };
+  },
+});
+
+/** Team-only: permanently delete a ticket. */
+export const removeTicket = mutation({
+  args: { ticketId: v.id("supportTickets") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.delete(args.ticketId);
+    return { ok: true };
+  },
+});
+
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-    const user = await ctx.db.get(userId);
-    const isVerifiedSupportAdmin =
-      user?.email?.trim().toLowerCase() === "support@openworlds.dk" &&
-      user.emailVerificationTime !== undefined;
-    if (user?.role !== "admin" && !isVerifiedSupportAdmin) return null;
+    if (!(await isAdmin(ctx))) return null;
 
     const tickets = await ctx.db.query("supportTickets").withIndex("by_submitted_at").order("desc").take(100);
     // Surface the derived status so the team sees the same state the user does.

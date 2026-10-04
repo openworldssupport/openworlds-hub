@@ -1,7 +1,7 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { careerRoles } from "../lib/careers";
+import { isAdmin, requireAdmin } from "./admin";
 
 export const submit = mutation({
   args: {
@@ -80,14 +80,35 @@ export const submit = mutation({
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-    const user = await ctx.db.get(userId);
-    const isVerifiedSupportAdmin =
-      user?.email?.trim().toLowerCase() === "support@openworlds.dk" &&
-      user.emailVerificationTime !== undefined;
-    if (user?.role !== "admin" && !isVerifiedSupportAdmin) return null;
+    if (!(await isAdmin(ctx))) return null;
 
     return await ctx.db.query("careerApplications").withIndex("by_submitted_at").order("desc").take(100);
+  },
+});
+
+/** Team-only: set the review status of an application. */
+export const setStatus = mutation({
+  args: {
+    applicationId: v.id("careerApplications"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const status = args.status.trim().toLowerCase();
+    if (!["new", "reviewing", "shortlisted", "accepted", "declined", "archived"].includes(status)) {
+      throw new Error("Choose a valid application status.");
+    }
+    await ctx.db.patch(args.applicationId, { status });
+    return { ok: true };
+  },
+});
+
+/** Team-only: permanently delete an application. */
+export const remove = mutation({
+  args: { applicationId: v.id("careerApplications") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.delete(args.applicationId);
+    return { ok: true };
   },
 });

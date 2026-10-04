@@ -16,6 +16,7 @@ const About = lazy(() => import("./pages/About.tsx"));
 const Support = lazy(() => import("./pages/Support.tsx"));
 const TicketStatus = lazy(() => import("./pages/TicketStatus.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
+const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
@@ -138,6 +139,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/support/status" element={<TicketStatus />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
