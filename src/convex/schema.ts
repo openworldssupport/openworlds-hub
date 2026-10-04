@@ -50,6 +50,19 @@ const schema = defineSchema(
       .index("by_submitted_at", ["submittedAt"])
       .index("by_role_slug", ["roleSlug"])
       .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"]),
+
+    supportTickets: defineTable({
+      name: v.optional(v.string()),
+      email: v.string(),
+      username: v.optional(v.string()),
+      reason: v.string(),
+      subject: v.optional(v.string()),
+      message: v.string(),
+      status: v.string(),
+      submittedAt: v.number(),
+    })
+      .index("by_submitted_at", ["submittedAt"])
+      .index("by_email_submitted_at", ["email", "submittedAt"]),
   },
   {
     schemaValidation: false,
