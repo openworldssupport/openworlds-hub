@@ -9,10 +9,11 @@ import { Link } from "react-router";
 import { ClipboardCheck, Search } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
-  open: "Open — awaiting review",
+  open: "Open — awaiting a response",
+  responded: "Answered — a reply has been sent to your email",
   "in-progress": "In progress — a team member is looking into it",
   resolved: "Resolved",
-  closed: "Closed",
+  closed: "Closed — this ticket is no longer active",
 };
 
 export default function TicketStatus() {
@@ -70,6 +71,10 @@ export default function TicketStatus() {
           <p className="mt-3 text-xs leading-5 text-slate-500">
             For your privacy, both the reference and the matching email are required. We never reveal ticket
             details to anyone who does not have both.
+          </p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            We aim to reply within 3 days. A ticket reads as “open” until then, moves to “answered” once the
+            reply window has passed, and closes automatically after 14 days of inactivity.
           </p>
         </form>
 

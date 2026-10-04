@@ -1,11 +1,16 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 
 /** Unambiguous alphabet (no 0/O/1/I/L) for human-readable ticket codes. */
 const REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** We aim to reply within this window. Until it passes, a ticket reads as "open". */
+export const RESPONSE_WINDOW_MS = 72 * 60 * 60 * 1000; // 3 days
+/** Tickets that go quiet for this long are closed automatically. */
+export const AUTO_CLOSE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 function generateReference(): string {
   const bytes = new Uint8Array(8);
@@ -15,6 +20,43 @@ function generateReference(): string {
     code += REFERENCE_ALPHABET[byte % REFERENCE_ALPHABET.length];
   }
   return `OW-${code}`;
+}
+
+type TicketStatusInput = {
+  status: string;
+  submittedAt: number;
+  respondedAt?: number;
+  closedAt?: number;
+};
+
+/**
+ * Derives the ticket's current status.
+ *
+ * The team replies by email from outside this system, so a real reply cannot be
+ * detected here. Instead the status advances on a realistic timeline:
+ *   open -> responded (once the reply window has elapsed) -> closed (after inactivity).
+ * A team member can record an exact reply or close a ticket with the admin
+ * mutations below, and those timestamps take priority over the timeline.
+ */
+export function effectiveStatus(ticket: TicketStatusInput, now = Date.now()): string {
+  if (ticket.closedAt) return "closed";
+  if (ticket.respondedAt) return "responded";
+
+  const age = now - ticket.submittedAt;
+  if (age >= AUTO_CLOSE_MS) return "closed";
+  if (age >= RESPONSE_WINDOW_MS) return "responded";
+  return ticket.status;
+}
+
+async function requireAdmin(ctx: MutationCtx) {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) throw new Error("Not authorized.");
+  const user = await ctx.db.get(userId);
+  const isVerifiedSupportAdmin =
+    user?.email?.trim().toLowerCase() === "support@openworlds.dk" &&
+    user.emailVerificationTime !== undefined;
+  if (user?.role !== "admin" && !isVerifiedSupportAdmin) throw new Error("Not authorized.");
+  return user;
 }
 
 export const create = mutation({
@@ -127,9 +169,29 @@ export const lookup = query({
     return {
       reference: ticket.reference ?? reference,
       reasonLabel: supportReasonLabel(ticket.reason),
-      status: ticket.status,
+      status: effectiveStatus(ticket),
       submittedAt: ticket.submittedAt,
     };
+  },
+});
+
+/** Team-only: record that a reply was sent to the contacting user. */
+export const markResponded = mutation({
+  args: { ticketId: v.id("supportTickets") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(args.ticketId, { respondedAt: Date.now() });
+    return { ok: true };
+  },
+});
+
+/** Team-only: close a ticket. */
+export const closeTicket = mutation({
+  args: { ticketId: v.id("supportTickets") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(args.ticketId, { closedAt: Date.now() });
+    return { ok: true };
   },
 });
 
@@ -144,6 +206,8 @@ export const listForAdmin = query({
       user.emailVerificationTime !== undefined;
     if (user?.role !== "admin" && !isVerifiedSupportAdmin) return null;
 
-    return await ctx.db.query("supportTickets").withIndex("by_submitted_at").order("desc").take(100);
+    const tickets = await ctx.db.query("supportTickets").withIndex("by_submitted_at").order("desc").take(100);
+    // Surface the derived status so the team sees the same state the user does.
+    return tickets.map((ticket) => ({ ...ticket, status: effectiveStatus(ticket) }));
   },
 });

@@ -61,6 +61,8 @@ const schema = defineSchema(
       message: v.string(),
       status: v.string(),
       submittedAt: v.number(),
+      respondedAt: v.optional(v.number()),
+      closedAt: v.optional(v.number()),
     })
       .index("by_submitted_at", ["submittedAt"])
       .index("by_reference", ["reference"])
