@@ -12,8 +12,15 @@ export const create = mutation({
     reason: v.string(),
     subject: v.optional(v.string()),
     message: v.string(),
+    // Hidden anti-bot field: real users never fill this in.
+    honeypot: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Silently accept and discard bot submissions so automated scripts get no signal.
+    if (args.honeypot && args.honeypot.trim() !== "") {
+      return { ticketId: null };
+    }
+
     const email = args.email.trim().toLowerCase();
     const name = args.name?.trim() ?? "";
     const username = args.username?.trim() ?? "";

@@ -28,6 +28,7 @@ export function SupportTicketForm() {
         username: String(payload.get("username") ?? ""),
         reason: String(payload.get("reason") ?? ""),
         message: String(payload.get("message") ?? ""),
+        honeypot: String(payload.get("company_website") ?? ""),
       });
       setStatus("sent");
     } catch (submissionError) {
@@ -57,6 +58,12 @@ export function SupportTicketForm() {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+      {/* Hidden honeypot field: invisible to people, tempting to bots. */}
+      <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="company_website">Company website</label>
+        <input id="company_website" name="company_website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="ticket-name">
           Name <span className="font-normal text-slate-500">(optional)</span>
