@@ -1,3 +1,6 @@
+/** The verified careers inbox that receives new applications. */
+export const CAREERS_EMAIL = "careers@openworlds.dk";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 

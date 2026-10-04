@@ -1,7 +1,175 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { careerRoles } from "../lib/careers";
 import { isAdmin, requireAdmin } from "./admin";
+
+/** Sends the new career application to the OpenWorlds careers inbox. */
+const SEND_CAREERS_NOTIFICATION = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    roleSlug: v.string(),
+    roleTitle: v.string(),
+    experience: v.string(),
+    motivation: v.string(),
+    roleApproach: v.string(),
+    collaboration: v.string(),
+    availability: v.string(),
+    portfolio: v.string(),
+    subject: v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const text = [
+      "New career application",
+      "",
+      `Name: ${args.name || "(not provided)"}`,
+      `Email: ${args.email}`,
+      `Role: ${args.roleTitle} (${args.roleSlug})`,
+      "Experience:",
+      args.experience,
+      "Motivation:",
+      args.motivation,
+      "First weeks:",
+      args.roleApproach,
+      "Collaboration:",
+      args.collaboration,
+      "Availability:",
+      args.availability,
+      "Work samples:",
+      args.portfolio || "(none)",
+      "Application submitted for review.",
+    ].join("\n");
+
+    const html = [
+      "<h2>New career application</h2>",
+      "<p><strong>Name:</strong> " + escapeHtml(args.name || "(not provided)") + "</p>",
+      "<p><strong>Email:</strong> " + escapeHtml(args.email) + "</p>",
+      "<p><strong>Role:</strong> " + escapeHtml(args.roleTitle) + " (" + escapeHtml(args.roleSlug) + ")</p>",
+      "<p><strong>Experience:</strong></p><p>" + escapeHtml(args.experience) + "</p>",
+      "<p><strong>Why this role:</strong></p><p>" + escapeHtml(args.motivation) + "</p>",
+      "<p><strong>First weeks:</strong></p><p>" + escapeHtml(args.roleApproach) + "</p>",
+      "<p><strong>Collaboration:</strong></p><p>" + escapeHtml(args.collaboration) + "</p>",
+      "<p><strong>Availability:</strong></p><p>" + escapeHtml(args.availability) + "</p>",
+      "<p><strong>Work samples:</strong>" + (args.portfolio ? "</p><p>" + escapeHtml(args.portfolio) + "</p>" : "") + "</p>",
+    ].join("\n");
+
+    const to = process.env.CAREERS_EMAIL ?? "careers@openworlds.dk";
+    const from = process.env.RESEND_FROM ?? "OpenWorlds Careers <noreply@openworlds.dk>";
+    const subject = args.subject ?? "New career application";
+
+    const vlyKey = process.env.VLY_INTEGRATION_KEY;
+    const resendKey = process.env.RESEND_API_KEY;
+
+    if (vlyKey) {
+      return await sendViaVly({ vlyKey, to, from, subject, text, html });
+    }
+
+    if (resendKey) {
+      return await sendViaResend({ resendKey, to, from, subject, text, html });
+    }
+
+    console.warn(
+      "[careers] No email provider configured (VLY_INTEGRATION_KEY or RESEND_API_KEY). Application was saved without emailing.",
+    );
+    return { sent: false, reason: "missing-provider" as const };
+  },
+});
+
+async function sendViaVly({
+  vlyKey,
+  to,
+  from,
+  subject,
+  text,
+  html,
+}: {
+  vlyKey: string;
+  to: string;
+  from: string;
+  subject: string;
+  text: string;
+  html: string;
+}) {
+  try {
+    const response = await fetch("https://integrations.vly.ai/v1/email/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${vlyKey}`,
+        "Content-Type": "application/json",
+        "X-Vly-Version": "0.1.0",
+      },
+      body: JSON.stringify({
+        to: [to],
+        from,
+        subject,
+        text,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[careers] VLY rejected the notification email with status", response.status);
+      return { sent: false, reason: "provider-error" as const };
+    }
+
+    const data = (await response.json().catch(() => ({}))) as { id?: string };
+    return { sent: true, id: data.id ?? null };
+  } catch (error) {
+    console.error("[careers] Failed to send career notification email:", error);
+    return { sent: false, reason: "network-error" as const };
+  }
+}
+
+async function sendViaResend({
+  resendKey,
+  to,
+  from,
+  subject,
+  text,
+  html,
+}: {
+  resendKey: string;
+  to: string;
+  from: string;
+  subject: string;
+  text: string;
+  html: string;
+}) {
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        text,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[careers] Resend rejected the notification email with status", response.status);
+      return { sent: false, reason: "provider-error" as const };
+    }
+
+    return { sent: true };
+  } catch (error) {
+    console.error("[careers] Failed to send career notification email:", error);
+    return { sent: false, reason: "network-error" as const };
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;");
+}
 
 export const submit = mutation({
   args: {
@@ -59,7 +227,8 @@ export const submit = mutation({
       throw new Error("Too many applications for this role from this email recently. Please try again tomorrow.");
     }
 
-    return await ctx.db.insert("careerApplications", {
+    const submittedAt = Date.now();
+    const applicationId = await ctx.db.insert("careerApplications", {
       roleSlug: role.slug,
       roleTitle: role.title,
       fullName,
@@ -72,8 +241,23 @@ export const submit = mutation({
       portfolio,
       voluntaryConsent: true,
       status: "new",
-      submittedAt: Date.now(),
+      submittedAt,
     });
+
+    await ctx.scheduler.runAfter(0, internalAction.careerApplications.sendNotification, {
+      name: fullName,
+      roleSlug: role.slug,
+      roleTitle: role.title,
+      experience,
+      motivation,
+      roleApproach,
+      collaboration,
+      availability,
+      portfolio,
+      subject: "[OpenWorlds] New application: " + role.title,
+    });
+
+    return { applicationId, submittedAt };
   },
 });
 
