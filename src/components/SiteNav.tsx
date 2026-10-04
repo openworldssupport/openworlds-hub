@@ -17,7 +17,6 @@ export function SiteNav() {
           <Link to="/downloads" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Downloads</Link>
           <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
-          <a href="/contact#contact" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Contact</a>
         </div>
 
       </nav>

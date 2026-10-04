@@ -46,7 +46,7 @@ export default function About() {
 
         <div className="mt-10 text-center">
           <Link
-            to="/contact#contact"
+            to="/support"
             className="inline-flex h-11 items-center rounded-lg bg-[#0066cc] px-6 text-sm font-medium text-white hover:bg-[#004a99]"
           >
             Contact the OpenWorlds team
