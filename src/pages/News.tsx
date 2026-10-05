@@ -1,5 +1,4 @@
 import { SiteNav } from "@/components/SiteNav";
-import { RoleBadge } from "@/components/RoleBadge";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -74,10 +73,12 @@ function PublishedUpdates() {
           <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">{update.title}</h2>
           <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{update.summary}</p>
           <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{update.body}</p>
-          <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span>Posted by {update.authorName}</span>
-            {update.badge && <RoleBadge badge={update.badge} />}
-          </div>
+          {update.media.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{update.media.map((asset, index) => asset.url && (
+            <figure key={`${update._id}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              {asset.mediaType === "image" ? <img src={asset.url} alt={asset.altText || `${update.title} media ${index + 1}`} loading="lazy" className="max-h-[32rem] w-full object-contain" /> : <video src={asset.url} controls preload="metadata" className="max-h-[32rem] w-full bg-black" aria-label={asset.altText || `${update.title} video ${index + 1}`} />}
+              {asset.altText && <figcaption className="px-3 py-2 text-xs text-slate-500">{asset.altText}</figcaption>}
+            </figure>
+          ))}</div>}
         </article>
       ))}
     </div>

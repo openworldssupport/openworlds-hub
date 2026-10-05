@@ -9,19 +9,14 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 /** The verified support address that is allowed to administer the site. */
 export const SUPPORT_EMAIL = "support@openworlds.dk";
 
-/** Verified admin or company staff account (support mailbox is bootstrap admin). */
+/** Verified company administrator (the support mailbox is the bootstrap admin). */
 export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) return false;
-  const user = await ctx.db.get(userId);
-  if (!user || user.emailVerificationTime === undefined) return false;
-  const isBootstrapAdmin = user.email?.trim().toLowerCase() === SUPPORT_EMAIL;
-  return user.role === "admin" || isBootstrapAdmin || Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
+  return await isCompanyAdmin(ctx);
 }
 
-/** Throws unless caller is a verified invited company account. */
+/** Throws unless caller is a verified company administrator. */
 export async function requireAdmin(ctx: MutationCtx): Promise<void> {
-  if (!(await isAdmin(ctx))) throw new Error("Not authorized.");
+  if (!(await isCompanyAdmin(ctx))) throw new Error("Not authorized.");
 }
 
 /** Only admin-role accounts can manage company invitations and roles. */
@@ -34,7 +29,7 @@ export async function requireCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<
   }
 }
 
-async function isCompanyAdmin(ctx: QueryCtx): Promise<boolean> {
+async function isCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const bootstrapAdmin = user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;

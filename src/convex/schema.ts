@@ -64,6 +64,15 @@ const schema = defineSchema(
       collaboration: v.string(),
       availability: v.string(),
       portfolio: v.string(),
+      strategyScenario: v.optional(v.string()),
+      successMeasures: v.optional(v.string()),
+      decisionMaking: v.optional(v.string()),
+      stakeholderCommunication: v.optional(v.string()),
+      toolsAndStrengths: v.optional(v.string()),
+      weeklyHours: v.optional(v.string()),
+      timeZone: v.optional(v.string()),
+      availabilityStart: v.optional(v.string()),
+      linkedin: v.optional(v.string()),
       voluntaryConsent: v.boolean(),
       status: v.string(),
       submittedAt: v.number(),
@@ -112,6 +121,11 @@ const schema = defineSchema(
       title: v.string(),
       summary: v.string(),
       body: v.string(),
+      media: v.optional(v.array(v.object({
+        storageId: v.optional(v.id("_storage")),
+        mediaType: v.optional(v.union(v.literal("image"), v.literal("video"))),
+        altText: v.optional(v.string()),
+      }))),
       category: v.union(
         v.literal("announcement"),
         v.literal("development"),
@@ -124,6 +138,17 @@ const schema = defineSchema(
     })
       .index("by_created_at", ["createdAt"])
       .index("by_status_published_at", ["status", "publishedAt"]),
+
+    // Uploaded announcement assets are only attachable by their verified uploader.
+    announcementAssets: defineTable({
+      storageId: v.id("_storage"),
+      mediaType: v.union(v.literal("image"), v.literal("video")),
+      authorId: v.id("users"),
+      createdAt: v.number(),
+      announcementId: v.optional(v.id("gameAnnouncements")),
+    })
+      .index("by_storage_id", ["storageId"])
+      .index("by_announcement_id", ["announcementId"]),
   },
   {
     // Enforce the schema on every write so unknown/typo'd fields cannot be

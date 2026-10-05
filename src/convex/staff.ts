@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 import { deriveBadge, type PublicBadge } from "../lib/staff";
+import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 
 /** Longest staff message the board accepts. */
@@ -266,16 +267,67 @@ export const publicAnnouncements = query({
       .withIndex("by_status_published_at", (q) => q.eq("status", "published"))
       .order("desc")
       .take(50);
-    return rows.map(({ _id, title, summary, body, category, authorName, badge, publishedAt }) => ({
+    return await Promise.all(rows.map(async ({ _id, title, summary, body, category, media, publishedAt }) => ({
       _id,
       title,
       summary,
       body,
       category,
-      authorName,
-      badge,
       publishedAt: publishedAt ?? 0,
-    }));
+      media: await Promise.all((media ?? []).filter((asset) => asset.storageId).map(async (asset) => ({
+        mediaType: asset.mediaType ?? "image",
+        altText: asset.altText,
+        url: await ctx.storage.getUrl(asset.storageId!),
+      }))),
+    })));
+  },
+});
+
+/** Staff can request a short-lived Convex upload URL; nonstaff receive no upload capability. */
+export const generateAnnouncementUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+/** Register only verified, appropriately typed, size-limited staff announcement uploads. */
+export const finalizeAnnouncementUpload = mutation({
+  args: {
+    storageId: v.id("_storage"),
+    mediaType: v.union(v.literal("image"), v.literal("video")),
+  },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authorized.");
+    const metadata = await ctx.db.system.get("_storage", args.storageId);
+    if (!metadata) throw new Error("Upload not found.");
+    const contentType = metadata.contentType ?? "";
+    const hasExpectedType = args.mediaType === "image" ? contentType.startsWith("image/") : contentType.startsWith("video/");
+    if (!hasExpectedType) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error("Choose a valid image or video file.");
+    }
+    if (metadata.size > 50 * 1024 * 1024) {
+      await ctx.storage.delete(args.storageId);
+      throw new Error("Media files must be 50 MB or smaller.");
+    }
+    const existing = await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (existing) {
+      if (existing.authorId !== userId || existing.announcementId || existing.mediaType !== args.mediaType) throw new Error("This upload is not available to attach.");
+      return { storageId: args.storageId, mediaType: existing.mediaType!, url: await ctx.storage.getUrl(args.storageId) };
+    }
+    await ctx.db.insert("announcementAssets", {
+      storageId: args.storageId,
+      mediaType: args.mediaType,
+      authorId: userId,
+      createdAt: Date.now(),
+    });
+    return { storageId: args.storageId, mediaType: args.mediaType, url: await ctx.storage.getUrl(args.storageId) };
   },
 });
 
@@ -284,11 +336,20 @@ export const announcements = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isStaff(ctx))) return null;
-    return await ctx.db
+    const rows = await ctx.db
       .query("gameAnnouncements")
       .withIndex("by_created_at")
       .order("desc")
       .take(100);
+    return await Promise.all(rows.map(async (row) => ({
+      ...row,
+      media: await Promise.all((row.media ?? []).filter((asset) => asset.storageId).map(async (asset) => ({
+        storageId: asset.storageId!,
+        mediaType: asset.mediaType ?? "image",
+        altText: asset.altText,
+        url: await ctx.storage.getUrl(asset.storageId!),
+      }))),
+    })));
   },
 });
 
@@ -301,6 +362,11 @@ export const saveAnnouncement = mutation({
     body: v.string(),
     category: announcementCategory,
     status: announcementStatus,
+    media: v.array(v.object({
+      storageId: v.id("_storage"),
+      mediaType: v.union(v.literal("image"), v.literal("video")),
+      altText: v.optional(v.string()),
+    })),
   },
   handler: async (ctx, args) => {
     if (!(await isStaff(ctx))) throw new Error("Not authorized.");
@@ -311,7 +377,13 @@ export const saveAnnouncement = mutation({
     if (summary.length < 10 || summary.length > 240) throw new Error("Summary must be 10–240 characters.");
     if (body.length < 20 || body.length > 10000) throw new Error("Announcement body must be 20–10,000 characters.");
 
+    if (args.media.length > 5) throw new Error("An announcement can include up to 5 media files.");
+    for (const asset of args.media) {
+      if (asset.altText && asset.altText.trim().length > 200) throw new Error("Keep image descriptions under 200 characters.");
+    }
+
     const user = (await currentUser(ctx))!;
+    const userId = user._id;
     const now = Date.now();
     const department = user.department?.trim() || undefined;
     const position = user.position?.trim() || undefined;
@@ -319,6 +391,7 @@ export const saveAnnouncement = mutation({
       title,
       summary,
       body,
+      media: args.media.map((asset) => ({ storageId: asset.storageId, mediaType: asset.mediaType, altText: asset.altText?.trim() || undefined })),
       category: args.category,
       status: args.status,
       authorName: user.name?.trim() || user.email || "OpenWorlds team",
@@ -331,19 +404,78 @@ export const saveAnnouncement = mutation({
     if (args.announcementId) {
       const existing = await ctx.db.get(args.announcementId);
       if (!existing) throw new Error("Announcement not found.");
-      if (existing.authorId !== user._id && !(await isAdmin(ctx))) {
+      if (existing.authorId !== userId && !(await isAdmin(ctx))) {
         throw new Error("You can only edit your own announcements.");
+      }
+      await validateAnnouncementAssets(ctx, args.media, existing.authorId, args.announcementId);
+      const nextIds = new Set(args.media.map((asset) => asset.storageId));
+      for (const previous of existing.media ?? []) {
+        if (previous.storageId && !nextIds.has(previous.storageId)) {
+          await ctx.storage.delete(previous.storageId);
+          const stored = await ctx.db.query("announcementAssets")
+            .withIndex("by_storage_id", (q) => q.eq("storageId", previous.storageId!))
+            .unique();
+          if (stored) await ctx.db.delete(stored._id);
+        }
+      }
+      for (const asset of args.media) {
+      const stored = await ctx.db.query("announcementAssets")
+        .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
+        .unique();
+      if (stored) await ctx.db.patch(stored._id, { announcementId: args.announcementId });
       }
       await ctx.db.patch(args.announcementId, fields);
       return { announcementId: args.announcementId };
     }
 
+    await validateAnnouncementAssets(ctx, args.media, userId);
     const announcementId = await ctx.db.insert("gameAnnouncements", {
-      authorId: user._id,
+      authorId: userId,
       ...fields,
       createdAt: now,
     });
+    for (const asset of args.media) {
+      const stored = await ctx.db.query("announcementAssets")
+        .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
+        .unique();
+      if (stored) await ctx.db.patch(stored._id, { announcementId });
+    }
     return { announcementId };
+  },
+});
+
+async function validateAnnouncementAssets(
+  ctx: MutationCtx,
+  assets: Array<{ storageId: Id<"_storage">; mediaType: "image" | "video"; altText?: string }>,
+  authorId: Id<"users">,
+  announcementId?: Id<"gameAnnouncements">,
+) {
+  for (const asset of assets) {
+    const stored = await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId))
+      .unique();
+    const belongsToThisPost = Boolean(announcementId && stored?.announcementId === announcementId);
+    const isUnattachedOwnUpload = !stored?.announcementId && stored?.authorId === authorId;
+    if (!stored || stored.mediaType !== asset.mediaType || !stored.storageId || (!belongsToThisPost && !isUnattachedOwnUpload)) {
+      throw new Error("One or more media uploads are invalid or already attached to another post.");
+    }
+  }
+}
+
+/** Staff can discard an uploaded file only while it remains unattached. */
+export const deleteAnnouncementUpload = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const userId = await getAuthUserId(ctx);
+    const stored = await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (!stored) return { ok: true };
+    if (stored.authorId !== userId || stored.announcementId) throw new Error("This media is already attached to a post or belongs to another account.");
+    await ctx.storage.delete(args.storageId);
+    await ctx.db.delete(stored._id);
+    return { ok: true };
   },
 });
 
@@ -357,6 +489,14 @@ export const removeAnnouncement = mutation({
     const userId = await getAuthUserId(ctx);
     if (announcement.authorId !== userId && !(await isAdmin(ctx))) {
       throw new Error("You can only remove your own announcements.");
+    }
+    for (const asset of announcement.media ?? []) {
+      if (!asset.storageId) continue;
+      await ctx.storage.delete(asset.storageId);
+      const stored = await ctx.db.query("announcementAssets")
+        .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
+        .unique();
+      if (stored) await ctx.db.delete(stored._id);
     }
     await ctx.db.delete(args.announcementId);
     return { ok: true };
@@ -387,7 +527,18 @@ export const adminRemoveAnnouncement = mutation({
   args: { announcementId: v.id("gameAnnouncements") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    await ctx.db.delete(args.announcementId);
+    const announcement = await ctx.db.get(args.announcementId);
+    if (announcement) {
+      for (const asset of announcement.media ?? []) {
+        if (!asset.storageId) continue;
+        await ctx.storage.delete(asset.storageId);
+        const stored = await ctx.db.query("announcementAssets")
+          .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
+          .unique();
+        if (stored) await ctx.db.delete(stored._id);
+      }
+      await ctx.db.delete(args.announcementId);
+    }
     return { ok: true };
   },
 });

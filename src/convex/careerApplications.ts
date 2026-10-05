@@ -19,6 +19,15 @@ export const sendNotification = internalAction({
     collaboration: v.string(),
     availability: v.string(),
     portfolio: v.string(),
+    strategyScenario: v.string(),
+    successMeasures: v.string(),
+    decisionMaking: v.string(),
+    stakeholderCommunication: v.string(),
+    toolsAndStrengths: v.string(),
+    weeklyHours: v.string(),
+    timeZone: v.string(),
+    availabilityStart: v.string(),
+    linkedin: v.string(),
     subject: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
@@ -40,6 +49,20 @@ export const sendNotification = internalAction({
       args.availability,
       "Work samples:",
       args.portfolio || "(none)",
+      "Strategy scenario:",
+      args.strategyScenario ?? "(not provided)",
+      "Measures of success:",
+      args.successMeasures ?? "(not provided)",
+      "Decision making:",
+      args.decisionMaking ?? "(not provided)",
+      "Stakeholder communication:",
+      args.stakeholderCommunication ?? "(not provided)",
+      "Tools and strengths:",
+      args.toolsAndStrengths ?? "(not provided)",
+      "Weekly hours: " + (args.weeklyHours ?? "(not provided)"),
+      "Time zone: " + (args.timeZone ?? "(not provided)"),
+      "Availability start: " + (args.availabilityStart ?? "(not provided)"),
+      "LinkedIn: " + (args.linkedin || "(not provided)"),
       "Application submitted for review.",
     ].join("\n");
 
@@ -54,6 +77,15 @@ export const sendNotification = internalAction({
       "<p><strong>Collaboration:</strong></p><p>" + escapeHtml(args.collaboration) + "</p>",
       "<p><strong>Availability:</strong></p><p>" + escapeHtml(args.availability) + "</p>",
       "<p><strong>Work samples:</strong>" + (args.portfolio ? "</p><p>" + escapeHtml(args.portfolio) + "</p>" : "") + "</p>",
+      "<p><strong>Strategy scenario:</strong></p><p>" + escapeHtml(args.strategyScenario ?? "(not provided)") + "</p>",
+      "<p><strong>Measures of success:</strong></p><p>" + escapeHtml(args.successMeasures ?? "(not provided)") + "</p>",
+      "<p><strong>Decision making:</strong></p><p>" + escapeHtml(args.decisionMaking ?? "(not provided)") + "</p>",
+      "<p><strong>Stakeholder communication:</strong></p><p>" + escapeHtml(args.stakeholderCommunication ?? "(not provided)") + "</p>",
+      "<p><strong>Tools and strengths:</strong></p><p>" + escapeHtml(args.toolsAndStrengths ?? "(not provided)") + "</p>",
+      "<p><strong>Weekly hours:</strong> " + escapeHtml(args.weeklyHours ?? "(not provided)") + "</p>",
+      "<p><strong>Time zone:</strong> " + escapeHtml(args.timeZone ?? "(not provided)") + "</p>",
+      "<p><strong>Availability start:</strong> " + escapeHtml(args.availabilityStart ?? "(not provided)") + "</p>",
+      "<p><strong>LinkedIn:</strong> " + escapeHtml(args.linkedin || "(not provided)") + "</p>",
     ].join("\n");
 
     const subject = args.subject ?? "New career application";
@@ -147,11 +179,21 @@ export const submit = mutation({
     collaboration: v.string(),
     availability: v.string(),
     portfolio: v.string(),
+    strategyScenario: v.string(),
+    successMeasures: v.string(),
+    decisionMaking: v.string(),
+    stakeholderCommunication: v.string(),
+    toolsAndStrengths: v.string(),
+    weeklyHours: v.string(),
+    timeZone: v.string(),
+    availabilityStart: v.string(),
+    linkedin: v.string(),
     voluntaryConsent: v.boolean(),
   },
   handler: async (ctx, args) => {
     const role = careerRoles.find((item) => item.slug === args.roleSlug);
     if (!role) throw new Error("This position could not be found.");
+    if (role.status === "Filled") throw new Error("This position is filled and is no longer accepting applications.");
     if (!args.voluntaryConsent) throw new Error("Please confirm that this is a voluntary, unpaid role.");
 
     const fullName = args.fullName.trim();
@@ -162,6 +204,15 @@ export const submit = mutation({
     const collaboration = args.collaboration.trim();
     const availability = args.availability.trim();
     const portfolio = args.portfolio.trim();
+    const strategyScenario = args.strategyScenario?.trim() ?? "";
+    const successMeasures = args.successMeasures?.trim() ?? "";
+    const decisionMaking = args.decisionMaking?.trim() ?? "";
+    const stakeholderCommunication = args.stakeholderCommunication?.trim() ?? "";
+    const toolsAndStrengths = args.toolsAndStrengths?.trim() ?? "";
+    const weeklyHours = args.weeklyHours?.trim() ?? "";
+    const timeZone = args.timeZone?.trim() ?? "";
+    const availabilityStart = args.availabilityStart?.trim() ?? "";
+    const linkedin = args.linkedin?.trim() ?? "";
 
     if (fullName.length < 2 || fullName.length > 100) {
       throw new Error("Enter a name between 2 and 100 characters.");
@@ -186,6 +237,23 @@ export const submit = mutation({
     }
     if (portfolio.length > 2000) {
       throw new Error("Keep portfolio links or samples under 2,000 characters.");
+    }
+    const detailedResponses: Array<[string, string, number, number]> = [
+      ["strategy scenario", strategyScenario, 40, 4000],
+      ["success measures", successMeasures, 20, 2000],
+      ["decision-making approach", decisionMaking, 20, 2000],
+      ["stakeholder communication", stakeholderCommunication, 20, 2000],
+      ["tools and strengths", toolsAndStrengths, 20, 2000],
+      ["weekly hours", weeklyHours, 1, 100],
+      ["time zone", timeZone, 1, 100],
+      ["availability start", availabilityStart, 1, 100],
+      ["LinkedIn URL", linkedin, 0, 300],
+    ];
+    for (const [label, value, minimum, maximum] of detailedResponses) {
+      if (value.length < minimum || value.length > maximum) throw new Error(`Check the ${label} field (${minimum}–${maximum} characters).`);
+    }
+    if (linkedin && !/^https:\/\/(www\.)?linkedin\.com\//i.test(linkedin)) {
+      throw new Error("Enter a valid HTTPS LinkedIn profile URL.");
     }
 
     const now = Date.now();
@@ -220,6 +288,15 @@ export const submit = mutation({
       collaboration,
       availability,
       portfolio,
+      strategyScenario,
+      successMeasures,
+      decisionMaking,
+      stakeholderCommunication,
+      toolsAndStrengths,
+      weeklyHours,
+      timeZone,
+      availabilityStart,
+      linkedin: linkedin || undefined,
       voluntaryConsent: true,
       status: "new",
       submittedAt,
@@ -236,6 +313,15 @@ export const submit = mutation({
       collaboration,
       availability,
       portfolio,
+      strategyScenario,
+      successMeasures,
+      decisionMaking,
+      stakeholderCommunication,
+      toolsAndStrengths,
+      weeklyHours,
+      timeZone,
+      availabilityStart,
+      linkedin,
       subject: "[OpenWorlds] New application: " + role.title,
     });
 
@@ -263,16 +349,16 @@ export const setStatus = mutation({
     if (!["new", "reviewing", "shortlisted", "accepted", "declined", "archived"].includes(status)) {
       throw new Error("Choose a valid application status.");
     }
+    await requireAdmin(ctx);
     if (status === "accepted") await requireCompanyAdmin(ctx);
-    else await requireAdmin(ctx);
-
     const application = await ctx.db.get(args.applicationId);
     if (!application) throw new Error("Application not found.");
     const email = application.email.trim().toLowerCase();
     if (status === "accepted") {
       const alreadyAccepted = application.status === "accepted";
-      if (!careerRoles.some((role) => role.status !== "Filled") && !alreadyAccepted) {
-        throw new Error("There are no currently available contributor roles.");
+      const role = careerRoles.find((item) => item.slug === application.roleSlug);
+      if ((!role || role.status === "Filled") && !alreadyAccepted) {
+        throw new Error("This application is not for a currently available contributor role.");
       }
       if (email === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be replaced by an application approval.");
       const existingInvite = await ctx.db

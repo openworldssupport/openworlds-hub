@@ -1,5 +1,4 @@
 import { SiteNav } from "@/components/SiteNav";
-import { RoleBadge } from "@/components/RoleBadge";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -45,10 +44,12 @@ function ConfirmedEvents() {
           <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">{event.title}</h2>
           <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{event.summary}</p>
           <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{event.body}</p>
-          <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
-            <span>Posted by {event.authorName}</span>
-            {event.badge && <RoleBadge badge={event.badge} />}
-          </div>
+          {event.media.length > 0 && <div className="mt-5 grid gap-4 sm:grid-cols-2">{event.media.map((asset, index) => asset.url && (
+            <figure key={`${event._id}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              {asset.mediaType === "image" ? <img src={asset.url} alt={asset.altText || `${event.title} media ${index + 1}`} loading="lazy" className="max-h-[32rem] w-full object-contain" /> : <video src={asset.url} controls preload="metadata" className="max-h-[32rem] w-full bg-black" aria-label={asset.altText || `${event.title} video ${index + 1}`} />}
+              {asset.altText && <figcaption className="px-3 py-2 text-xs text-slate-500">{asset.altText}</figcaption>}
+            </figure>
+          ))}</div>}
         </article>
       ))}
     </div>
