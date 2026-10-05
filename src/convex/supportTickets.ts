@@ -18,23 +18,10 @@ function createId(): string {
   return hex.substring(0, 16).toUpperCase();
 }
 
-/** Unambiguous alphabet (no 0/O/1/I/L) for human-readable ticket codes. */
-const REFERENCE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-
 /** We aim to reply within this window. Until it passes, a ticket reads as "open". */
 export const RESPONSE_WINDOW_MS = 72 * 60 * 60 * 1000; // 3 days
 /** Tickets that go quiet for this long are closed automatically. */
 export const AUTO_CLOSE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
-
-function generateReference(): string {
-  const bytes = new Uint8Array(8);
-  crypto.getRandomValues(bytes);
-  let code = "";
-  for (const byte of bytes) {
-    code += REFERENCE_ALPHABET[byte % REFERENCE_ALPHABET.length];
-  }
-  return `OW-${code}`;
-}
 
 type TicketStatusInput = {
   status: string;
