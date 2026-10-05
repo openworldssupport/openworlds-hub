@@ -4,17 +4,66 @@ import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 
 const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
+const DEFAULT_CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 
 /**
- * Emails a newly submitted support ticket to the OpenWorlds support inbox.
- *
- * Uses the platform email integration (VLY_INTEGRATION_KEY), and falls back to
- * Resend (RESEND_API_KEY) if that is configured instead. `replyTo` is set to the
- * submitter so the team can reply straight to the contacting user. Runs
- * best-effort: if no provider is configured the ticket is still saved and this
- * action just logs that the email was skipped.
+ * Emails a new support ticket to the OpenWorlds support inbox.
  */
+export const sendCareerApplicationNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    roleSlug: v.string(),
+    roleTitle: v.string(),
+    experience: v.string(),
+    motivation: v.string(),
+    roleApproach: v.string(),
+    collaboration: v.string(),
+    availability: v.string(),
+    portfolio: v.string(),
+    subject: v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const to = DEFAULT_CAREERS_EMAIL;
+    const subject = args.subject ?? `[OpenWorlds] New application: ${args.roleTitle}`;
+    const text = [
+      "New OpenWorlds career application",
+      "",
+      `Name: ${args.name}`,
+      `Email: ${args.email}`,
+      `Role: ${args.roleTitle} (${args.roleSlug})`,
+      "",
+      "Experience:", args.experience,
+      "Motivation:", args.motivation,
+      "First weeks:", args.roleApproach,
+      "Collaboration:", args.collaboration,
+      "Availability:", args.availability,
+      "Work samples:", args.portfolio || "(none)",
+    ].join("\n");
+    const html = [
+      "<h2>New OpenWorlds career application</h2>",
+      `<p><strong>Name:</strong> ${escapeHtml(args.name)}</p>`,
+      `<p><strong>Email:</strong> <a href="mailto:${escapeHtml(args.email)}">${escapeHtml(args.email)}</a></p>`,
+      `<p><strong>Role:</strong> ${escapeHtml(args.roleTitle)} (${escapeHtml(args.roleSlug)})</p>`,
+      `<p><strong>Experience:</strong></p><p>${escapeHtml(args.experience).replace(/\n/g, "<br />")}</p>`,
+      `<p><strong>Motivation:</strong></p><p>${escapeHtml(args.motivation).replace(/\n/g, "<br />")}</p>`,
+      `<p><strong>First weeks:</strong></p><p>${escapeHtml(args.roleApproach).replace(/\n/g, "<br />")}</p>`,
+      `<p><strong>Collaboration:</strong></p><p>${escapeHtml(args.collaboration).replace(/\n/g, "<br />")}</p>`,
+      `<p><strong>Availability:</strong></p><p>${escapeHtml(args.availability).replace(/\n/g, "<br />")}</p>`,
+      `<p><strong>Work samples:</strong> ${escapeHtml(args.portfolio || "(none)")}</p>`,
+    ].join("\n");
+
+    const vlyKey = process.env.VLY_INTEGRATION_KEY;
+    const resendKey = process.env.RESEND_API_KEY;
+    if (vlyKey) return await sendViaVly({ vlyKey, to, subject, text, html, replyTo: args.email });
+    if (resendKey) return await sendViaResend({ resendKey, to, subject, text, replyTo: args.email });
+
+    console.warn("[careers] No email provider configured; application was saved without email delivery.");
+    return { sent: false, reason: "missing-provider" as const };
+  },
+});
+
 export const sendSupportNotification = internalAction({
   args: {
     reference: v.optional(v.string()),

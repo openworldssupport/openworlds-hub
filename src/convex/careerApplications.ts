@@ -2,15 +2,13 @@ import { mutation, query, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { careerRoles } from "../lib/careers";
-import { isAdmin, requireAdmin } from "./admin";
+import { CAREERS_EMAIL, isAdmin, requireAdmin } from "./admin";
 
-/** Verified careers inbox that receives every new application. */
-const CAREERS_EMAIL = "careers@openworlds.dk";
-
-/** Best-effort email of a new application to the careers mailbox. */
-const SEND_CAREERS_NOTIFICATION = internalAction({
+/** Emails a submitted application to the careers inbox. */
+export const sendNotification = internalAction({
   args: {
     name: v.string(),
+    email: v.string(),
     roleSlug: v.string(),
     roleTitle: v.string(),
     experience: v.string(),
@@ -26,7 +24,7 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
       "New career application",
       "",
       "Name: " + (args.name || "(not provided)"),
-      "Email: " + args.roleSlug,
+      "Email: " + args.email,
       "Role: " + args.roleTitle + " (" + args.roleSlug + ")",
       "Experience:",
       args.experience,
@@ -46,6 +44,7 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
     const html = [
       "<h2>New career application</h2>",
       "<p><strong>Name:</strong> " + escapeHtml(args.name || "(not provided)") + "</p>",
+      "<p><strong>Email:</strong> <a href=\"mailto:" + escapeHtml(args.email) + "\">" + escapeHtml(args.email) + "</a></p>",
       "<p><strong>Role:</strong> " + escapeHtml(args.roleTitle) + " (" + escapeHtml(args.roleSlug) + ")</p>",
       "<p><strong>Experience:</strong></p><p>" + escapeHtml(args.experience) + "</p>",
       "<p><strong>Why this role:</strong></p><p>" + escapeHtml(args.motivation) + "</p>",
@@ -55,8 +54,6 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
       "<p><strong>Work samples:</strong>" + (args.portfolio ? "</p><p>" + escapeHtml(args.portfolio) + "</p>" : "") + "</p>",
     ].join("\n");
 
-    const to = CAREERS_EMAIL;
-    const from = "OpenWorlds Careers <noreply@openworlds.dk>";
     const subject = args.subject ?? "New career application";
 
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
@@ -71,11 +68,11 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
             "X-Vly-Version": "0.1.0",
           },
           body: JSON.stringify({
-            to: [to],
-            from: from,
-            subject: subject,
-            text: text,
-            html: html,
+            to: [CAREERS_EMAIL],
+            replyTo: args.email,
+            subject,
+            text,
+            html,
           }),
         });
 
@@ -92,8 +89,38 @@ const SEND_CAREERS_NOTIFICATION = internalAction({
       }
     }
 
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      try {
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM ?? "OpenWorlds Careers <onboarding@resend.dev>",
+            to: [CAREERS_EMAIL],
+            reply_to: args.email,
+            subject,
+            text,
+            html,
+          }),
+        });
+        if (!response.ok) {
+          console.error("[careers] Resend rejected the notification email with status", response.status);
+          return { sent: false, reason: "provider-error" };
+        }
+        const data = (await response.json().catch(() => ({}))) as { id?: string };
+        return { sent: true, id: data.id ?? null };
+      } catch (error) {
+        console.error("[careers] Failed to send application email:", error);
+        return { sent: false, reason: "network-error" };
+      }
+    }
+
     console.warn(
-      "[careers] No VLY_INTEGRATION_KEY configured. Application was saved without emailing the careers inbox.",
+      "[careers] No email provider configured. Add VLY_INTEGRATION_KEY or RESEND_API_KEY to email the careers inbox.",
     );
     return { sent: false, reason: "missing-provider" };
   },
@@ -198,6 +225,7 @@ export const submit = mutation({
 
     await ctx.scheduler.runAfter(0, internal.careerApplications.sendNotification, {
       name: fullName,
+      email,
       roleSlug: role.slug,
       roleTitle: role.title,
       experience,

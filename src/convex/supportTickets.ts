@@ -4,10 +4,6 @@ import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 import { isAdmin, requireAdmin } from "./admin";
 
-/** Travelers must affirm they have read and accept the Privacy Policy and
- * Terms of Service before a support ticket is opened. */
-export const SUPPORT_TERMS_CONSENT_MESSAGE = "You must accept our Privacy Policy and Terms of Service before opening a ticket.";
-
 /** Generate a short, unambiguous ticket reference (same version as the UUID). */
 function createId(): string {
   const randomBytes = new Uint8Array(16);
@@ -72,8 +68,6 @@ export const create = mutation({
     message: v.string(),
     // Hidden anti-bot field: real users never fill this in.
     honeypot: v.optional(v.string()),
-    // The person opening the ticket must accept the Privacy Policy and Terms of Service.
-    privacyAndTermsAccepted: v.boolean(),
   },
   handler: async (ctx, args) => {
     // Silently accept and discard bot submissions so automated scripts get no signal.
@@ -98,10 +92,6 @@ export const create = mutation({
     if (message.length < 20 || message.length > 5000) {
       throw new Error("Describe your request in 20–5,000 characters.");
     }
-    if (!args.privacyAndTermsAccepted) {
-      throw new Error("You must accept our Privacy Policy and Terms of Service before opening a ticket.");
-    }
-
     const now = Date.now();
     const recentTickets = await ctx.db
       .query("supportTickets")

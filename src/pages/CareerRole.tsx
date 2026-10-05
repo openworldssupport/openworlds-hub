@@ -163,14 +163,14 @@ export function CareerApplicationGateway() {
             <>
               <CheckCircle2 className="mx-auto mt-4 size-10 text-emerald-600" />
               <h1 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Application received</h1>
-              <p className="mt-3 leading-7 text-slate-600">Your application for <strong>{role.title}</strong> has been saved for the OpenWorlds team to review. This is a voluntary, unpaid role.</p>
+              <p className="mt-3 leading-7 text-slate-600">Your application for <strong>{role.title}</strong> has been sent to the OpenWorlds careers team at careers@openworlds.dk. This is a voluntary, unpaid role.</p>
               <Link to="/careers" className="mt-7 inline-flex rounded-lg bg-[#0066cc] px-5 py-3 text-sm font-medium text-white hover:bg-[#004a99]">Back to careers</Link>
             </>
           ) : (
             <>
               <p className="mt-4 text-sm font-medium text-[#7651c9]">{role.branch.title.replace(/&/g, "and").replace(/\//g, " · ")}</p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Apply: {role.title}</h1>
-              <p className="mt-3 leading-7 text-slate-600">This is a voluntary, unpaid role. Your answers are saved for the OpenWorlds team to review. Don’t include passwords or sensitive personal details.</p>
+              <p className="mt-3 leading-7 text-slate-600">This is a voluntary, unpaid role. Your application will be emailed to careers@openworlds.dk and saved for team review. Don’t include passwords or sensitive personal details.</p>
               <form onSubmit={handleSubmit} className="mx-auto mt-7 max-w-2xl space-y-4 text-left">
                 <div className="space-y-2">
                   <label htmlFor="fullName" className="text-sm font-medium">Full name</label>
