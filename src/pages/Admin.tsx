@@ -46,11 +46,8 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Admin() {
   const { isLoading, isAuthenticated, user } = useAuth();
-  const authorized = user?.emailVerificationTime !== undefined && (
-    user.role === "admin" ||
-    user.email?.trim().toLowerCase() === SUPPORT_EMAIL ||
-    Boolean(user.department?.trim() || user.position?.trim())
-  );
+  const companyAccess = useQuery(api.staff.me);
+  const canOpenAdmin = companyAccess?.isAdmin === true;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -66,7 +63,7 @@ export default function Admin() {
         </div>
       </header>
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
-        {isLoading ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : !isAuthenticated ? <AdminSignIn /> : !authorized ? <AccessDenied email={user?.email ?? ""} /> : <AdminDashboard />}
+        {isLoading || companyAccess === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : !isAuthenticated ? <AdminSignIn /> : !canOpenAdmin ? <AccessDenied email={user?.email ?? ""} /> : <AdminDashboard />}
       </section>
     </main>
   );
@@ -89,7 +86,7 @@ function AccessDenied({ email }: { email: string }) {
     <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
       <AlertCircle className="mx-auto size-6 text-amber-700" />
       <h2 className="mt-3 font-semibold text-amber-900">Admin access required</h2>
-      <p className="mt-2 text-sm text-amber-900">{email || "This account"} does not have admin privileges.</p>
+      <p className="mt-2 text-sm text-amber-900">{email || "This account"} is not an active company account with access to the Admin workspace.</p>
       <Button variant="outline" className="mt-4" onClick={() => signOut()}>Sign out</Button>
     </div>
   );
@@ -100,8 +97,8 @@ function AdminDashboard() {
   const canManageCompanyAccounts = user?.role === "admin" || user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;
   const tickets = useQuery(api.supportTickets.listForAdmin);
   const applications = useQuery(api.careerApplications.listForAdmin);
-  const members = useQuery(api.staff.listMembers);
-  const accounts = useQuery(api.admin.listCompanyAccess);
+  const members = useQuery(api.staff.listMembers, canManageCompanyAccounts ? {} : "skip");
+  const accounts = useQuery(api.admin.listCompanyAccess, canManageCompanyAccounts ? {} : "skip");
   const markResponded = useMutation(api.supportTickets.markResponded);
   const closeTicket = useMutation(api.supportTickets.closeTicket);
   const reopenTicket = useMutation(api.supportTickets.reopenTicket);

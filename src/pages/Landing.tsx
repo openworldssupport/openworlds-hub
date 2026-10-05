@@ -6,7 +6,7 @@ const explore = [
   {
     to: "/worlds",
     title: "Worlds",
-    text: "Browse worlds built and shared by the community.",
+    text: "No published worlds are available yet; check for updates.",
     icon: Compass,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
@@ -14,7 +14,7 @@ const explore = [
   {
     to: "/events",
     title: "Events",
-    text: "Confirmed OpenWorlds events, when announced.",
+    text: "No confirmed event announcements are available yet.",
     icon: CalendarDays,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
@@ -22,7 +22,7 @@ const explore = [
   {
     to: "/roadmap",
     title: "Roadmap",
-    text: "See what we are building next, phase by phase.",
+    text: "No roadmap milestones have been published yet.",
     icon: Flag,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
@@ -30,7 +30,7 @@ const explore = [
   {
     to: "/learning",
     title: "Learning",
-    text: "Guides and lessons for building your first world.",
+    text: "No learning guides have been published yet.",
     icon: Map,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
@@ -38,7 +38,7 @@ const explore = [
   {
     to: "/news",
     title: "News",
-    text: "Release notes and updates from the team.",
+    text: "Browse updates published by the team.",
     icon: Newspaper,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
@@ -46,7 +46,7 @@ const explore = [
   {
     to: "/rules",
     title: "Rules",
-    text: "How we keep the community safe and welcoming.",
+    text: "General website and community guidelines.",
     icon: Gamepad2,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
@@ -67,8 +67,7 @@ export default function Landing() {
             A world built together.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
-            Create, share, and explore. Follow the project, meet the community, or help us build what comes
-            next.
+            OpenWorlds is in development. Follow official project updates and find the current status of public resources.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -100,7 +99,7 @@ export default function Landing() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-[#7651c9]">Explore</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Everything in one place</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
           </div>
           <Link to="/about" className="inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
             About OpenWorlds <ArrowRight className="size-4" />
@@ -148,7 +147,7 @@ export default function Landing() {
             </div>
             <h2 className="mt-4 text-lg font-semibold">Need a hand?</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Find answers, open a support ticket, or check the status of one you already sent.
+              Read current support information or open a ticket.
             </p>
             <div className="mt-5 flex flex-wrap gap-4 text-sm font-medium text-[#0066cc]">
               <Link to="/support" className="hover:underline">Visit support</Link>
@@ -177,10 +176,10 @@ export default function Landing() {
         <div className="rounded-xl border border-[#f3c64e] bg-[#f3c64e]/10 p-6 sm:p-8">
           <p className="text-sm font-medium text-[#7c5a00]">In development</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            OpenWorlds is not released yet — and that is the best time to shape it.
+            OpenWorlds is not released yet.
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-            OpenWorlds is in development. Confirmed public updates will appear on the News page.
+            No public roadmap milestones or downloadable builds have been announced. Published updates are listed on the News page.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/roadmap" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">

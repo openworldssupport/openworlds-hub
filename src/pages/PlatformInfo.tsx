@@ -38,11 +38,11 @@ const pages = {
   contact: {
     eyebrow: "Contact",
     title: "Get in touch",
-    description: "For support or other questions, please use an official Open Worlds contact address once one has been confirmed.",
+    description: "For support or other questions, use the contact methods listed on this website.",
     icon: Mail,
     sections: [
-      { title: "Support email", text: "No verified support email address is configured on this website yet." },
-      { title: "Account help", text: "Website login is not connected to the shared game account service yet. Do not send passwords by email." },
+      { title: "Support contact", text: "Use support@openworlds.dk or the support form on this site. Replies are not guaranteed." },
+      { title: "Company sign-in", text: "Company accounts are invitation-only and use a one-time email code. Public player sign-up is closed." },
     ],
   },
 } as const;

@@ -21,15 +21,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         .query("companyAccess")
         .filter((q) => q.eq(q.field("email"), email))
         .first();
-      const existingUser = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("email"), email))
-        .first();
-      const existingCompanyUser = Boolean(
-        existingUser?.emailVerificationTime !== undefined &&
-        (existingUser.role === "admin" || existingUser.department?.trim() || existingUser.position?.trim()),
-      );
-      if (!isBootstrapAdmin && !invitation && !existingCompanyUser) {
+      if (!isBootstrapAdmin && !invitation) {
         throw new Error("This email is not invited to an OpenWorlds company account.");
       }
 
@@ -45,9 +37,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
             role: isAdmin ? "admin" as const : "member" as const,
             ...(!isBootstrapAdmin
               ? {
-                  department: invitation?.department ?? existingUser?.department,
-                  position: invitation?.position ?? existingUser?.position,
-                  publicBadge: invitation?.publicBadge ?? existingUser?.publicBadge,
+                  department: invitation.department,
+                  position: invitation.position,
+                  publicBadge: invitation.publicBadge,
                 }
               : {}),
           }

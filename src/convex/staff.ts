@@ -21,7 +21,7 @@ async function currentUser(ctx: QueryCtx | MutationCtx) {
 export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   if (await isAdmin(ctx)) return true;
   const user = await currentUser(ctx);
-  if (!user) return false;
+  if (!user || user.emailVerificationTime === undefined) return false;
   return Boolean(user.department?.trim() || user.position?.trim());
 }
 
@@ -45,7 +45,7 @@ export const me = query({
     }
 
     const admin = await isAdmin(ctx);
-    const staff = admin || Boolean(user.department?.trim() || user.position?.trim());
+    const staff = admin || (user.emailVerificationTime !== undefined && Boolean(user.department?.trim() || user.position?.trim()));
     const department = user.department?.trim() || null;
     const position = user.position?.trim() || null;
 
@@ -164,6 +164,9 @@ export const setAssignment = mutation({
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
     if (position.length > 100) throw new Error("Keep the position under 100 characters.");
+    if (Boolean(department) !== Boolean(position)) {
+      throw new Error("Enter both a department and position, or clear both to remove access.");
+    }
 
     if (!department && !position) {
       const target = await ctx.db.get(args.userId);
@@ -187,13 +190,19 @@ export const setAssignment = mutation({
       return { ok: true, isStaff: false };
     }
 
-    await ctx.db.patch(args.userId, {
-      department: department || undefined,
-      position: position || undefined,
-      publicBadge: args.badge,
-    });
-    const user = await ctx.db.get(args.userId);
-    const email = user?.email?.trim().toLowerCase();
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("Account not found.");
+    if (target.role === "admin" || target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      throw new Error("Admin accounts cannot be changed from the team assignment panel.");
+    }
+    if (target.emailVerificationTime !== undefined) {
+      await ctx.db.patch(args.userId, {
+        department: department || undefined,
+        position: position || undefined,
+        publicBadge: args.badge,
+      });
+    }
+    const email = target.email?.trim().toLowerCase();
     if (email && department && position) {
       const invitation = await ctx.db
         .query("companyAccess")
@@ -217,7 +226,7 @@ export const setAssignment = mutation({
         });
       }
     }
-    return { ok: true, isStaff: true };
+    return { ok: true, isStaff: target.emailVerificationTime !== undefined };
   },
 });
 
@@ -230,7 +239,7 @@ export const publicTeam = query({
   handler: async (ctx) => {
     const users = await ctx.db.query("users").take(500);
     return users
-      .filter((user) => (user.department?.trim() || user.position?.trim()))
+      .filter((user) => user.emailVerificationTime !== undefined && (user.department?.trim() || user.position?.trim()))
       .map((user) => ({
         name: user.name?.trim() || "OpenWorlds team",
         badge: user.publicBadge ?? deriveBadge(user.department, user.position),

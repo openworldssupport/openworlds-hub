@@ -1,6 +1,6 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
-import { AlertTriangle, ArrowRight, Ban, CheckCircle2, EyeOff, Gavel, HeartHandshake, MessageCircleWarning, ShieldCheck, XCircle } from "lucide-react";
+import { ArrowRight, Ban, CheckCircle2, EyeOff, HeartHandshake, MessageCircleWarning, ShieldCheck, XCircle } from "lucide-react";
 
 const goldenRules = [
   {
@@ -57,7 +57,7 @@ export default function Rules() {
           <p className="text-sm font-medium text-blue-100">Rules</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Keep OpenWorlds worth visiting</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            These are website and community guidelines. Platform-specific moderation details will be published when available.
+            These are general website and community guidelines. No platform-specific moderation process is described here.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#golden" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Read the rules</a>
@@ -134,8 +134,8 @@ export default function Rules() {
                 <MessageCircleWarning className="size-5 text-[#7651c9]" /> See something breaking the rules?
               </h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-                Open a ticket with the reason “Report a player” or “Report content or a world”. Reports are read
-                by people, not bots, and the reporter is never named.
+                You can send a support ticket with the reason “Report a player” or “Report content or a world”.
+                Include only details needed to explain the concern. Ticket information is available to authorized company staff; see the Privacy Policy.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">

@@ -8,14 +8,14 @@ const sections: Section[] = [
   {
     title: "1. Acceptance of these terms",
     body: [
-      "By using the OpenWorlds website, you agree to these Terms of Service. If you do not agree, please do not use the site.",
+      "This page is an informational draft. It does not establish that the site operator has adopted these terms as a binding agreement.",
     ],
   },
   {
     title: "2. The service",
     body: [
       "OpenWorlds is a community website for creating, sharing, and exploring worlds. Some features described on the site are planned and not yet available.",
-      "A public game download, paid features, or account sign-in may not exist yet. Where they are unavailable, this is stated on the relevant page.",
+      "Public player accounts and game downloads are not available through this website. Company sign-in is invitation-only and uses a one-time email code.",
     ],
   },
   {
@@ -38,21 +38,21 @@ const sections: Section[] = [
     title: "5. Support requests and applications",
     body: [
       "When you open a support ticket or submit a career application, you confirm the information you provide is accurate. Do not include passwords or payment details in any form.",
-      "Roles listed on the Careers page are voluntary and unpaid contributor positions. Submitting an application does not create an employment relationship or any obligation on either side.",
+      "Any contributor role terms will be stated with the specific opening. Submitting an application does not by itself create an employment relationship.",
       "We may decline or close a request or application at our discretion.",
     ],
   },
   {
     title: "6. Intellectual property",
     body: [
-      "The OpenWorlds name, logo, and site content are owned by the OpenWorlds team or its licensors and may not be used without permission, except as allowed by law.",
-      "You keep ownership of the original content you submit, but you grant us permission to use it as needed to review and respond to your request.",
+      "The site does not state who owns the OpenWorlds name, logo, or other content. Contact support@openworlds.dk before reusing material if you are unsure.",
+      "The rights and permissions applicable to content submitted through this site have not been established in this draft. Avoid submitting material you do not wish the site operator to receive.",
     ],
   },
   {
     title: "7. Third-party links",
     body: [
-      "The site links to third-party services such as Discord and YouTube. We do not control those services and are not responsible for their content or practices.",
+      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it.",
     ],
   },
   {
@@ -71,13 +71,13 @@ const sections: Section[] = [
   {
     title: "10. Changes to these terms",
     body: [
-      "We may update these terms as the project changes. Continued use of the site after changes means you accept the updated terms.",
+      "This draft does not establish a notice process or when updated terms take effect. Review the current version and obtain legal advice before relying on it.",
     ],
   },
   {
     title: "11. Governing law",
     body: [
-      "These terms are governed by the laws of Denmark, without regard to conflict-of-law rules.",
+      "The applicable governing law has not been confirmed in the information available on this site. Obtain appropriate legal advice before relying on these template terms.",
     ],
   },
   {
@@ -97,14 +97,13 @@ export default function Terms() {
             <Scale className="size-4" /> Legal
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Terms of Service</h1>
-          <p className="mt-4 text-blue-50">Last updated: October 2026</p>
+          <p className="mt-4 text-blue-50">Review date: October 2026 · Draft</p>
         </div>
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          These terms are a good-faith summary of the rules for using this website. They are a template and
-          not legal advice — have them reviewed before you rely on them.
+          This is an informational draft, not legal advice or a confirmed legal agreement. It contains unresolved policy details and should be reviewed and completed before being relied on.
         </p>
 
         <div className="mt-8 space-y-8">

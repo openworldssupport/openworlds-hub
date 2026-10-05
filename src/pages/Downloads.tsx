@@ -42,7 +42,7 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            There are no downloadable builds or confirmed platform requirements yet. Check here for verified links when available.
+            This page currently has no download links or confirmed platform requirements.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#builds" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">See platform status</a>
@@ -81,8 +81,7 @@ export default function Downloads() {
               <div>
                 <h2 className="text-lg font-semibold">No official downloads available right now</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  OpenWorlds is still in development. Links shared elsewhere — mirror sites, messaging apps,
-                  comment sections — are not official and should not be trusted.
+                  OpenWorlds is still in development. No download links have been published here. Treat any external build as unverified unless its source is independently confirmed.
                 </p>
               </div>
             </div>
@@ -104,7 +103,7 @@ export default function Downloads() {
             <Link to="/support" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
               <ArrowDownToLine className="size-6 text-[#987000]" />
               <h3 className="mt-3 font-semibold">Install help</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Trouble installing or updating? Open a ticket with “Download or installation”.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Have a question about downloads? Use the support form.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#987000]">Get help <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
           </div>
@@ -112,7 +111,7 @@ export default function Downloads() {
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · Downloads are only ever published on this page.
+        OpenWorlds © 2026
       </footer>
     </main>
   );

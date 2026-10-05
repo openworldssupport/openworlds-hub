@@ -4,20 +4,11 @@ import { SupportTicketForm } from "@/components/ui/support-ticket-form";
 import { ClipboardCheck, LifeBuoy, Mail } from "lucide-react";
 
 const faqs = [
-  {
-    question: "How do I play OpenWorlds?",
-    answer:
-      "OpenWorlds is still in development. When an official build is ready it will be listed on the Downloads page, and we do not share links from anywhere else.",
-  },
-  {
-    question: "Is OpenWorlds free to play?",
-    answer:
-      "There is no paid release yet, and no pricing has been announced. Any future pricing or paid features will be clearly stated on the official site before launch.",
-  },
+
   {
     question: "How do I create and share a world?",
     answer:
-      "World creation tools are not publicly available yet. Join the Discord community to follow development and be among the first to try them.",
+      "World creation tools are not publicly available yet. This website does not currently provide a public world-creation flow.",
   },
   {
     question: "How does company sign-in work?",
@@ -27,32 +18,12 @@ const faqs = [
   {
     question: "How do I report a player or content?",
     answer:
-      "Open a ticket with the reason “Report a player” or “Report content or a world”. Include usernames and any links, screenshots, or world names that help us review it.",
+      "You can submit a support ticket about a person or content. Include only information needed to explain the concern; ticket details are available to authorized company staff.",
   },
   {
-    question: "Where can I download the game?",
+    question: "How can I contact the team?",
     answer:
-      "There are no official downloads right now. Only the Downloads page will list official builds, so treat anything else as unverified.",
-  },
-  {
-    question: "Are the Learning lessons available yet?",
-    answer:
-      "No learning guides are published yet. The Learning page will be updated when materials are available.",
-  },
-  {
-    question: "Are there contributor openings?",
-    answer:
-      "There are no confirmed openings listed right now. If openings are approved, they will appear on the Careers page.",
-  },
-  {
-    question: "How quickly will I get a reply?",
-    answer:
-      "We do not publish a guaranteed response time. Include a working email address so the team can reply when able.",
-  },
-  {
-    question: "How else can I contact the team?",
-    answer:
-      "You can also email support@openworlds.dk directly, or join the official Discord linked from the Community page.",
+      "Use the support form on this page or email support@openworlds.dk. A response is not guaranteed.",
   },
 ];
 
@@ -85,8 +56,7 @@ export default function Support() {
         <div className="mx-auto max-w-4xl px-5 py-14 sm:px-8 sm:py-16">
           <p className="text-sm font-medium text-[#7651c9]">Common questions</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Frequently asked</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-slate-600">              Information about the website and how to contact the team.
-          </p>
+          <p className="mt-3 max-w-2xl leading-7 text-slate-600">Information about the website and how to contact the team.</p>
 
           <Accordion type="single" collapsible className="mt-8 rounded-xl border border-slate-200 bg-white px-5 sm:px-6">
             {faqs.map((faq, index) => (
@@ -116,7 +86,7 @@ export default function Support() {
               <p className="text-sm font-medium text-[#7651c9]">Support ticket</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Open a ticket</h2>
               <p className="mt-4 leading-7 text-slate-600">
-                Describe your question or issue and provide an email address where the team can contact you.
+                Describe your question or issue and provide an email address if you want a reply. A response is not guaranteed.
               </p>
               <ul className="mt-6 grid gap-3 text-sm text-slate-600">
                 <li className="rounded-lg border border-slate-200 bg-white p-4">

@@ -93,7 +93,7 @@ export default function News() {
           <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">News &amp; announcements</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Official updates from the OpenWorlds team: builds, plans, and the occasional community win.
+            Announcements published by company staff. No update is shown until it has been published.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#publish" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">What we publish</a>
@@ -105,7 +105,7 @@ export default function News() {
       <section id="publish" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="mb-7">
           <p className="text-sm font-medium text-[#7651c9]">What shows up here</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Three kinds of update</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Update categories</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           {publishTypes.map(({ icon: Icon, tone, accent, title, text }) => (
@@ -174,7 +174,7 @@ export default function News() {
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · Official updates are published here first.
+        OpenWorlds © 2026 · Published updates appear here.
       </footer>
     </main>
   );

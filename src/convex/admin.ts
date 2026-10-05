@@ -54,12 +54,7 @@ export const isCompanyEmailAllowed = internalQuery({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
-    if (invitation) return true;
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", normalized))
-      .first();
-    return Boolean(existingUser?.emailVerificationTime !== undefined && (existingUser.role === "admin" || existingUser.department?.trim() || existingUser.position?.trim()));
+    return Boolean(invitation);
   },
 });
 
@@ -121,6 +116,7 @@ export const inviteCompanyAccount = mutation({
         position,
         publicBadge: args.publicBadge,
         role: args.accessLevel === "admin" ? "admin" : "member",
+        emailVerificationTime: Date.now(),
       });
     }
     return { ok: true };

@@ -9,15 +9,16 @@ const sections: Section[] = [
     title: "1. Who we are",
     body: [
       "OpenWorlds is a community project for creating, sharing, and exploring worlds. In this policy, “we”, “us”, and “OpenWorlds” refer to the OpenWorlds team.",
-      "For any privacy question or request, contact us at support@openworlds.dk.",
+      "For a privacy question or request, contact support@openworlds.dk. The site operator's legal identity and location are not specified in this draft.",
     ],
   },
   {
     title: "2. Information we collect",
     body: [
-      "Support tickets: the reason you select, your message, and the email address you provide. Your name and OpenWorlds username are optional.",
-      "Career applications: your name, email address, and the answers you give on the application form, including any optional work samples you share.",
-      "Basic technical information: like most websites, our hosting and database providers may process standard request data (such as IP address and timestamps) to operate the service securely.",
+      "Support tickets: the reason you select, your message, and the email address you provide. Your name and OpenWorlds username are optional. Authorized company staff can view submitted tickets; configured email notifications may also include ticket details.",
+      "Career applications: where an approved role is available, the form may collect your name, email address, answers, and optional work samples.",
+      "Company sign-in: invited company email addresses and account access/assignment details are stored to provide private staff access.",
+      "Hosting and service providers may process technical request data. The exact data and retention periods depend on provider configuration and are not specified here.",
     ],
   },
   {
@@ -25,53 +26,53 @@ const sections: Section[] = [
     body: [
       "To reply to your support request and resolve the issue you reported.",
       "To review and respond to voluntary contributor applications.",
-      "To keep the community safe, prevent abuse, and enforce our Terms and community rules.",
-      "To operate, maintain, and improve the website.",
+      "To manage company accounts and respond to website requests.",
+      "To operate the website and its company sign-in and support features.",
     ],
   },
   {
     title: "4. Legal bases (where applicable)",
     body: [
-      "Where laws such as the GDPR apply, we process your information because it is necessary to respond to your request, to pursue our legitimate interests in running a safe community, or because you have consented by submitting a form.",
+      "The legal basis for each processing activity depends on the responsible operator and applicable law. This draft does not identify those details; confirm them with the site operator before relying on this notice.",
     ],
   },
   {
     title: "5. Sharing",
     body: [
-      "We do not sell your personal information.",
-      "We share it only with service providers that help us run the site — for example our database and email providers — and only as needed to deliver the service, or where required by law.",
+      "Support ticket details may be sent to the configured email notification provider and are stored by the site's database provider. Other processing and sharing depend on the providers configured for the service.",
+      "This page does not confirm a complete list of subprocessors or all sharing arrangements. Do not submit sensitive information through public forms.",
     ],
   },
   {
     title: "6. Retention",
     body: [
-      "We keep support tickets and applications only as long as needed to handle them and to meet our legitimate operational and legal needs. You can ask us to delete your information at any time using the contact address below.",
+      "This site does not currently state fixed retention periods for tickets, applications, account records, or provider logs. Contact support@openworlds.dk with a data request or deletion question.",
     ],
   },
   {
     title: "7. Security",
     body: [
-      "We use reasonable technical measures to protect the information you submit, including access controls so that tickets and applications are readable only by authorised team members.",
+      "Access to tickets and applications is restricted by the site's company-account authorization checks. No independent security review or comprehensive security controls are described here.",
       "No method of transmission or storage is fully secure, so we cannot guarantee absolute security.",
     ],
   },
   {
     title: "8. Your rights",
     body: [
-      "Depending on where you live, you may have the right to access, correct, or delete your information, to object to or restrict certain processing, or to request a copy of your data.",
+      "Applicable rights depend on the laws and jurisdiction governing the site's operator. Contact support@openworlds.dk with a request; this draft does not identify the operator or establish jurisdiction.",
       "To exercise any of these rights, contact support@openworlds.dk. We may need to verify your identity before acting.",
     ],
   },
   {
     title: "9. Children",
     body: [
-      "The website is not directed to children under 13, and we do not knowingly collect their personal information. If you believe a child has submitted information, contact us and we will remove it.",
+      "The site does not specify an age policy or establish how children's data is handled. Do not submit children's personal information through public forms.",
     ],
   },
   {
     title: "10. Cookies and local storage",
     body: [
-      "The public website does not use advertising or tracking cookies. The platform or hosting may use strictly necessary cookies or local storage for basic functionality and security.",
+      "The site uses authentication/session mechanisms for company sign-in. Other cookie, analytics, or local-storage use depends on the deployed platform and provider configuration; this page does not claim a complete inventory.",
     ],
   },
   {
@@ -97,14 +98,13 @@ export default function Privacy() {
             <ShieldCheck className="size-4" /> Legal
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Privacy Policy</h1>
-          <p className="mt-4 text-blue-50">Last updated: October 2026</p>
+          <p className="mt-4 text-blue-50">Review date: October 2026 · Draft</p>
         </div>
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          This page explains how OpenWorlds handles personal information. It is a good-faith summary of what
-          the site currently collects and is not legal advice — have it reviewed before you rely on it.
+          This is an informational draft, not a complete privacy notice or legal advice. Provider configuration and applicable business details have not been independently confirmed; review and complete this notice before relying on it.
         </p>
 
         <div className="mt-8 space-y-8">

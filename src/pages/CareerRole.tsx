@@ -75,7 +75,7 @@ export function CareerApplicationsPage() {
         ) : !isAuthenticated ? (
           <div className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="font-semibold">Application review is unavailable</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Team accounts are temporarily unavailable. Submitted applications remain stored securely.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Sign in with an invited company account to view the application queue.</p>
           </div>
         ) : applications === undefined ? (
           <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Loading applications…</p>
@@ -163,14 +163,14 @@ export function CareerApplicationGateway() {
             <>
               <CheckCircle2 className="mx-auto mt-4 size-10 text-emerald-600" />
               <h1 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">Application received</h1>
-              <p className="mt-3 leading-7 text-slate-600">Your application for <strong>{role.title}</strong> has been sent to the OpenWorlds careers team at careers@openworlds.dk. This is a voluntary, unpaid role.</p>
+              <p className="mt-3 leading-7 text-slate-600">Your application for <strong>{role.title}</strong> has been saved. Email notification depends on the service configuration. Check the Careers page for current openings.</p>
               <Link to="/careers" className="mt-7 inline-flex rounded-lg bg-[#0066cc] px-5 py-3 text-sm font-medium text-white hover:bg-[#004a99]">Back to careers</Link>
             </>
           ) : (
             <>
               <p className="mt-4 text-sm font-medium text-[#7651c9]">{role.branch.title.replace(/&/g, "and").replace(/\//g, " · ")}</p>
               <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Apply: {role.title}</h1>
-              <p className="mt-3 leading-7 text-slate-600">This is a voluntary, unpaid role. Your application will be emailed to careers@openworlds.dk and saved for team review. Don’t include passwords or sensitive personal details.</p>
+              <p className="mt-3 leading-7 text-slate-600">Your application will be saved for team review. Email notification depends on the service configuration. Don’t include passwords or sensitive personal details.</p>
               <form onSubmit={handleSubmit} className="mx-auto mt-7 max-w-2xl space-y-4 text-left">
                 <div className="space-y-2">
                   <label htmlFor="fullName" className="text-sm font-medium">Full name</label>

@@ -57,14 +57,13 @@ export function SupportTicketForm() {
         <div>
           <p className="font-medium">Ticket received</p>
           <p className="mt-1 leading-6">
-            Thanks for reaching out. Your ticket has been saved and sent to the OpenWorlds support team,
-            who will reply to the email address you provided.
+            Your ticket has been saved. Email notification depends on the support inbox configuration; a reply is not guaranteed.
           </p>
           {reference && (
             <p className="mt-3 rounded-lg border border-emerald-300 bg-white p-3">
               Your reference: <span className="font-mono font-semibold tracking-wide">{reference}</span>
               <span className="mt-1 block text-xs text-slate-600">
-                Keep this to check your ticket status later at any time.
+                Keep this reference to look up the ticket status later.
               </span>
             </p>
           )}
@@ -98,7 +97,7 @@ export function SupportTicketForm() {
         <Label htmlFor="ticket-email">
           Email <span className="text-[#7651c9]">*</span>
         </Label>
-        <p className="text-xs text-slate-500">We reply to this address, so make sure it is correct.</p>
+        <p className="text-xs text-slate-500">Use an address where you can receive a reply. A response is not guaranteed.</p>
         <Input
           id="ticket-email"
           name="email"
@@ -163,8 +162,7 @@ export function SupportTicketForm() {
       )}
 
       <p className="text-xs leading-5 text-slate-500">
-        Your name, email, username, and message are sent only to the OpenWorlds support team so we can
-        reply to you. We never sell or share them. Do not include passwords or payment details.
+        Your ticket is stored on the service and can be read by authorized company staff. The support email notification may include the details you submit. Do not include passwords or payment details.
       </p>
 
       <div className="space-y-3 pt-2">
@@ -184,8 +182,7 @@ export function SupportTicketForm() {
           </span>
         </label>
         <p className="text-xs leading-5 text-slate-500">
-          Your ticket cannot be opened until you agree. We use your email only to reply to you and never
-          sell or share it; you can withdraw your consent anytime at support@openworlds.dk.
+          Your ticket cannot be opened until you agree. Review the Privacy Policy for information about ticket data and contact support@openworlds.dk with privacy questions.
         </p>
       </div>
 
