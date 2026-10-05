@@ -30,8 +30,8 @@ export function SiteNav() {
           <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
-          <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in <span className="text-[10px] text-slate-500">(soon)</span></Link>
-          <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up <span className="text-[10px] text-slate-500">(soon)</span></Link>
+          <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in</Link>
+          <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up</Link>
           <Button asChild size="sm" variant="outline" className="ml-1">
             <Link to="/auth?returnTo=%2Fstaff">Staff sign in</Link>
           </Button>
