@@ -86,6 +86,29 @@ const schema = defineSchema(
       body: v.string(),
       createdAt: v.number(),
     }).index("by_created_at", ["createdAt"]),
+
+    // Game announcements are drafted by staff and published to the public News page.
+    gameAnnouncements: defineTable({
+      authorId: v.id("users"),
+      authorName: v.string(),
+      department: v.optional(v.string()),
+      position: v.optional(v.string()),
+      badge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
+      title: v.string(),
+      summary: v.string(),
+      body: v.string(),
+      category: v.union(
+        v.literal("announcement"),
+        v.literal("development"),
+        v.literal("release"),
+        v.literal("event"),
+      ),
+      status: v.union(v.literal("draft"), v.literal("published")),
+      createdAt: v.number(),
+      publishedAt: v.optional(v.number()),
+    })
+      .index("by_created_at", ["createdAt"])
+      .index("by_status_published_at", ["status", "publishedAt"]),
   },
   {
     // Enforce the schema on every write so unknown/typo'd fields cannot be

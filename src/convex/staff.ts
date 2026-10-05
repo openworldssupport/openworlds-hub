@@ -33,6 +33,7 @@ export const me = query({
     if (!user) {
       return {
         signedIn: false,
+        userId: null as string | null,
         isStaff: false,
         isAdmin: false,
         name: null as string | null,
@@ -50,6 +51,7 @@ export const me = query({
 
     return {
       signedIn: true,
+      userId: user._id,
       isStaff: staff,
       isAdmin: admin,
       name: user.name?.trim() || null,
@@ -195,5 +197,148 @@ export const publicTeam = query({
         name: user.name?.trim() || "OpenWorlds team",
         badge: user.publicBadge ?? deriveBadge(user.department, user.position),
       }));
+  },
+});
+
+const announcementCategory = v.union(
+  v.literal("announcement"),
+  v.literal("development"),
+  v.literal("release"),
+  v.literal("event"),
+);
+const announcementStatus = v.union(v.literal("draft"), v.literal("published"));
+
+/** Public News page feed. Drafts are never returned. */
+export const publicAnnouncements = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query("gameAnnouncements")
+      .withIndex("by_status_published_at", (q) => q.eq("status", "published"))
+      .order("desc")
+      .take(50);
+    return rows.map(({ _id, title, summary, body, category, authorName, badge, publishedAt }) => ({
+      _id,
+      title,
+      summary,
+      body,
+      category,
+      authorName,
+      badge,
+      publishedAt: publishedAt ?? 0,
+    }));
+  },
+});
+
+/** Staff workspace feed, including drafts. */
+export const announcements = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isStaff(ctx))) return null;
+    return await ctx.db
+      .query("gameAnnouncements")
+      .withIndex("by_created_at")
+      .order("desc")
+      .take(100);
+  },
+});
+
+/** Staff can create or edit their own announcements and publish them publicly. */
+export const saveAnnouncement = mutation({
+  args: {
+    announcementId: v.optional(v.id("gameAnnouncements")),
+    title: v.string(),
+    summary: v.string(),
+    body: v.string(),
+    category: announcementCategory,
+    status: announcementStatus,
+  },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const title = args.title.trim();
+    const summary = args.summary.trim();
+    const body = args.body.trim();
+    if (title.length < 3 || title.length > 120) throw new Error("Title must be 3–120 characters.");
+    if (summary.length < 10 || summary.length > 240) throw new Error("Summary must be 10–240 characters.");
+    if (body.length < 20 || body.length > 10000) throw new Error("Announcement body must be 20–10,000 characters.");
+
+    const user = (await currentUser(ctx))!;
+    const now = Date.now();
+    const department = user.department?.trim() || undefined;
+    const position = user.position?.trim() || undefined;
+    const fields = {
+      title,
+      summary,
+      body,
+      category: args.category,
+      status: args.status,
+      authorName: user.name?.trim() || user.email || "OpenWorlds team",
+      department,
+      position,
+      badge: user.publicBadge ?? deriveBadge(department ?? null, position ?? null),
+      publishedAt: args.status === "published" ? now : undefined,
+    };
+
+    if (args.announcementId) {
+      const existing = await ctx.db.get(args.announcementId);
+      if (!existing) throw new Error("Announcement not found.");
+      if (existing.authorId !== user._id && !(await isAdmin(ctx))) {
+        throw new Error("You can only edit your own announcements.");
+      }
+      await ctx.db.patch(args.announcementId, fields);
+      return { announcementId: args.announcementId };
+    }
+
+    const announcementId = await ctx.db.insert("gameAnnouncements", {
+      authorId: user._id,
+      ...fields,
+      createdAt: now,
+    });
+    return { announcementId };
+  },
+});
+
+/** Authors can remove their own announcements; admins can remove any. */
+export const removeAnnouncement = mutation({
+  args: { announcementId: v.id("gameAnnouncements") },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const announcement = await ctx.db.get(args.announcementId);
+    if (!announcement) return { ok: true };
+    const userId = await getAuthUserId(ctx);
+    if (announcement.authorId !== userId && !(await isAdmin(ctx))) {
+      throw new Error("You can only remove your own announcements.");
+    }
+    await ctx.db.delete(args.announcementId);
+    return { ok: true };
+  },
+});
+
+/** Publish/unpublish management helper, using saveAnnouncement's ownership rules. */
+export const setAnnouncementStatus = mutation({
+  args: { announcementId: v.id("gameAnnouncements"), status: announcementStatus },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const announcement = await ctx.db.get(args.announcementId);
+    if (!announcement) throw new Error("Announcement not found.");
+    const userId = await getAuthUserId(ctx);
+    if (announcement.authorId !== userId && !(await isAdmin(ctx))) {
+      throw new Error("You can only manage your own announcements.");
+    }
+    await ctx.db.patch(args.announcementId, {
+      status: args.status,
+      publishedAt: args.status === "published" ? Date.now() : undefined,
+    });
+    return { ok: true };
+  },
+});
+
+/** Admin moderation: remove any announcement. */
+export const adminRemoveAnnouncement = mutation({
+  args: { announcementId: v.id("gameAnnouncements") },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    await ctx.db.delete(args.announcementId);
+    return { ok: true };
   },
 });

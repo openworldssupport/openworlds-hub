@@ -6,12 +6,18 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { SiteNav } from "@/components/SiteNav";
 import { RoleBadge } from "@/components/RoleBadge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Bell,
   Building2,
+  FileText,
   Loader2,
   LockKeyhole,
   Mail,
+  Megaphone,
+  Pencil,
   Send,
   Trash2,
   Users,
@@ -42,27 +48,32 @@ export default function Staff() {
   const me = useQuery(api.staff.me);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />
 
-      <section className="ow-page-hero px-5 py-12 text-white sm:px-8 sm:py-14">
-        <div className="mx-auto max-w-6xl">
-          <p className="flex items-center gap-2 text-sm font-medium text-blue-100">
-            <Building2 className="size-4" /> Company portal · staff only
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            OpenWorlds staff hub
-          </h1>
-          <p className="mt-2 text-blue-50">
-            {me?.isStaff
-              ? [me.department, me.position].filter(Boolean).join(" · ") ||
-                "Your department and position have not been set yet."
-              : "Internal messages and updates for the company team."}
-          </p>
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-5 px-5 py-8 sm:px-8">
+          <div>
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#0066cc]">
+              <Building2 className="size-4" /> Company workspace
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-[2.1rem]">
+              Good to see you{me?.name ? `, ${me.name.split(" ")[0]}` : ""}.
+            </h1>
+            <p className="mt-1.5 text-sm text-slate-500">
+              {me?.isStaff
+                ? [me.department, me.position].filter(Boolean).join(" · ") ||
+                  "Your OpenWorlds team workspace"
+                : "A private workspace for the OpenWorlds team"}
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
+            <span className="size-1.5 rounded-full bg-emerald-500" /> Private staff area
+          </div>
         </div>
-      </section>
+      </header>
 
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+      <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
         {me === undefined ? (
           <div className="flex items-center justify-center py-16 text-slate-500">
             <Loader2 className="size-5 animate-spin" />
@@ -72,7 +83,7 @@ export default function Staff() {
         ) : !me.isStaff ? (
           <StaffOnlyCard />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
+          <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
             <ProfileCard
               name={me.name}
               email={me.email}
@@ -81,7 +92,7 @@ export default function Staff() {
               badge={me.badge}
               isAdmin={me.isAdmin}
             />
-            <StaffBoard canDeleteAny={me.isAdmin} />
+            <StaffWorkspace isAdmin={me.isAdmin} userId={me.userId! as Id<"users">} />
           </div>
         )}
       </section>
@@ -143,7 +154,7 @@ function ProfileCard({
   const displayName = name || email || "Team member";
 
   return (
-    <aside className="h-fit rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6">
+    <aside className="h-fit rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-center gap-3">
         <span className="flex size-12 items-center justify-center rounded-xl bg-violet-50 text-lg font-semibold text-[#7651c9]">
           {initials(displayName)}
@@ -206,7 +217,231 @@ function ProfileCard({
   );
 }
 
-function StaffBoard({ canDeleteAny }: { canDeleteAny: boolean }) {
+function StaffWorkspace({ isAdmin, userId }: { isAdmin: boolean; userId: Id<"users"> }) {
+  const [section, setSection] = useState<"announcements" | "messages">("announcements");
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-5 flex gap-1 border-b border-slate-200">
+        <button type="button" onClick={() => setSection("announcements")} className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${section === "announcements" ? "border-[#0066cc] text-[#0052a3]" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+          <Megaphone className="size-4" /> Game announcements
+        </button>
+        <button type="button" onClick={() => setSection("messages")} className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${section === "messages" ? "border-[#0066cc] text-[#0052a3]" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+          <Users className="size-4" /> Team chat
+        </button>
+      </div>
+      {section === "announcements" ? (
+        <AnnouncementsPanel isAdmin={isAdmin} userId={userId} />
+      ) : (
+        <StaffBoard canDeleteAny={isAdmin} userId={userId} />
+      )}
+    </div>
+  );
+}
+
+const announcementCategories = [
+  ["announcement", "Announcement"],
+  ["development", "Development update"],
+  ["release", "Release notes"],
+  ["event", "Event"],
+] as const;
+
+type AnnouncementCategory = (typeof announcementCategories)[number][0];
+type AnnouncementStatus = "draft" | "published";
+
+function AnnouncementsPanel({ isAdmin, userId }: { isAdmin: boolean; userId: Id<"users"> }) {
+  const announcements = useQuery(api.staff.announcements);
+  const saveAnnouncement = useMutation(api.staff.saveAnnouncement);
+  const setStatus = useMutation(api.staff.setAnnouncementStatus);
+  const removeAnnouncement = useMutation(api.staff.removeAnnouncement);
+
+  const [editingId, setEditingId] = useState<Id<"gameAnnouncements"> | null>(null);
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [body, setBody] = useState("");
+  const [category, setCategory] = useState<AnnouncementCategory>("announcement");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function resetForm() {
+    setEditingId(null);
+    setTitle("");
+    setSummary("");
+    setBody("");
+    setCategory("announcement");
+    setError("");
+  }
+
+  function edit(item: NonNullable<typeof announcements>[number]) {
+    setEditingId(item._id);
+    setTitle(item.title);
+    setSummary(item.summary);
+    setBody(item.body);
+    setCategory(item.category);
+    setError("");
+    document.getElementById("game-announcement-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function save(status: AnnouncementStatus) {
+    if (title.trim().length < 3 || summary.trim().length < 10 || body.trim().length < 20) {
+      setError("Add a headline, a short summary, and at least a few sentences of detail before saving.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await saveAnnouncement({
+        announcementId: editingId ?? undefined,
+        title,
+        summary,
+        body,
+        category,
+        status,
+      });
+      resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save this announcement.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function togglePublished(item: NonNullable<typeof announcements>[number], status: AnnouncementStatus) {
+    setError("");
+    try {
+      await setStatus({ announcementId: item._id, status });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not change the announcement status.");
+    }
+  }
+
+  async function remove(item: NonNullable<typeof announcements>[number]) {
+    if (!window.confirm(`Delete “${item.title}”? This cannot be undone.`)) return;
+    setError("");
+    try {
+      await removeAnnouncement({ announcementId: item._id });
+      if (editingId === item._id) resetForm();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this announcement.");
+    }
+  }
+
+  const items = announcements ?? [];
+  const drafts = items.filter((item) => item.status === "draft");
+  const published = items.filter((item) => item.status === "published");
+  const editorError = error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">For players</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight">Game announcements</h2>
+          <p className="mt-1 text-sm text-slate-500">Write updates, save drafts, and publish straight to News.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={resetForm}><FileText className="size-4" /> New post</Button>
+      </div>
+
+      {editorError}
+
+      <section id="game-announcement-form" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">{editingId ? <Pencil className="size-4" /> : <Megaphone className="size-4" />}</span>
+          <div>
+            <h3 className="font-semibold">{editingId ? "Edit post" : "Write a post"}</h3>
+            <p className="text-xs text-slate-500">Published announcements are visible to everyone on the News page.</p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_210px]">
+          <div className="space-y-1.5">
+            <Label htmlFor="announcement-title">Headline</Label>
+            <Input id="announcement-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="What should players know?" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="announcement-category">Type</Label>
+            <select id="announcement-category" value={category} onChange={(e) => setCategory(e.target.value as AnnouncementCategory)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]">
+              {announcementCategories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="mt-4 space-y-1.5">
+          <Label htmlFor="announcement-summary">Short summary</Label>
+          <Input id="announcement-summary" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={240} placeholder="One sentence for the news preview" />
+          <p className="text-right text-[11px] text-slate-400">{summary.length}/240</p>
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <Label htmlFor="announcement-body">Details</Label>
+          <Textarea id="announcement-body" value={body} onChange={(e) => setBody(e.target.value)} rows={7} maxLength={10000} placeholder="Write the full update for players…" className="resize-y" />
+          <p className="text-right text-[11px] text-slate-400">{body.length}/10,000</p>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <span className="text-xs text-slate-500">{editingId ? "Saving updates this post." : "You can publish now or keep it as a draft."}</span>
+          <div className="flex gap-2">
+            {editingId && <Button type="button" variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>}
+            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void save("draft")}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />} Save draft
+            </Button>
+            <Button type="button" size="sm" disabled={busy} onClick={() => void save("published")}>
+              <Send className="size-4" /> Publish
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {announcements === undefined ? (
+        <div className="flex justify-center py-8 text-slate-400"><Loader2 className="size-5 animate-spin" /></div>
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-2">
+          <AnnouncementList title="Drafts" items={drafts} empty="No drafts yet." userId={userId} isAdmin={isAdmin} onEdit={edit} onPublish={(item) => void togglePublished(item, "published")} onUnpublish={(item) => void togglePublished(item, "draft")} onRemove={(item) => void remove(item)} />
+          <AnnouncementList title="Published" items={published} empty="No public announcements yet." userId={userId} isAdmin={isAdmin} onEdit={edit} onPublish={(item) => void togglePublished(item, "published")} onUnpublish={(item) => void togglePublished(item, "draft")} onRemove={(item) => void remove(item)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AnnouncementList({ title, items, empty, userId, isAdmin, onEdit, onPublish, onUnpublish, onRemove }: {
+  title: string;
+  items: NonNullable<ReturnType<typeof useQuery<typeof api.staff.announcements>>>;
+  empty: string;
+  userId: Id<"users">;
+  isAdmin: boolean;
+  onEdit: (item: (typeof items)[number]) => void;
+  onPublish: (item: (typeof items)[number]) => void;
+  onUnpublish: (item: (typeof items)[number]) => void;
+  onRemove: (item: (typeof items)[number]) => void;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">{title === "Drafts" ? <FileText className="size-4" /> : <Bell className="size-4" />}{title}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{items.length}</span>
+      </div>
+      {items.length === 0 ? <p className="py-8 text-center text-sm text-slate-500">{empty}</p> : (
+        <div className="divide-y divide-slate-100">
+          {items.map((item) => {
+            const mayManage = isAdmin || item.authorId === userId;
+            return (
+              <article key={item._id} className="py-4 first:pt-4 last:pb-0">
+                <p className="text-xs font-medium capitalize text-[#7651c9]">{item.category.replace("development", "Development update")}</p>
+                <h4 className="mt-1 font-semibold leading-5">{item.title}</h4>
+                <p className="mt-1 text-sm leading-5 text-slate-600">{item.summary}</p>
+                <p className="mt-2 text-xs text-slate-400">By {item.authorName} · {formatTime(item.publishedAt ?? item.createdAt)}</p>
+                {mayManage && <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => onEdit(item)}><Pencil className="size-3.5" /> Edit</Button>
+                  {item.status === "published" ? <Button size="sm" variant="outline" onClick={() => onUnpublish(item)}><FileText className="size-3.5" /> Unpublish</Button> : <Button size="sm" variant="outline" onClick={() => onPublish(item)}><Send className="size-3.5" /> Publish</Button>}
+                  <Button size="sm" variant="ghost" className="text-slate-500 hover:text-red-700" onClick={() => onRemove(item)}><Trash2 className="size-3.5" /> Delete</Button>
+                </div>}
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function StaffBoard({ canDeleteAny, userId }: { canDeleteAny: boolean; userId: Id<"users"> }) {
   const board = useQuery(api.staff.board);
   const post = useMutation(api.staff.post);
   const removeMessage = useMutation(api.staff.removeMessage);
@@ -230,8 +465,8 @@ function StaffBoard({ canDeleteAny }: { canDeleteAny: boolean }) {
     }
   }
 
-  async function remove(messageId: Id<"staffMessages">, authorName: string) {
-    const prompt = canDeleteAny
+  async function remove(messageId: Id<"staffMessages">, authorId: Id<"users">, authorName: string) {
+    const prompt = canDeleteAny && authorId !== userId
       ? `Delete ${authorName}'s message? This cannot be undone.`
       : "Delete your message? This cannot be undone.";
     if (!window.confirm(prompt)) return;
@@ -244,7 +479,7 @@ function StaffBoard({ canDeleteAny }: { canDeleteAny: boolean }) {
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 border-t-2 border-t-[#0066cc] bg-white p-6">
+    <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
       <div className="flex items-center gap-3">
         <span className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]">
           <Users className="size-5" />
@@ -333,15 +568,17 @@ function StaffBoard({ canDeleteAny }: { canDeleteAny: boolean }) {
                   >
                     {formatTime(message.createdAt)}
                   </time>
-                  <button
-                    type="button"
-                    aria-label="Delete message"
-                    title="Delete message"
-                    onClick={() => remove(message._id, message.authorName)}
-                    className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  {(canDeleteAny || message.authorId === userId) && (
+                    <button
+                      type="button"
+                      aria-label="Delete message"
+                      title="Delete message"
+                      onClick={() => remove(message._id, message.authorId, message.authorName)}
+                      className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  )}
                 </div>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">

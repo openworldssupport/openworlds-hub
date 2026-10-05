@@ -1,5 +1,8 @@
 import { SiteNav } from "@/components/SiteNav";
+import { RoleBadge } from "@/components/RoleBadge";
 import { Link } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ArrowRight, CalendarClock, Flag, Megaphone, Newspaper, Rocket, Users, Youtube } from "lucide-react";
 
 const publishTypes = [
@@ -31,6 +34,55 @@ const follow = [
   { label: "YouTube", href: "https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA", text: "Dev streams, creator spotlights, and walkthroughs.", icon: Youtube, tone: "bg-violet-50 text-[#7651c9]" },
   { label: "Roadmap", to: "/roadmap", text: "Where each announcement sits in the bigger plan.", icon: Flag, tone: "bg-amber-50 text-[#987000]" },
 ];
+
+function PublishedUpdates() {
+  const updates = useQuery(api.staff.publicAnnouncements);
+
+  if (updates === undefined) {
+    return <p className="py-12 text-center text-sm text-slate-500">Loading updates…</p>;
+  }
+
+  if (updates.length === 0) {
+    return (
+      <div className="flex max-w-3xl items-start gap-4 rounded-xl border border-slate-200 bg-white p-6">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-[#987000]">
+          <Newspaper className="size-5" />
+        </span>
+        <div>
+          <h2 className="font-semibold">No announcements yet</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            The OpenWorlds team will publish official game updates here. Check back for release notes,
+            development posts, event announcements, and news from the team.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {updates.map((update) => (
+        <article key={update._id} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-7">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold capitalize text-[#0052a3]">
+              {update.category === "development" ? "Development update" : update.category === "release" ? "Release notes" : update.category}
+            </span>
+            <time className="text-slate-400" dateTime={new Date(update.publishedAt).toISOString()}>
+              {new Date(update.publishedAt).toLocaleDateString(undefined, { dateStyle: "long" })}
+            </time>
+          </div>
+          <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">{update.title}</h2>
+          <p className="mt-2 text-sm font-medium leading-6 text-slate-700">{update.summary}</p>
+          <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">{update.body}</p>
+          <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
+            <span>Posted by {update.authorName}</span>
+            {update.badge && <RoleBadge badge={update.badge} />}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
 
 export default function News() {
   return (
@@ -68,20 +120,16 @@ export default function News() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-gradient-to-br from-slate-50 via-white to-violet-50 px-5 py-14 sm:px-8 sm:py-16">
+      <section className="border-y border-slate-100 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
         <div className="mx-auto max-w-6xl">
-          <div className="flex max-w-3xl items-start gap-4 rounded-xl border border-[#f3c64e] bg-white p-6">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#f3c64e]/25 text-[#7c5a00]">
-              <Newspaper className="size-5" />
-            </span>
+          <div className="mb-7 flex items-end justify-between gap-4">
             <div>
-              <h2 className="font-semibold">No news published yet</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                We would rather publish the first post when there is something real to say. Until then, the
-                roadmap and the community channels carry everything that is happening.
-              </p>
+              <p className="text-sm font-medium text-[#7651c9]">From the team</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Latest updates</h2>
             </div>
+            <span className="hidden text-xs text-slate-400 sm:inline">Official OpenWorlds news</span>
           </div>
+          <PublishedUpdates />
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {follow.map(({ label, href, to, text, icon: Icon, tone }) => {
