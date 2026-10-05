@@ -37,12 +37,11 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
             {isSignup ? "Player sign-up is coming soon" : "Player log in is coming soon"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            The game player account system is still being built, so player sign up and player log in are not
-            active on this site yet. No player account will be created when you open these pages.
+            Player sign up and player log in are coming soon. When they are active, you can create a player account
+            or sign in to the game-side profile here.
           </p>
           <div role="status" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Player {isSignup ? "sign-up" : "log in"} is not active yet. It will be available when the game account
-            experience is ready.
+            Player {isSignup ? "sign-up" : "log in"} is coming soon.
           </div>
           <div className="mt-6 flex flex-col gap-3">
             <Link
@@ -138,10 +137,10 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {isCreate
-              ? "Public player accounts and sign-up are disabled. Company staff accounts sign in with a verified staff email and one-time code."
+              ? "Public player accounts and sign-up are coming soon. Company staff accounts sign in with a verified staff email and one-time code."
               : step === "email"
                 ? isStaffSignup
-                  ? "Use your company-approved email. We’ll check its staff eligibility and verify mailbox access with a one-time code."
+                  ? "Use your company-approved email. We’ll check its staff eligibility and send a one-time code."
                   : "Enter your staff email. We’ll send a one-time code."
                 : `Enter the one-time code sent to ${email}. The code expires after 15 minutes.`}
           </p>
