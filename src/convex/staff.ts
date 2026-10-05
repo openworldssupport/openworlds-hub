@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { isAdmin, requireAdmin } from "./admin";
+import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 import { deriveBadge, type PublicBadge } from "../lib/staff";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 
@@ -127,8 +127,8 @@ export const removeMessage = mutation({
 export const listMembers = query({
   args: {},
   handler: async (ctx) => {
-    if (!(await isAdmin(ctx))) return null;
-    const users = await ctx.db.query("users").take(500);
+    await requireCompanyAdmin(ctx);
+    const users = await ctx.db.query("users").filter((q) => q.neq(q.field("isAnonymous"), true)).take(500);
     return users.map((user) => {
       const department = user.department?.trim() || null;
       const position = user.position?.trim() || null;
@@ -159,18 +159,31 @@ export const setAssignment = mutation({
     badge: v.union(v.literal("staff"), v.literal("dev")),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
+    await requireCompanyAdmin(ctx);
     const department = args.department.trim();
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
     if (position.length > 100) throw new Error("Keep the position under 100 characters.");
 
     if (!department && !position) {
+      const target = await ctx.db.get(args.userId);
+      if (target?.role === "admin" || target?.email?.trim().toLowerCase() === "support@openworlds.dk") {
+        throw new Error("The bootstrap admin cannot be removed from staff access.");
+      }
       await ctx.db.patch(args.userId, {
         department: undefined,
         position: undefined,
         publicBadge: undefined,
       });
+      const user = await ctx.db.get(args.userId);
+      const email = user?.email?.trim().toLowerCase();
+      if (email) {
+        const invitation = await ctx.db
+          .query("companyAccess")
+          .withIndex("by_email", (q) => q.eq("email", email))
+          .first();
+        if (invitation) await ctx.db.delete(invitation._id);
+      }
       return { ok: true, isStaff: false };
     }
 
@@ -179,6 +192,31 @@ export const setAssignment = mutation({
       position: position || undefined,
       publicBadge: args.badge,
     });
+    const user = await ctx.db.get(args.userId);
+    const email = user?.email?.trim().toLowerCase();
+    if (email && department && position) {
+      const invitation = await ctx.db
+        .query("companyAccess")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .first();
+      if (!invitation) {
+        await ctx.db.insert("companyAccess", {
+          email,
+          department,
+          position,
+          publicBadge: args.badge,
+          accessLevel: "staff",
+          invitedAt: Date.now(),
+          invitedBy: (await getAuthUserId(ctx))!,
+        });
+      } else {
+        await ctx.db.patch(invitation._id, {
+          department,
+          position,
+          publicBadge: args.badge,
+        });
+      }
+    }
     return { ok: true, isStaff: true };
   },
 });

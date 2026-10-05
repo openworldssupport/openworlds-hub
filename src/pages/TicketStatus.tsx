@@ -10,8 +10,7 @@ import { ClipboardCheck, Search } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   open: "Open — awaiting a response",
-  responded: "Answered — a reply has been sent to your email",
-  "in-progress": "In progress — a team member is looking into it",
+  responded: "Responded — a team member has marked a reply sent",
   resolved: "Resolved",
   closed: "Closed — this ticket is no longer active",
 };
@@ -73,8 +72,7 @@ export default function TicketStatus() {
             details to anyone who does not have both.
           </p>
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            We aim to reply within 3 days. A ticket reads as “open” until then, moves to “answered” once the
-            reply window has passed, and closes automatically after 14 days of inactivity.
+            Status changes only after a company staff member updates the ticket.
           </p>
         </form>
 

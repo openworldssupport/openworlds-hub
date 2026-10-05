@@ -14,7 +14,7 @@ const explore = [
   {
     to: "/events",
     title: "Events",
-    text: "Contests, playtests, and streams happening soon.",
+    text: "Confirmed OpenWorlds events, when announced.",
     icon: CalendarDays,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
@@ -133,12 +133,12 @@ export default function Landing() {
             <div className="flex size-11 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
               <Flag className="size-5" />
             </div>
-            <h2 className="mt-4 text-lg font-semibold">Help build OpenWorlds</h2>
+            <h2 className="mt-4 text-lg font-semibold">Careers</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Browse open contributor roles and send an application straight to the team.
+              No confirmed contributor openings are listed yet.
             </p>
             <Link to="/careers" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
-              See open roles <ArrowRight className="size-4" />
+              Careers information <ArrowRight className="size-4" />
             </Link>
           </article>
 
@@ -162,9 +162,9 @@ export default function Landing() {
             <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]">
               <CalendarDays className="size-5" />
             </div>
-            <h2 className="mt-4 text-lg font-semibold">Show up to something</h2>
+            <h2 className="mt-4 text-lg font-semibold">Events</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              See official OpenWorlds events here once the team has confirmed and announced them.
+              Check for event announcements confirmed by the team.
             </p>
             <Link to="/events" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
               See events <ArrowRight className="size-4" />
@@ -180,8 +180,7 @@ export default function Landing() {
             OpenWorlds is not released yet — and that is the best time to shape it.
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-            Follow the roadmap, join a playtest, and tell us what you think. Early players decide what the rest
-            of the world gets.
+            OpenWorlds is in development. Confirmed public updates will appear on the News page.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/roadmap" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">

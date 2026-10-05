@@ -11,27 +11,27 @@ const publishTypes = [
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
     title: "Release notes",
-    text: "Every build we ship, what changed, and what got fixed — written for players, not for commit logs.",
+    text: "Release information will be posted when a build is available.",
   },
   {
     icon: CalendarClock,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
     title: "Development updates",
-    text: "Longer pieces on what the team is working on, what got cut, and why the next phase looks the way it does.",
+    text: "Updates about development, when the team has verified details to share.",
   },
   {
     icon: Users,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
     title: "Community spotlights",
-    text: "Worlds, events, and creators from the community — including the ones that beat us to an idea.",
+    text: "Community features may be published when a creator has agreed to be featured.",
   },
 ];
 
 const follow = [
-  { label: "Discord", href: "https://discord.gg/JWq5hEsKRX", text: "Fastest place for announcements and playtest invites.", icon: Megaphone, tone: "bg-blue-50 text-[#0066cc]" },
-  { label: "YouTube", href: "https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA", text: "Dev streams, creator spotlights, and walkthroughs.", icon: Youtube, tone: "bg-violet-50 text-[#7651c9]" },
+  { label: "Discord", href: "https://discord.gg/JWq5hEsKRX", text: "Visit the community Discord.", icon: Megaphone, tone: "bg-blue-50 text-[#0066cc]" },
+  { label: "YouTube", href: "https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA", text: "Visit the OpenWorlds YouTube channel.", icon: Youtube, tone: "bg-violet-50 text-[#7651c9]" },
   { label: "Roadmap", to: "/roadmap", text: "Where each announcement sits in the bigger plan.", icon: Flag, tone: "bg-amber-50 text-[#987000]" },
 ];
 
@@ -164,7 +164,7 @@ export default function News() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/events" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">
-              Upcoming events <ArrowRight className="size-4" />
+              Events <ArrowRight className="size-4" />
             </Link>
             <Link to="/support" className="inline-flex h-11 items-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">
               Press &amp; partnership enquiries

@@ -5,29 +5,29 @@ import { ArrowDownToLine, ArrowRight, Bell, CalendarDays, Gamepad2, Laptop, Moni
 const platforms = [
   {
     name: "Windows",
-    detail: "10 and later, 64-bit",
+    detail: "Platform compatibility has not been confirmed.",
     icon: Monitor,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
-    status: "In testing",
+    status: "Not available",
     statusClass: "bg-blue-100 text-[#0052a3]",
   },
   {
     name: "macOS",
-    detail: "Apple silicon and Intel",
+    detail: "Platform compatibility has not been confirmed.",
     icon: Laptop,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
-    status: "Planned",
+    status: "Not confirmed",
     statusClass: "bg-violet-100 text-[#55409b]",
   },
   {
     name: "Linux",
-    detail: "SteamOS and major distros",
+    detail: "Platform compatibility has not been confirmed.",
     icon: Terminal,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
-    status: "Planned",
+    status: "Not confirmed",
     statusClass: "bg-[#f3c64e]/30 text-[#7c5a00]",
   },
 ];
@@ -42,7 +42,7 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            One official place to get the game. When a build is ready, it lands here first — nowhere else.
+            There are no downloadable builds or confirmed platform requirements yet. Check here for verified links when available.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#builds" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">See platform status</a>
@@ -92,13 +92,13 @@ export default function Downloads() {
             <Link to="/roadmap" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
               <CalendarDays className="size-6 text-[#0066cc]" />
               <h3 className="mt-3 font-semibold">Watch the roadmap</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">See which phase we are in and what unlocks next.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Check the roadmap for confirmed milestones.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#0066cc]">Open <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/news" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
               <Bell className="size-6 text-[#7651c9]" />
               <h3 className="mt-3 font-semibold">Release notes</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Every build we publish gets announced here first.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Published updates will appear on the News page.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#7651c9]">Read news <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/support" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">

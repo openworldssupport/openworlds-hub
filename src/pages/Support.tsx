@@ -20,9 +20,9 @@ const faqs = [
       "World creation tools are not publicly available yet. Join the Discord community to follow development and be among the first to try them.",
   },
   {
-    question: "I can't sign in or I forgot my password.",
+    question: "How does company sign-in work?",
     answer:
-      "Open the support ticket form below with the reason “Account or sign-in help” or “Password or email change”. Never send your password — we will never ask for it.",
+      "Company accounts are invite-only and use a one-time email code. Public player accounts and sign-up are not available through this website yet.",
   },
   {
     question: "How do I report a player or content?",
@@ -37,17 +37,17 @@ const faqs = [
   {
     question: "Are the Learning lessons available yet?",
     answer:
-      "The Learning library lists planned topics, not published lessons. When guides are ready they will be linked from the Learning page.",
+      "No learning guides are published yet. The Learning page will be updated when materials are available.",
   },
   {
-    question: "How do I apply for a contributor role?",
+    question: "Are there contributor openings?",
     answer:
-      "All roles are voluntary, unpaid contributor positions. Browse them on the Careers page and apply from a role's detail page. For help with an application, open a ticket with the reason “Careers application help”.",
+      "There are no confirmed openings listed right now. If openings are approved, they will appear on the Careers page.",
   },
   {
     question: "How quickly will I get a reply?",
     answer:
-      "We aim to reply to support tickets within a few business days. Complex reports, such as abuse or payment investigations, can take longer.",
+      "We do not publish a guaranteed response time. Include a working email address so the team can reply when able.",
   },
   {
     question: "How else can I contact the team?",
@@ -68,8 +68,7 @@ export default function Support() {
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">How can we help?</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Browse the answers to questions we get most often, or open a support ticket and our team will
-            reply to your email.
+            Read the information below or open a support ticket. Include a working email address if you need a reply.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#ticket" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">
@@ -86,8 +85,7 @@ export default function Support() {
         <div className="mx-auto max-w-4xl px-5 py-14 sm:px-8 sm:py-16">
           <p className="text-sm font-medium text-[#7651c9]">Common questions</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Frequently asked</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-            Short answers to the questions we hear most. If yours is not covered, open a ticket below.
+          <p className="mt-3 max-w-2xl leading-7 text-slate-600">              Information about the website and how to contact the team.
           </p>
 
           <Accordion type="single" collapsible className="mt-8 rounded-xl border border-slate-200 bg-white px-5 sm:px-6">
@@ -118,8 +116,7 @@ export default function Support() {
               <p className="text-sm font-medium text-[#7651c9]">Support ticket</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Open a ticket</h2>
               <p className="mt-4 leading-7 text-slate-600">
-                Tell us what is going on and we will get back to you by email. A few details up front help us
-                resolve your request faster.
+                Describe your question or issue and provide an email address where the team can contact you.
               </p>
               <ul className="mt-6 grid gap-3 text-sm text-slate-600">
                 <li className="rounded-lg border border-slate-200 bg-white p-4">
@@ -128,15 +125,15 @@ export default function Support() {
                 </li>
                 <li className="rounded-lg border border-slate-200 bg-white p-4">
                   <span className="font-medium text-slate-900">Pick the closest reason</span>
-                  <p className="mt-1 leading-6">It routes your ticket to the right part of the team.</p>
+                  <p className="mt-1 leading-6">Choose the closest match so the team can review it.</p>
                 </li>
                 <li className="rounded-lg border border-slate-200 bg-white p-4">
                   <span className="font-medium text-slate-900">Stay safe</span>
                   <p className="mt-1 leading-6">Never include your password or payment details in a ticket.</p>
                 </li>
                 <li className="rounded-lg border border-violet-200 bg-violet-50/50 p-4">
-                  <span className="font-medium text-slate-900">Your details stay private</span>
-                  <p className="mt-1 leading-6">Only the OpenWorlds support team can read your ticket. We use your email to reply to you and never sell or share your details with anyone else.</p>
+                  <span className="font-medium text-slate-900">Ticket access</span>
+                  <p className="mt-1 leading-6">Ticket details are available to authorized company accounts for support handling. See the Privacy Policy for details.</p>
                 </li>
               </ul>
             </div>

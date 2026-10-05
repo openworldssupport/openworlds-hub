@@ -40,6 +40,17 @@ const schema = defineSchema(
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
+    // Emails explicitly approved for private company OTP sign-in.
+    companyAccess: defineTable({
+      email: v.string(),
+      department: v.string(),
+      position: v.string(),
+      publicBadge: v.union(v.literal("staff"), v.literal("dev")),
+      accessLevel: v.union(v.literal("admin"), v.literal("staff")),
+      invitedAt: v.number(),
+      invitedBy: v.id("users"),
+    }).index("by_email", ["email"]),
+
     careerApplications: defineTable({
       roleSlug: v.string(),
       roleTitle: v.string(),

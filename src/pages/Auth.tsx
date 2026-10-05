@@ -1,83 +1,109 @@
+import { useState, type FormEvent } from "react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { AlertCircle, KeyRound, Mail } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router";
-import { SiteNav } from "@/components/SiteNav";
 
 interface AuthProps {
   mode?: "login" | "create";
 }
 
 export default function AuthPage({ mode = "login" }: AuthProps) {
+  const { signIn } = useAuthActions();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get("returnTo");
+  const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
   const isCreate = mode === "create";
-  const [attempted, setAttempted] = useState(false);
-  const errorCode = isCreate ? "OW-AUTH-001" : "OW-AUTH-002";
-  const errorTitle = isCreate ? "Account creation unavailable" : "Login unavailable";
-  const errorMessage = isCreate
-    ? "OpenWorlds account creation is not connected yet. This is a temporary website notice, not a server error; no account was created."
-    : "Shared game account login is not connected yet. This is a temporary website notice, not a server error. Your sign-in details were not sent or stored.";
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleAttempt = (event: FormEvent<HTMLFormElement>) => {
+  async function requestCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAttempted(true);
-  };
+    setBusy(true);
+    setError("");
+    try {
+      await signIn("email-otp", { email: email.trim().toLowerCase() });
+      setStep("code");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send a sign-in code.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
-  const handleCreateAttempt = () => {
-    setAttempted(true);
-  };
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await signIn("email-otp", { email: email.trim().toLowerCase(), code: code.trim() });
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "That code was not accepted.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
-
-      <div className="mx-auto flex max-w-5xl justify-center px-5 py-12 sm:px-8 sm:py-20">
-        <section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <p className="text-sm font-medium text-[#7651c9]">{isCreate ? "New player" : "Existing players"}</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{isCreate ? "Create an account" : "Log in"}</h1>
+      <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
+        <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+          <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
+            {isCreate ? <AlertCircle className="size-5" /> : step === "email" ? <Mail className="size-5" /> : <KeyRound className="size-5" />}
+          </span>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds company</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+            {isCreate ? "Public sign-up is closed" : step === "email" ? "Company sign in" : "Check your email"}
+          </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            {isCreate ? "OpenWorlds accounts are created in the game. You won't need a separate website account." : "Use the same account details you use in the OpenWorlds game."}
+            {isCreate
+              ? "Player accounts and public sign-up are not available on this website yet. Company accounts are created by an admin invitation."
+              : step === "email"
+                ? "Enter the email address an OpenWorlds admin invited. We’ll send a one-time code; there is no password."
+                : `Enter the one-time code sent to ${email}. The code expires after 15 minutes.`}
           </p>
 
           {isCreate ? (
-            <div className="mt-6 space-y-4">
-              <div className="rounded-lg border border-violet-100 bg-gradient-to-r from-violet-50 to-amber-50 p-4">
-                <p className="text-sm font-medium">Create your account in the game</p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">Website account creation is not connected yet. Your account will work here once the shared service is ready.</p>
-              </div>
-              <Button type="button" onClick={handleCreateAttempt} className="h-11 w-full rounded-lg bg-[#0066cc]">Create account</Button>
+            <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              Need company access? Ask an OpenWorlds admin to invite your email address. No public account is created here.
             </div>
+          ) : step === "email" ? (
+            <form onSubmit={requestCode} className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="company-email" className="text-sm font-medium">Invited company email</label>
+                <Input id="company-email" type="email" required autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" />
+              </div>
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Sending code…" : "Email me a code"}</Button>
+            </form>
           ) : (
-            <form onSubmit={handleAttempt} className="mt-6 space-y-4">
+            <form onSubmit={verifyCode} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label htmlFor="identity" className="text-sm font-medium">Username or email</label>
-                <Input id="identity" name="identity" autoComplete="username" placeholder="Username or email" className="h-11 rounded-lg" />
+                <label htmlFor="company-code" className="text-sm font-medium">One-time code</label>
+                <Input id="company-code" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" />
               </div>
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <Input id="password" name="password" type="password" autoComplete="current-password" placeholder="Password" className="h-11 rounded-lg" />
-              </div>
-              <Button type="submit" className="h-11 w-full rounded-lg bg-[#0066cc]">Log in</Button>
-              <p className="text-center text-xs text-slate-500">Password recovery will be available when account login is connected.</p>
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : "Sign in"}</Button>
+              <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setStep("email"); setCode(""); setError(""); }}>Use a different email</button>
             </form>
           )}
 
-          {attempted && (
-            <div role="alert" className="mt-5 flex gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-left text-red-900">
-              <AlertCircle className="mt-0.5 size-5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold">{errorTitle}</p>
-                <p className="mt-1 text-sm leading-5">{errorMessage}</p>
-                <p className="mt-2 font-mono text-xs">Website error code: {errorCode}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">
-            {isCreate ? <>Already have an account? <Link to="/auth" className="font-medium text-[#7651c9] hover:underline">Log in</Link></> : <>New to OpenWorlds? <Link to="/create-account" className="font-medium text-[#7651c9] hover:underline">Create an account</Link></>}
+          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
+            <Link to="/" className="font-medium text-[#0066cc] hover:underline">Back to OpenWorlds</Link>
+            {!isCreate && <span className="mx-2">·</span>}
+            {!isCreate && <Link to="/create-account" className="hover:underline">Public sign-up unavailable</Link>}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }

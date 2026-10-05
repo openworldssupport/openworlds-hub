@@ -47,12 +47,6 @@ const dontList = [
   "Evade a warning, mute, or ban with a second account",
 ];
 
-const enforcement = [
-  { step: "1", label: "Warning", detail: "A clear note from a moderator explaining what broke and what to change.", tone: "bg-blue-50 text-[#0066cc]" },
-  { step: "2", label: "Mute or restriction", detail: "Temporary loss of chat or posting rights when the behaviour continues.", tone: "bg-violet-50 text-[#7651c9]" },
-  { step: "3", label: "Ban", detail: "Removal from community spaces for serious or repeated violations.", tone: "bg-amber-50 text-[#987000]" },
-];
-
 export default function Rules() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -63,8 +57,7 @@ export default function Rules() {
           <p className="text-sm font-medium text-blue-100">Rules</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Keep OpenWorlds worth visiting</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            These rules apply everywhere OpenWorlds is discussed: in-game, in worlds, in Discord, in comments,
-            and in support tickets. They are short on purpose.
+            These are website and community guidelines. Platform-specific moderation details will be published when available.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#golden" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Read the rules</a>
@@ -126,31 +119,10 @@ export default function Rules() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <div className="flex items-center gap-3">
-          <Gavel className="size-5 text-[#987000]" />
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">How enforcement works</h2>
-        </div>
-        <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-          Most situations are resolved with a conversation. Escalation is predictable and proportionate.
-        </p>
-        <ol className="mt-7 grid gap-4 sm:grid-cols-3">
-          {enforcement.map((item) => (
-            <li key={item.step} className="rounded-xl border border-slate-200 bg-white p-5">
-              <span className={`inline-flex size-8 items-center justify-center rounded-full text-sm font-semibold ${item.tone}`}>
-                {item.step}
-              </span>
-              <h3 className="mt-3 font-semibold">{item.label}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
-            </li>
-          ))}
-        </ol>
-
-        <div className="mt-8 flex flex-wrap gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <AlertTriangle className="size-5 shrink-0 text-[#987000]" />
-          <p className="flex-1 text-sm leading-6 text-slate-700">
-            Serious harm, threats, child safety issues, or illegal content are reported immediately and are not
-            subject to the warning step.
-          </p>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-semibold">Reporting concerns</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-700">You can contact the team through the support form. Review and moderation procedures are not published yet.</p>
+          <Link to="/support" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">Contact support <ArrowRight className="size-4" /></Link>
         </div>
       </section>
 

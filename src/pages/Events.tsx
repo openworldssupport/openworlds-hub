@@ -3,7 +3,7 @@ import { RoleBadge } from "@/components/RoleBadge";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { ArrowRight, CalendarDays, PartyPopper, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarDays, PartyPopper } from "lucide-react";
 
 function ConfirmedEvents() {
   const announcements = useQuery(api.staff.publicAnnouncements);
@@ -87,19 +87,8 @@ export default function Events() {
         </div>
         <ConfirmedEvents />
       </section>
-
-      <section className="border-y border-slate-100 bg-slate-50 px-5 py-10 sm:px-8">
-        <div className="mx-auto flex max-w-6xl items-start gap-3">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-700" />
-          <p className="text-sm leading-6 text-slate-600">
-            We only list events that the team has actually scheduled and announced. Community proposals are
-            not shown as official events unless they’re confirmed.
-          </p>
-        </div>
-      </section>
-
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · Official event details appear here when confirmed.
+        OpenWorlds © 2026.
       </footer>
     </main>
   );

@@ -33,7 +33,7 @@ export default function Community() {
           <article className="rounded-xl border border-slate-200 p-6">
             <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]"><Youtube className="size-5" /></div>
             <h3 className="mt-4 text-lg font-semibold">YouTube</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Follow the official channel for OpenWorlds videos and updates.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Visit the OpenWorlds YouTube channel.</p>
             <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg border border-violet-200 bg-violet-50/40 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Visit YouTube</a>
           </article>
         </div>

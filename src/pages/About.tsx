@@ -22,7 +22,7 @@ function TeamSection() {
         </span>
         <div>
           <h2 className="text-lg font-semibold tracking-tight">The people behind OpenWorlds</h2>
-          <p className="text-sm text-slate-500">Company staff and the development team keeping the worlds running.</p>
+          <p className="text-sm text-slate-500">People with company accounts.</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export default function About() {
           <p className="text-sm font-medium text-blue-100">About OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-4xl">A place to make and share worlds</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            OpenWorlds is a community for creating, sharing, and exploring worlds together. It started as a space for players to build things together and has grown into a place where creators, coders, artists, and dreamers come together.
+            OpenWorlds is a project focused on creating, sharing, and exploring worlds. This site will share confirmed details as they become available.
           </p>
         </div>
       </section>
@@ -76,7 +76,7 @@ export default function About() {
               <Globe2 className="size-5" />
             </div>
             <h2 className="mt-4 font-semibold">Create</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Bring your ideas to life in Open Worlds. Whether you are making small tweaks, building whole worlds, or designing new experiences, there is always something to explore and create.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Information about creation tools will be shared when they are available.</p>
           </article>
 
           <article className="rounded-xl border border-slate-200 p-6">
@@ -84,7 +84,7 @@ export default function About() {
               <Share2 className="size-5" />
             </div>
             <h2 className="mt-4 font-semibold">Share</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Show what you make, invite others in, and help shape the spaces that people spend time in. OpenWorlds rewards curiosity, collaboration, and playful experimentation.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">World sharing details have not been published yet.</p>
           </article>
 
           <article className="rounded-xl border border-slate-200 p-6">
@@ -92,7 +92,7 @@ export default function About() {
               <Heart className="size-5" />
             </div>
             <h2 className="mt-4 font-semibold">Connect</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Meet the people behind the worlds, share feedback, and help keep the community welcoming, safe, and creative.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Use the community links or support page to contact the project.</p>
           </article>
         </div>
 

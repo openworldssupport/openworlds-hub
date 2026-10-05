@@ -18,10 +18,6 @@ function createId(): string {
   return hex.substring(0, 16).toUpperCase();
 }
 
-/** We aim to reply within this window. Until it passes, a ticket reads as "open". */
-export const RESPONSE_WINDOW_MS = 72 * 60 * 60 * 1000; // 3 days
-/** Tickets that go quiet for this long are closed automatically. */
-export const AUTO_CLOSE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 type TicketStatusInput = {
   status: string;
@@ -30,22 +26,10 @@ type TicketStatusInput = {
   closedAt?: number;
 };
 
-/**
- * Derives the ticket's current status.
- *
- * The team replies by email from outside this system, so a real reply cannot be
- * detected here. Instead the status advances on a realistic timeline:
- *   open -> responded (once the reply window has elapsed) -> closed (after inactivity).
- * A team member can record an exact reply or close a ticket with the admin
- * mutations below, and those timestamps take priority over the timeline.
- */
-export function effectiveStatus(ticket: TicketStatusInput, now = Date.now()): string {
+/** Status reflects actions actually recorded by a staff member. */
+export function effectiveStatus(ticket: TicketStatusInput): string {
   if (ticket.closedAt) return "closed";
   if (ticket.respondedAt) return "responded";
-
-  const age = now - ticket.submittedAt;
-  if (age >= AUTO_CLOSE_MS) return "closed";
-  if (age >= RESPONSE_WINDOW_MS) return "responded";
   return ticket.status;
 }
 
