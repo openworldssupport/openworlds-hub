@@ -164,7 +164,7 @@ export default function Landing() {
             </div>
             <h2 className="mt-4 text-lg font-semibold">Show up to something</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Weekly build nights, monthly showcases, and weekend playtests. All free.
+              See official OpenWorlds events here once the team has confirmed and announced them.
             </p>
             <Link to="/events" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
               See events <ArrowRight className="size-4" />
