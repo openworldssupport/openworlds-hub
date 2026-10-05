@@ -5,6 +5,7 @@ import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { RequireAuth } from "@/components/RequireAuth";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -28,6 +29,7 @@ const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
 const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
 const CareerApplicationsPage = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
 
 // Simple loading fallback for route transitions
@@ -155,6 +157,17 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
               <Route path="/applications" element={<CareerApplicationsPage />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth
+                    title="Sign in to see your hub"
+                    description="Your OpenWorlds player hub is available to signed-in members."
+                  >
+                    <Dashboard />
+                  </RequireAuth>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

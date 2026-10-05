@@ -48,11 +48,12 @@ const pages = {
 } as const;
 
 type PlatformInfoPageProps = {
-  page: keyof typeof pages;
+  /** Which content block to show. Defaults to About so the page can never render blank. */
+  page?: keyof typeof pages;
 };
 
-export default function PlatformInfoPage({ page }: PlatformInfoPageProps) {
-  const content = pages[page];
+export default function PlatformInfoPage({ page = "about" }: PlatformInfoPageProps) {
+  const content = pages[page] ?? pages.about;
   const Icon = content.icon;
 
   return (
