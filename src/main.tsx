@@ -19,11 +19,16 @@ const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
+const Worlds = lazy(() => import("./pages/Worlds.tsx"));
+const Roadmap = lazy(() => import("./pages/Roadmap.tsx"));
+const Events = lazy(() => import("./pages/Events.tsx"));
+const Rules = lazy(() => import("./pages/Rules.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
 const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
 const CareerApplicationsPage = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const Auth = lazy(() => import("./pages/Auth.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -135,11 +140,17 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/about" element={<About />} />
               <Route path="/community" element={<Community />} />
               <Route path="/learning" element={<Learning />} />
+              <Route path="/worlds" element={<Worlds />} />
+              <Route path="/roadmap" element={<Roadmap />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/rules" element={<Rules />} />
               <Route path="/support" element={<Support />} />
               <Route path="/support/status" element={<TicketStatus />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/create-account" element={<Auth mode="create" />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
