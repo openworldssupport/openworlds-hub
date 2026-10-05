@@ -30,16 +30,19 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
             <AlertCircle className="size-5" />
           </span>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
+            OpenWorlds player account
+          </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
             {isSignup ? "Player sign-up is coming soon" : "Player log in is coming soon"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            The game and player account system are still in development, so player accounts aren’t available yet.
-            You can’t sign in or create an account here, and no account will be created.
+            The game player account system is still being built, so player sign up and player log in are not
+            active on this site yet. No player account will be created when you open these pages.
           </p>
           <div role="status" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Player {isSignup ? "sign-up" : "log in"} is not active yet. We’ll make it available when the game is ready.
+            Player {isSignup ? "sign-up" : "log in"} is not active yet. It will be available when the game account
+            experience is ready.
           </div>
           <div className="mt-6 flex flex-col gap-3">
             <Link
@@ -53,7 +56,10 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
             </Link>
           </div>
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
-            Company staff? <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link>
+            Company staff?{" "}
+            <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">
+              Staff sign in
+            </Link>
           </div>
         </div>
       </section>
@@ -62,7 +68,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
 }
 
 function StaffAuthPage({ mode = "login" }: AuthProps) {
-  const { signIn } = useAuthActions(); 
+  const { signIn } = useAuthActions();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -110,11 +116,25 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-            {isCreate ? <AlertCircle className="size-5" /> : step === "email" ? <Mail className="size-5" /> : <KeyRound className="size-5" />}
+            {isCreate ? (
+              <AlertCircle className="size-5" />
+            ) : step === "email" ? (
+              <Mail className="size-5" />
+            ) : (
+              <KeyRound className="size-5" />
+            )}
           </span>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds company</p>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
+            OpenWorlds company
+          </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {isCreate ? "Public sign-up is closed" : isStaffSignup ? "Staff account sign up" : step === "email" ? "Staff account sign in" : "Check your email"}
+            {isCreate
+              ? "Public sign-up is closed"
+              : isStaffSignup
+                ? "Staff account sign up"
+                : step === "email"
+                  ? "Staff account sign in"
+                  : "Check your email"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {isCreate
@@ -122,7 +142,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               : step === "email"
                 ? isStaffSignup
                   ? "Use your company-approved email. We’ll check its staff eligibility and verify mailbox access with a one-time code."
-                  : "Enter your staff email. We’ll send a one-time code; there is no password."
+                  : "Enter your staff email. We’ll send a one-time code."
                 : `Enter the one-time code sent to ${email}. The code expires after 15 minutes.`}
           </p>
 
@@ -133,32 +153,100 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
           ) : step === "email" ? (
             <form onSubmit={requestCode} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label htmlFor="company-email" className="text-sm font-medium">Staff email</label>
-                <Input id="company-email" type="email" required autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" />
+                <label htmlFor="company-email" className="text-sm font-medium">
+                  Staff email
+                </label>
+                <Input
+                  id="company-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  maxLength={254}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@company.com"
+                />
               </div>
-              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Sending code…" : "Email me a code"}</Button>
+              {error && (
+                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {error}
+                </p>
+              )}
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? "Sending code…" : "Email me a code"}
+              </Button>
             </form>
           ) : (
             <form onSubmit={verifyCode} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label htmlFor="company-code" className="text-sm font-medium">One-time code</label>
-                <Input id="company-code" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" />
+                <label htmlFor="company-code" className="text-sm font-medium">
+                  One-time code
+                </label>
+                <Input
+                  id="company-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                  minLength={6}
+                  maxLength={6}
+                  value={code}
+                  onChange={(event) =>
+                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder="6-digit code"
+                />
               </div>
-              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : isStaffSignup ? "Create staff access" : "Sign in"}</Button>
-              <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setStep("email"); setCode(""); setError(""); }}>Use a different email</button>
+              {error && (
+                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={busy || code.length !== 6}
+              >
+                {busy ? "Verifying…" : isStaffSignup ? "Create staff access" : "Sign in"}
+              </Button>
+              <button
+                type="button"
+                className="w-full text-sm text-slate-500 hover:text-slate-900"
+                onClick={() => {
+                  setStep("email");
+                  setCode("");
+                  setError("");
+                }}
+              >
+                Use a different email
+              </button>
             </form>
           )}
 
           <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
-            <Link to="/" className="font-medium text-[#0066cc] hover:underline">Back to OpenWorlds</Link>
+            <Link to="/" className="font-medium text-[#0066cc] hover:underline">
+              Back to OpenWorlds
+            </Link>
             {!isCreate && <span className="mx-2">·</span>}
-            {!isCreate && <Link to="/create-account" className="hover:underline">Public sign-up unavailable</Link>}
+            {!isCreate && (
+              <Link to="/create-account" className="hover:underline">
+                Public sign-up unavailable
+              </Link>
+            )}
             {!isCreate && !isStaffSignup && <span className="mx-2">·</span>}
-            {!isCreate && !isStaffSignup && <Link to="/auth?mode=staff-signup&returnTo=%2Fstaff" className="hover:underline">Staff sign up</Link>}
+            {!isCreate && !isStaffSignup && (
+              <Link
+                to="/auth?mode=staff-signup&returnTo=%2Fstaff"
+                className="hover:underline"
+              >
+                Staff sign up
+              </Link>
+            )}
             {isCreate && <span className="mx-2">·</span>}
-            {isCreate && <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link>}
+            {isCreate && (
+              <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">
+                Staff sign in
+              </Link>
+            )}
           </div>
         </div>
       </section>
