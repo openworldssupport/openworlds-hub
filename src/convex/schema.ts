@@ -30,6 +30,14 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+
+      // Company org data, assigned from the admin panel. A user with a
+      // department and/or position is treated as staff and can use /staff.
+      department: v.optional(v.string()),
+      position: v.optional(v.string()),
+      // What the public website shows for this person: "Staff" or "Dev".
+      // When unset, the badge is derived from department/position.
+      publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     careerApplications: defineTable({
@@ -67,6 +75,17 @@ const schema = defineSchema(
       .index("by_submitted_at", ["submittedAt"])
       .index("by_reference", ["reference"])
       .index("by_email_submitted_at", ["email", "submittedAt"]),
+
+    // Internal message board for the staff/company portal at /staff.
+    staffMessages: defineTable({
+      authorId: v.id("users"),
+      authorName: v.string(),
+      department: v.optional(v.string()),
+      position: v.optional(v.string()),
+      badge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
+      body: v.string(),
+      createdAt: v.number(),
+    }).index("by_created_at", ["createdAt"]),
   },
   {
     // Enforce the schema on every write so unknown/typo'd fields cannot be

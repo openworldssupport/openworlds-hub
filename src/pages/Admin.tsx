@@ -2,20 +2,25 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteNav } from "@/components/SiteNav";
+import { RoleBadge } from "@/components/RoleBadge";
+import { DEPARTMENTS, deriveBadge, type PublicBadge } from "@/lib/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router";
 import {
   AlertCircle,
+  Briefcase,
   CheckCircle2,
   Inbox,
   Loader2,
   LockKeyhole,
   LogOut,
   RefreshCcw,
+  Save,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -222,6 +227,7 @@ function AdminDashboard() {
   const { signOut, user } = useAuth();
   const tickets = useQuery(api.supportTickets.listForAdmin);
   const applications = useQuery(api.careerApplications.listForAdmin);
+  const members = useQuery(api.staff.listMembers);
 
   const markResponded = useMutation(api.supportTickets.markResponded);
   const closeTicket = useMutation(api.supportTickets.closeTicket);
@@ -230,7 +236,7 @@ function AdminDashboard() {
   const setApplicationStatus = useMutation(api.careerApplications.setStatus);
   const removeApplication = useMutation(api.careerApplications.remove);
 
-  const [tab, setTab] = useState<"tickets" | "applications">("tickets");
+  const [tab, setTab] = useState<"tickets" | "applications" | "team">("tickets");
   const [ticketFilter, setTicketFilter] = useState<"all" | "open" | "responded" | "closed">("all");
   const [actionError, setActionError] = useState("");
 
@@ -264,6 +270,12 @@ function AdminDashboard() {
           <Button variant={tab === "applications" ? "default" : "outline"} onClick={() => setTab("applications")}>
             <UserRound className="size-4" /> Applications
             <span className="ml-1 rounded bg-white/20 px-1.5 text-xs">{applicationList.length}</span>
+          </Button>
+          <Button variant={tab === "team" ? "default" : "outline"} onClick={() => setTab("team")}>
+            <Briefcase className="size-4" /> Team
+            {members !== undefined && members !== null && (
+              <span className="ml-1 rounded bg-white/20 px-1.5 text-xs">{members.length}</span>
+            )}
           </Button>
         </div>
         <Button variant="outline" onClick={() => signOut()}>
@@ -368,7 +380,7 @@ function AdminDashboard() {
             </div>
           )}
         </div>
-      ) : (
+      ) : tab === "applications" ? (
         <div className="mt-6 space-y-4">
           {applicationList.length === 0 ? (
             <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
@@ -440,6 +452,8 @@ function AdminDashboard() {
             ))
           )}
         </div>
+      ) : (
+        <TeamPanel members={members} />
       )}
 
       <div className="mt-10 flex flex-wrap gap-4 text-sm">
@@ -456,5 +470,204 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
+  );
+}
+
+type TeamMember = {
+  userId: Id<"users">;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+  department: string | null;
+  position: string | null;
+  isStaff: boolean;
+  badge: PublicBadge | null;
+};
+
+/** Admin tab for handing out departments, positions and public badges. */
+function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
+  const setAssignment = useMutation(api.staff.setAssignment);
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+
+  if (members === undefined) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-500">
+        <Loader2 className="size-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (members === null) {
+    return (
+      <p className="mt-6 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+        Only admins can manage departments and positions.
+      </p>
+    );
+  }
+
+  async function save(
+    member: TeamMember,
+    department: string,
+    position: string,
+    badge: PublicBadge,
+  ) {
+    setError("");
+    setSavedId(null);
+    setBusyId(member.userId);
+    try {
+      await setAssignment({ userId: member.userId, department, position, badge });
+      setSavedId(member.userId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save that assignment.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="mt-6 space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="font-semibold">Give people a department and position</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Anyone with a department or position becomes staff: they can open the company portal
+          to read and post internal messages, and the public website shows their{" "}
+          <span className="font-medium">Staff</span> or <span className="font-medium">Dev</span>{" "}
+          badge. Clear both fields to remove staff access.
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {error}
+        </p>
+      )}
+
+      <datalist id="ow-departments">
+        {DEPARTMENTS.map((department) => (
+          <option key={department} value={department} />
+        ))}
+      </datalist>
+
+      {members.length === 0 ? (
+        <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+          No accounts found yet.
+        </p>
+      ) : (
+        members.map((member) => (
+          <TeamRow
+            key={member.userId}
+            member={member}
+            busy={busyId === member.userId}
+            saved={savedId === member.userId}
+            onSave={save}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+function TeamRow({
+  member,
+  busy,
+  saved,
+  onSave,
+}: {
+  member: TeamMember;
+  busy: boolean;
+  saved: boolean;
+  onSave: (member: TeamMember, department: string, position: string, badge: PublicBadge) => Promise<void>;
+}) {
+  const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
+  const [department, setDepartment] = useState(member.department ?? "");
+  const [position, setPosition] = useState(member.position ?? "");
+  const [badge, setBadge] = useState<PublicBadge>(defaultBadge);
+
+  const dirty =
+    department !== (member.department ?? "") ||
+    position !== (member.position ?? "") ||
+    badge !== defaultBadge;
+  const hasAssignment = Boolean(department.trim() || position.trim());
+  // A person with nothing in both fields can only be saved to clear access
+  // when they already have it; badge-only edits alone never grant access.
+  const canSave = dirty && (hasAssignment || member.isStaff);
+
+  const displayName = member.name || member.email || "Unnamed account";
+
+  return (
+    <article className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 font-semibold">
+            {displayName}
+            {member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}
+          </p>
+          <p className="truncate text-sm text-slate-500">
+            {member.email ?? "No email on file"}
+            {member.role === "admin" && " · admin account"}
+          </p>
+        </div>
+        <span className="text-xs text-slate-400">
+          {member.isStaff ? "Staff access: on" : "Staff access: off"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
+        <div className="space-y-1.5">
+          <Label htmlFor={`dept-${member.userId}`}>Department</Label>
+          <Input
+            id={`dept-${member.userId}`}
+            list="ow-departments"
+            value={department}
+            onChange={(event) => setDepartment(event.target.value)}
+            placeholder="e.g. Engineering"
+            maxLength={80}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`pos-${member.userId}`}>Position</Label>
+          <Input
+            id={`pos-${member.userId}`}
+            value={position}
+            onChange={(event) => setPosition(event.target.value)}
+            placeholder="e.g. Frontend developer"
+            maxLength={100}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`badge-${member.userId}`}>Website badge</Label>
+          <select
+            id={`badge-${member.userId}`}
+            value={badge}
+            onChange={(event) => setBadge(event.target.value as PublicBadge)}
+            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+          >
+            <option value="staff">Staff</option>
+            <option value="dev">Dev</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          size="sm"
+          disabled={!canSave || busy}
+          onClick={() => onSave(member, department, position, badge)}
+        >
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          {member.isStaff ? "Save changes" : "Give staff access"}
+        </Button>
+        {saved && <span className="text-xs font-medium text-emerald-700">Saved</span>}
+        {!hasAssignment && (
+          <span className="text-xs text-slate-400">
+            {member.isStaff
+              ? "Both fields empty saves as: remove staff access."
+              : "Fill in a department or position to unlock the staff portal."}
+          </span>
+        )}
+      </div>
+    </article>
   );
 }

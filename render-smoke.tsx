@@ -5,11 +5,19 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RequireAuth } from "./src/components/RequireAuth";
 import DashboardPage from "./src/pages/Dashboard.tsx";
+import StaffPage from "./src/pages/Staff.tsx";
 
 /** Mirrors the real /dashboard route: page behind the RequireAuth guard. */
 const GuardedDashboard = () => (
   <RequireAuth title="Sign in to see your hub" description="Your OpenWorlds player hub is available to signed-in members.">
     <DashboardPage />
+  </RequireAuth>
+);
+
+/** Mirrors the real /staff route: company portal behind the RequireAuth guard. */
+const GuardedStaff = () => (
+  <RequireAuth title="Staff sign in" description="The OpenWorlds company portal is for admins and company staff.">
+    <StaffPage />
   </RequireAuth>
 );
 
@@ -36,6 +44,8 @@ const routes = [
   ["/admin", "Admin", () => import("./src/pages/Admin.tsx")],
   ["/dashboard", "Dashboard", () => import("./src/pages/Dashboard.tsx")],
   ["/dashboard (guard)", "Dashboard+RequireAuth", async () => ({ default: GuardedDashboard })],
+  ["/staff", "Staff", () => import("./src/pages/Staff.tsx")],
+  ["/staff (guard)", "Staff+RequireAuth", async () => ({ default: GuardedStaff })],
   ["/platform-info", "PlatformInfo", () => import("./src/pages/PlatformInfo.tsx")],
   ["/nope", "NotFound", () => import("./src/pages/NotFound.tsx")],
 ];
@@ -57,7 +67,7 @@ for (const [path, name, load] of routes) {
       </ConvexAuthProvider>,
     );
     if (html.length < 80) throw new Error(`suspiciously short output (${html.length} chars)`);
-    if (name === "Dashboard+RequireAuth") {
+    if (name === "Dashboard+RequireAuth" || name === "Staff+RequireAuth") {
       const state = html.includes("Sign in to continue")
         ? "sign-in gate"
         : html.includes("animate-spin")

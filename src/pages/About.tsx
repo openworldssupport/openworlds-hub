@@ -1,6 +1,58 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
-import { Globe2, Share2, Heart } from "lucide-react";
+import { Globe2, Share2, Heart, Users } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { RoleBadge } from "@/components/RoleBadge";
+
+/**
+ * Public team list: shows each assigned team member with their "Staff" or
+ * "Dev" badge. Hidden until admins have assigned at least one position.
+ */
+function TeamSection() {
+  const team = useQuery(api.staff.publicTeam);
+
+  if (!team || team.length === 0) return null;
+
+  return (
+    <section className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-lg bg-white text-[#7651c9] shadow-sm">
+          <Users className="size-5" />
+        </span>
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">The people behind OpenWorlds</h2>
+          <p className="text-sm text-slate-500">Company staff and the development team keeping the worlds running.</p>
+        </div>
+      </div>
+
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {team.map((member, index) => (
+          <li
+            key={`${member.name}-${index}`}
+            className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f5f7fb] text-sm font-semibold text-slate-600">
+                {member.name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part[0]!.toUpperCase())
+                  .join("") || "?"}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{member.name}</p>
+                <p className="text-xs text-slate-400">OpenWorlds team</p>
+              </div>
+            </div>
+            <RoleBadge badge={member.badge} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function About() {
   return (
@@ -43,6 +95,8 @@ export default function About() {
             <p className="mt-2 text-sm leading-6 text-slate-600">Meet the people behind the worlds, share feedback, and help keep the community welcoming, safe, and creative.</p>
           </article>
         </div>
+
+        <TeamSection />
 
         <div className="mt-10 text-center">
           <Link
