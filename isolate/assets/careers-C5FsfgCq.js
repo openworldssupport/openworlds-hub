@@ -1,0 +1,1 @@
+const t={slug:"business-strategy-associate",title:"Business Strategy Associate",department:"Business Strategy",status:"Filled"},a={slug:"business-strategy",title:"Business Strategy",summary:"Business Strategy role listing.",roles:[t]},r=[a],i=r.flatMap(s=>s.roles.map(e=>({...e,branch:s})));export{i as c};

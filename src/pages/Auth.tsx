@@ -6,12 +6,63 @@ import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+type AuthMode = "login" | "create" | "player-login" | "player-signup";
+
 interface AuthProps {
-  mode?: "login" | "create";
+  mode?: AuthMode;
 }
 
 export default function AuthPage({ mode = "login" }: AuthProps) {
-  const { signIn } = useAuthActions();
+  if (mode === "player-login" || mode === "player-signup") {
+    return <PlayerAccountNotice mode={mode} />;
+  }
+  return <StaffAuthPage mode={mode} />;
+}
+
+function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
+  const isSignup = mode === "player-signup";
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <SiteNav />
+      <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
+        <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+          <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
+            <AlertCircle className="size-5" />
+          </span>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+            {isSignup ? "Player sign-up is coming soon" : "Player log in is coming soon"}
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            The game and player account system are still in development, so player accounts aren’t available yet.
+            You can’t sign in or create an account here, and no account will be created.
+          </p>
+          <div role="status" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            Player {isSignup ? "sign-up" : "log in"} is not active yet. We’ll make it available when the game is ready.
+          </div>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link
+              to={isSignup ? "/player-login" : "/player-signup"}
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]"
+            >
+              {isSignup ? "Player log in" : "Player sign up"} · coming soon
+            </Link>
+            <Link to="/" className="inline-flex h-10 items-center justify-center text-sm font-medium text-slate-600 hover:text-slate-900">
+              Back to OpenWorlds
+            </Link>
+          </div>
+          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
+            Company staff? <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function StaffAuthPage({ mode = "login" }: AuthProps) {
+  const { signIn } = useAuthActions(); 
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);

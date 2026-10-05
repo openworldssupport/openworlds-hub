@@ -153,7 +153,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/terms" element={<Terms />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/create-account" element={<Auth mode="create" />} />
+              <Route path="/player-login" element={<Auth mode="player-login" />} />
+              <Route path="/player-signup" element={<Auth mode="player-signup" />} />
+              <Route path="/create-account" element={<Auth mode="player-signup" />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />

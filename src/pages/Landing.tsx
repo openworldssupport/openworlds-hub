@@ -82,6 +82,12 @@ export default function Landing() {
             >
               Explore careers
             </Link>
+            <Link
+              to="/player-signup"
+              className="inline-flex h-11 items-center rounded-lg border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
+            >
+              Player accounts · coming soon
+            </Link>
           </div>
           <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">
             <Link to="/downloads" className="hover:text-white">Downloads</Link>
