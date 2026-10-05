@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export function SupportTicketForm() {
@@ -19,6 +20,11 @@ export function SupportTicketForm() {
     if (status === "sending") return;
 
     const payload = new FormData(event.currentTarget);
+    if (payload.get("privacyAndTerms") !== "on") {
+      setError("You must accept our Privacy Policy and Terms of Service before opening a ticket.");
+      setStatus("error");
+      return;
+    }
     setStatus("sending");
     setError("");
 
@@ -30,6 +36,7 @@ export function SupportTicketForm() {
         reason: String(payload.get("reason") ?? ""),
         message: String(payload.get("message") ?? ""),
         honeypot: String(payload.get("company_website") ?? ""),
+        privacyAndTermsAccepted: payload.get("privacyAndTerms") === "on",
       });
       setReference(result?.reference ?? null);
       setStatus("sent");
@@ -159,6 +166,28 @@ export function SupportTicketForm() {
         Your name, email, username, and message are sent only to the OpenWorlds support team so we can
         reply to you. We never sell or share them. Do not include passwords or payment details.
       </p>
+
+      <div className="space-y-3 pt-2">
+        <label className="flex items-start gap-2.5 text-sm font-medium text-slate-700" htmlFor="privacy-and-terms">
+          <input
+            id="privacy-and-terms"
+            name="privacyAndTerms"
+            type="checkbox"
+            required
+            className="mt-0.5 size-4 shrink-0 accent-[#0066cc]"
+          />
+          <span>
+            I agree to the OpenWorlds{" "}
+            <Link to="/privacy" className="font-medium text-[#0066cc] hover:underline">Privacy Policy</Link>{" "}
+            and{" "}
+            <Link to="/terms" className="font-medium text-[#0066cc] hover:underline">Terms of Service</Link>.
+          </span>
+        </label>
+        <p className="text-xs leading-5 text-slate-500">
+          Your ticket cannot be opened until you agree. We use your email only to reply to you and never
+          sell or share it; you can withdraw your consent anytime at support@openworlds.dk.
+        </p>
+      </div>
 
       <Button type="submit" className="w-full" disabled={status === "sending"}>
         {status === "sending" ? "Opening ticket..." : "Open support ticket"}
