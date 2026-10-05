@@ -18,6 +18,7 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
   const returnTo = params.get("returnTo");
   const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
   const isCreate = mode === "create";
+  const isStaffSignup = params.get("mode") === "staff-signup" && destination === "/staff";
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
@@ -62,24 +63,26 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
           </span>
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds company</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {isCreate ? "Public sign-up is closed" : step === "email" ? "Company sign in" : "Check your email"}
+            {isCreate ? "Public sign-up is closed" : isStaffSignup ? "Staff account sign up" : step === "email" ? "Staff account sign in" : "Check your email"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {isCreate
-              ? "Player accounts and public sign-up are not available on this website yet. Company accounts are created by an admin invitation."
+              ? "Public player accounts and sign-up are disabled. Company staff accounts sign in with a verified staff email and one-time code."
               : step === "email"
-                ? "Enter the email address an OpenWorlds admin invited. We’ll send a one-time code; there is no password."
+                ? isStaffSignup
+                  ? "Use your company-approved email. We’ll check its staff eligibility and verify mailbox access with a one-time code."
+                  : "Enter your staff email. We’ll send a one-time code; there is no password."
                 : `Enter the one-time code sent to ${email}. The code expires after 15 minutes.`}
           </p>
 
           {isCreate ? (
             <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-              Need company access? Ask an OpenWorlds admin to invite your email address. No public account is created here.
+              Need company access? Ask an OpenWorlds admin to invite your email address. No public player account is created here.
             </div>
           ) : step === "email" ? (
             <form onSubmit={requestCode} className="mt-6 space-y-4">
               <div className="space-y-2">
-                <label htmlFor="company-email" className="text-sm font-medium">Invited company email</label>
+                <label htmlFor="company-email" className="text-sm font-medium">Staff email</label>
                 <Input id="company-email" type="email" required autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" />
               </div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -92,7 +95,7 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
                 <Input id="company-code" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" />
               </div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : "Sign in"}</Button>
+              <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>{busy ? "Verifying…" : isStaffSignup ? "Create staff access" : "Sign in"}</Button>
               <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setStep("email"); setCode(""); setError(""); }}>Use a different email</button>
             </form>
           )}
@@ -101,8 +104,10 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
             <Link to="/" className="font-medium text-[#0066cc] hover:underline">Back to OpenWorlds</Link>
             {!isCreate && <span className="mx-2">·</span>}
             {!isCreate && <Link to="/create-account" className="hover:underline">Public sign-up unavailable</Link>}
+            {!isCreate && !isStaffSignup && <span className="mx-2">·</span>}
+            {!isCreate && !isStaffSignup && <Link to="/auth?mode=staff-signup&returnTo=%2Fstaff" className="hover:underline">Staff sign up</Link>}
             {isCreate && <span className="mx-2">·</span>}
-            {isCreate && <Link to="/auth" className="font-medium text-[#0066cc] hover:underline">Company sign in</Link>}
+            {isCreate && <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link>}
           </div>
         </div>
       </section>

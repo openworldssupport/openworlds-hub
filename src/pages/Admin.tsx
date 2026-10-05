@@ -208,7 +208,7 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
   return (
     <div className="mt-6 space-y-5">
       <section className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">Invite a company account</h2><p className="mt-1 text-sm text-slate-600">Only invited addresses can request a one-time email code. There is no public sign-up.</p>
+        <h2 className="font-semibold">Invite a company account</h2><p className="mt-1 text-sm text-slate-600">Invited addresses can request a one-time email code. Other addresses qualify after their staff application is accepted or their staff assignment is approved. Public player sign-up remains disabled.</p>
         <form onSubmit={invite} className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="invite-email">Email</Label><Input id="invite-email" type="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" /></div>
           <div className="space-y-1.5"><Label htmlFor="invite-dept">Department</Label><Input id="invite-dept" list="ow-departments" required maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>

@@ -31,7 +31,7 @@ export function SiteNav() {
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
           <Button asChild size="sm" variant="outline" className="ml-1">
-            <Link to="/auth">Company sign in</Link>
+            <Link to="/auth?returnTo=%2Fstaff">Staff sign in</Link>
           </Button>
           {badge && (
             <Link

@@ -174,7 +174,8 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth
                     title="Staff sign in"
-                    description="The OpenWorlds company portal is for admins and company staff."
+                    description="The OpenWorlds company portal is for approved staff accounts."
+                    signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff"
                   >
                     <Staff />
                   </RequireAuth>

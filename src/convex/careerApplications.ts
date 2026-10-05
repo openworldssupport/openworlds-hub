@@ -1,8 +1,10 @@
 import { mutation, query, internalAction } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { SUPPORT_EMAIL } from "./admin";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { careerRoles } from "../lib/careers";
-import { CAREERS_EMAIL, isAdmin, requireAdmin } from "./admin";
+import { CAREERS_EMAIL, isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 
 /** Emails a submitted application to the careers inbox. */
 export const sendNotification = internalAction({
@@ -257,10 +259,68 @@ export const setStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
     const status = args.status.trim().toLowerCase();
     if (!["new", "reviewing", "shortlisted", "accepted", "declined", "archived"].includes(status)) {
       throw new Error("Choose a valid application status.");
+    }
+    if (status === "accepted") await requireCompanyAdmin(ctx);
+    else await requireAdmin(ctx);
+
+    const application = await ctx.db.get(args.applicationId);
+    if (!application) throw new Error("Application not found.");
+    const email = application.email.trim().toLowerCase();
+    if (status === "accepted") {
+      const alreadyAccepted = application.status === "accepted";
+      if (!careerRoles.some((role) => role.status !== "Filled") && !alreadyAccepted) {
+        throw new Error("There are no currently available contributor roles.");
+      }
+      if (email === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be replaced by an application approval.");
+      const existingInvite = await ctx.db
+        .query("companyAccess")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .first();
+      if (existingInvite) {
+        await ctx.db.patch(existingInvite._id, {
+          department: "Company",
+          position: "Approved staff",
+          publicBadge: "staff",
+          accessLevel: "staff",
+        });
+      } else {
+        await ctx.db.insert("companyAccess", {
+          email,
+          department: "Company",
+          position: "Approved staff",
+          publicBadge: "staff",
+          accessLevel: "staff",
+          invitedAt: Date.now(),
+          invitedBy: (await getAuthUserId(ctx))!,
+        });
+      }
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("email", (q) => q.eq("email", email))
+        .first();
+      if (existingUser) {
+        await ctx.db.patch(existingUser._id, {
+          staffAccess: true,
+          department: "Company",
+          position: "Approved staff",
+          publicBadge: "staff",
+          role: "member",
+        });
+      } else if (!alreadyAccepted) {
+        const [firstName = "Staff", ...restName] = application.fullName.trim().split(/\s+/);
+        await ctx.db.insert("users", {
+          email,
+          name: [firstName, ...restName].join(" "),
+          role: "member",
+          staffAccess: true,
+          department: "Company",
+          position: "Approved staff",
+          publicBadge: "staff",
+        });
+      }
     }
     await ctx.db.patch(args.applicationId, { status });
     return { ok: true };

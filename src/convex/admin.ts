@@ -9,14 +9,14 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 /** The verified support address that is allowed to administer the site. */
 export const SUPPORT_EMAIL = "support@openworlds.dk";
 
-/** Verified admin or invited staff account (support mailbox is bootstrap admin). */
+/** Verified admin or company staff account (support mailbox is bootstrap admin). */
 export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
   if (!userId) return false;
   const user = await ctx.db.get(userId);
   if (!user || user.emailVerificationTime === undefined) return false;
   const isBootstrapAdmin = user.email?.trim().toLowerCase() === SUPPORT_EMAIL;
-  return user.role === "admin" || isBootstrapAdmin || Boolean(user.department?.trim() || user.position?.trim());
+  return user.role === "admin" || isBootstrapAdmin || Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
 }
 
 /** Throws unless caller is a verified invited company account. */
@@ -43,7 +43,7 @@ async function isCompanyAdmin(ctx: QueryCtx): Promise<boolean> {
 
 /**
  * Allowlisted check used by the OTP delivery action. It returns no account
- * details; only the bootstrap admin or explicitly invited addresses pass.
+ * details; only the bootstrap admin or an invited, approved, or assigned staff address passes.
  */
 export const isCompanyEmailAllowed = internalQuery({
   args: { email: v.string() },
@@ -54,7 +54,17 @@ export const isCompanyEmailAllowed = internalQuery({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
-    return Boolean(invitation);
+    if (invitation) return true;
+    const application = await ctx.db
+      .query("careerApplications")
+      .withIndex("by_email_status", (q) => q.eq("email", normalized).eq("status", "accepted"))
+      .first();
+    if (application) return true;
+    const assignedStaff = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", normalized))
+      .first();
+    return Boolean(assignedStaff?.emailVerificationTime !== undefined && (assignedStaff.staffAccess || assignedStaff.department?.trim() || assignedStaff.position?.trim()));
   },
 });
 
@@ -116,6 +126,7 @@ export const inviteCompanyAccount = mutation({
         position,
         publicBadge: args.publicBadge,
         role: args.accessLevel === "admin" ? "admin" : "member",
+        staffAccess: true,
         emailVerificationTime: Date.now(),
       });
     }
@@ -146,8 +157,14 @@ export const revokeCompanyAccount = mutation({
         department: undefined,
         position: undefined,
         publicBadge: undefined,
+        staffAccess: undefined,
       });
     }
+    const acceptedApplications = await ctx.db
+      .query("careerApplications")
+      .withIndex("by_email_status", (q) => q.eq("email", normalized).eq("status", "accepted"))
+      .collect();
+    await Promise.all(acceptedApplications.map((application) => ctx.db.patch(application._id, { status: "archived" })));
     return { ok: true };
   },
 });

@@ -22,7 +22,7 @@ export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   if (await isAdmin(ctx)) return true;
   const user = await currentUser(ctx);
   if (!user || user.emailVerificationTime === undefined) return false;
-  return Boolean(user.department?.trim() || user.position?.trim());
+  return Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
 }
 
 /** The portal header data: who you are, your department/position, your badge. */
@@ -45,7 +45,7 @@ export const me = query({
     }
 
     const admin = await isAdmin(ctx);
-    const staff = admin || (user.emailVerificationTime !== undefined && Boolean(user.department?.trim() || user.position?.trim()));
+    const staff = admin || (user.emailVerificationTime !== undefined && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim()));
     const department = user.department?.trim() || null;
     const position = user.position?.trim() || null;
 
@@ -140,7 +140,7 @@ export const listMembers = query({
         role: user.role ?? null,
         department,
         position,
-        isStaff: assigned || user.role === "admin",
+        isStaff: assigned || user.staffAccess === true || user.role === "admin",
         badge: assigned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
       };
     });
@@ -177,6 +177,7 @@ export const setAssignment = mutation({
         department: undefined,
         position: undefined,
         publicBadge: undefined,
+        staffAccess: undefined,
       });
       const user = await ctx.db.get(args.userId);
       const email = user?.email?.trim().toLowerCase();
@@ -200,6 +201,7 @@ export const setAssignment = mutation({
         department: department || undefined,
         position: position || undefined,
         publicBadge: args.badge,
+        staffAccess: true,
       });
     }
     const email = target.email?.trim().toLowerCase();
@@ -239,7 +241,7 @@ export const publicTeam = query({
   handler: async (ctx) => {
     const users = await ctx.db.query("users").take(500);
     return users
-      .filter((user) => user.emailVerificationTime !== undefined && (user.department?.trim() || user.position?.trim()))
+      .filter((user) => user.emailVerificationTime !== undefined && (user.staffAccess || user.department?.trim() || user.position?.trim()))
       .map((user) => ({
         name: user.name?.trim() || "OpenWorlds team",
         badge: user.publicBadge ?? deriveBadge(user.department, user.position),

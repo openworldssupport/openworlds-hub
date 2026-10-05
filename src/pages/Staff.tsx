@@ -64,7 +64,7 @@ export default function Staff() {
               {me?.isStaff
                 ? [me.department, me.position].filter(Boolean).join(" · ") ||
                   "Your OpenWorlds team workspace"
-                : "A private workspace for the OpenWorlds team"}
+                : "Sign in with an approved staff account"}
             </p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800">
@@ -108,9 +108,14 @@ function SignedOutCard() {
       <p className="mt-2 text-sm leading-6 text-slate-600">
         The company portal is only available to signed-in staff accounts.
       </p>
-      <Button className="mt-4" asChild>
-        <Link to="/auth?returnTo=%2Fstaff">Sign in</Link>
-      </Button>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <Button asChild>
+          <Link to="/auth?returnTo=%2Fstaff">Staff sign in</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/auth?mode=staff-signup&returnTo=%2Fstaff">Staff sign up</Link>
+        </Button>
+      </div>
     </div>
   );
 }
@@ -121,9 +126,9 @@ function StaffOnlyCard() {
       <LockKeyhole className="mx-auto size-6 text-amber-700" />
       <h2 className="mt-3 font-semibold text-amber-900">Staff accounts only</h2>
       <p className="mt-2 text-sm leading-6 text-amber-900">
-        Your account does not have a department or position yet. An admin can
-        give you one from the admin panel, which also unlocks this portal.
+        This email is not linked to an approved staff account. Ask a company admin to invite or approve your staff access.
       </p>
+      <Link to="/auth?mode=staff-signup&returnTo=%2Fstaff" className="mt-4 inline-flex text-sm font-medium text-[#7651c9] hover:underline">Try staff sign-up</Link>
       <div className="mt-4 flex justify-center gap-3">
         <Button variant="outline" asChild>
           <Link to="/">Back to home</Link>

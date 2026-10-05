@@ -21,8 +21,23 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         .query("companyAccess")
         .filter((q) => q.eq(q.field("email"), email))
         .first();
-      if (!isBootstrapAdmin && !invitation) {
-        throw new Error("This email is not invited to an OpenWorlds company account.");
+      const approvedApplication = await ctx.db
+        .query("careerApplications")
+        .filter((q) => q.and(q.eq(q.field("email"), email), q.eq(q.field("status"), "accepted")))
+        .first();
+      const existingUser = existingUserId ? await ctx.db.get(existingUserId) : null;
+      const userByEmail = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("email"), email))
+        .first();
+      const assignedUser = existingUser ?? userByEmail;
+      const assignedStaff = Boolean(
+        assignedUser?.emailVerificationTime !== undefined &&
+        (assignedUser.staffAccess || assignedUser.department?.trim() || assignedUser.position?.trim()),
+      );
+      const mayAccessStaff = Boolean(isBootstrapAdmin || invitation || approvedApplication || assignedStaff);
+      if (!mayAccessStaff) {
+        throw new Error("Staff sign-in is available only to invited or approved staff accounts.");
       }
 
       // Convex Auth upserts an email user before it sends the code. Do not grant
@@ -30,6 +45,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const verified = type === "verification" && profile.emailVerified === true;
       // Privileges always follow the current invite, never a stale user role.
       const isAdmin = isBootstrapAdmin || invitation?.accessLevel === "admin";
+      const department = invitation?.department ?? assignedUser?.department ?? (approvedApplication ? "Company" : undefined);
+      const position = invitation?.position ?? assignedUser?.position ?? (approvedApplication ? "Approved staff" : undefined);
+      const publicBadge = invitation?.publicBadge ?? assignedUser?.publicBadge ?? (approvedApplication ? "staff" as const : undefined);
       const userData = verified
         ? {
             email,
@@ -37,11 +55,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
             role: isAdmin ? "admin" as const : "member" as const,
             ...(!isBootstrapAdmin
               ? {
-                  department: invitation.department,
-                  position: invitation.position,
-                  publicBadge: invitation.publicBadge,
+                  department: department || undefined,
+                  position: position || undefined,
+                  publicBadge,
+                  staffAccess: Boolean(department?.trim() || position?.trim() || invitation || approvedApplication || assignedUser?.staffAccess),
                 }
-              : {}),
+              : { staffAccess: true }),
           }
         : { email };
 

@@ -26,6 +26,7 @@ export function RequireAuth({
   title = "Sign in to continue",
   description = "This page is only available to signed-in users.",
   redirectImmediately = false,
+  signUpHref,
 }: {
   children: ReactNode;
   /** Headline on the blocked screen. */
@@ -34,6 +35,8 @@ export function RequireAuth({
   description?: string;
   /** Skip the explanation and go straight to `/auth`. */
   redirectImmediately?: boolean;
+  /** Optional alternate account request link shown on the sign-in required card. */
+  signUpHref?: string;
 }) {
   const { isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -74,6 +77,11 @@ export function RequireAuth({
             <Button className="w-full" onClick={() => navigate(signInHref)}>
               Sign in
             </Button>
+            {signUpHref && (
+              <Button variant="outline" className="w-full" onClick={() => navigate(signUpHref)}>
+                Staff sign up
+              </Button>
+            )}
             <Button
               variant="ghost"
               className="w-full"

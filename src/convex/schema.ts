@@ -38,6 +38,8 @@ const schema = defineSchema(
       // What the public website shows for this person: "Staff" or "Dev".
       // When unset, the badge is derived from department/position.
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
+      // Granted after a verified OTP for an invited, approved, or assigned staff account.
+      staffAccess: v.optional(v.boolean()),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Emails explicitly approved for private company OTP sign-in.
@@ -68,7 +70,9 @@ const schema = defineSchema(
     })
       .index("by_submitted_at", ["submittedAt"])
       .index("by_role_slug", ["roleSlug"])
-      .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"]),
+      .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"])
+      .index("by_email", ["email"])
+      .index("by_email_status", ["email", "status"]),
 
     supportTickets: defineTable({
       reference: v.optional(v.string()),
