@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { badgeForUser } from "@/lib/staff";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -29,6 +30,9 @@ export function SiteNav() {
           <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
+          <Button asChild size="sm" variant="outline" className="ml-1">
+            <Link to="/auth">Company sign in</Link>
+          </Button>
           {badge && (
             <Link
               to="/staff"

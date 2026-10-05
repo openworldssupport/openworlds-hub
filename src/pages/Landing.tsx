@@ -134,7 +134,7 @@ export default function Landing() {
             </div>
             <h2 className="mt-4 text-lg font-semibold">Careers</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              No confirmed contributor openings are listed yet.
+              Business Strategy Associate is filled; other roles are not listed until confirmed.
             </p>
             <Link to="/careers" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
               Careers information <ArrowRight className="size-4" />

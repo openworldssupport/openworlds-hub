@@ -101,6 +101,8 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
             <Link to="/" className="font-medium text-[#0066cc] hover:underline">Back to OpenWorlds</Link>
             {!isCreate && <span className="mx-2">·</span>}
             {!isCreate && <Link to="/create-account" className="hover:underline">Public sign-up unavailable</Link>}
+            {isCreate && <span className="mx-2">·</span>}
+            {isCreate && <Link to="/auth" className="font-medium text-[#0066cc] hover:underline">Company sign in</Link>}
           </div>
         </div>
       </section>

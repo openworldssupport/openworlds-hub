@@ -47,7 +47,11 @@ export function CareerRole() {
             <div><h2 className="font-semibold">Department</h2><p className="mt-2 text-sm leading-6 text-slate-600">{role.branch.title.replace(/&/g, "and").replace(/\//g, " · ")}: {role.branch.summary}</p></div>
             <div><h2 className="font-semibold">Role details</h2><p className="mt-2 text-sm leading-6 text-slate-600">This is a voluntary, unpaid contributor role. Apply below to send your interest to the OpenWorlds team for review.</p></div>
           </div>
-          <Link to={`/careers/apply/${role.slug}`} className="mt-8 inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">Apply for this role <ArrowRight className="size-4" /></Link>
+          {role.status === "Filled" ? (
+            <p className="mt-8 text-sm font-medium text-slate-600">This position is filled and is not accepting applications.</p>
+          ) : (
+            <Link to={`/careers/apply/${role.slug}`} className="mt-8 inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">Apply for this role <ArrowRight className="size-4" /></Link>
+          )}
         </div>
       </section>
     </main>
@@ -112,7 +116,7 @@ export function CareerApplicationsPage() {
 
 export function CareerApplicationGateway() {
   const { roleSlug } = useParams();
-  const role = careerRoles.find((item) => item.slug === roleSlug);
+  const role = careerRoles.find((item) => item.slug === roleSlug && item.status !== "Filled");
   const submitApplication = useMutation(api.careerApplications.submit);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
