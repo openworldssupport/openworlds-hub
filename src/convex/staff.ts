@@ -341,15 +341,26 @@ export const announcements = query({
       .withIndex("by_created_at")
       .order("desc")
       .take(100);
-    return await Promise.all(rows.map(async (row) => ({
-      ...row,
-      media: await Promise.all((row.media ?? []).filter((asset) => asset.storageId).map(async (asset) => ({
+    return await Promise.all(rows.map(async (row) => {
+      const media = await Promise.all((row.media ?? []).filter((asset) => asset.storageId).map(async (asset) => ({
         storageId: asset.storageId!,
         mediaType: asset.mediaType ?? "image",
         altText: asset.altText,
         url: await ctx.storage.getUrl(asset.storageId!),
-      }))),
-    })));
+      })));
+      return {
+        _id: row._id,
+        title: row.title,
+        summary: row.summary,
+        body: row.body,
+        category: row.category,
+        status: row.status,
+        publishedAt: row.publishedAt ?? 0,
+        createdAt: row.createdAt,
+        authorId: row.authorId,
+        media,
+      };
+    }));
   },
 });
 

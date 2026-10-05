@@ -26,15 +26,36 @@ const Events = lazy(() => import("./pages/Events.tsx"));
 const Rules = lazy(() => import("./pages/Rules.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
-const CareerApplicationGateway = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })));
-const CareerApplicationsPage = lazy(() => import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })));
+const CareerApplicationGateway = lazy(
+  () =>
+    import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })),
+);
+const CareerApplicationsPage = lazy(
+  () =>
+    import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })),
+);
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
-const Staff = lazy(() => import("./pages/Staff.tsx"));
-const StaffOverview = lazy(() => import("./pages/Staff.tsx").then((module) => ({ default: module.StaffOverview })));
-const StaffAnnouncements = lazy(() => import("./pages/Staff.tsx").then((module) => ({ default: module.StaffAnnouncements })));
-const StaffMessages = lazy(() => import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })));
+
+const Staff = lazy(  () =>
+    import("./pages/Staff.tsx").then((module) => ({
+      default: module.StaffWorkspace,
+    })),
+);
+
+const StaffOverview = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffOverview })),
+);
+const StaffAnnouncements = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffAnnouncements })),
+);
+const StaffMessages = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })),
+);
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -103,8 +124,6 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
-
-
 function RouteSyncer() {
   const location = useLocation();
   useEffect(() => {
@@ -127,7 +146,6 @@ function RouteSyncer() {
 
   return null;
 }
-
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -182,7 +200,7 @@ createRoot(document.getElementById("root")!).render(
                     description="The OpenWorlds company portal is for approved staff accounts."
                     signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff"
                   >
-                    <Staff />
+                    <Staff isAdmin={false} userId={undefined as any} />
                   </RequireAuth>
                 }
               />

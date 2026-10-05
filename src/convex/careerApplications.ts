@@ -355,9 +355,8 @@ export const setStatus = mutation({
     if (!application) throw new Error("Application not found.");
     const email = application.email.trim().toLowerCase();
     if (status === "accepted") {
-      const alreadyAccepted = application.status === "accepted";
       const role = careerRoles.find((item) => item.slug === application.roleSlug);
-      if ((!role || role.status === "Filled") && !alreadyAccepted) {
+      if (!role || role.status === "Filled") {
         throw new Error("This application is not for a currently available contributor role.");
       }
       if (email === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be replaced by an application approval.");
@@ -395,7 +394,7 @@ export const setStatus = mutation({
           publicBadge: "staff",
           role: "member",
         });
-      } else if (!alreadyAccepted) {
+      } else {
         const [firstName = "Staff", ...restName] = application.fullName.trim().split(/\s+/);
         await ctx.db.insert("users", {
           email,
