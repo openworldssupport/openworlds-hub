@@ -9,7 +9,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Bell, Briefcase, Building2, FileText, ImagePlus, Loader2, Megaphone, Pencil, Send, Trash2, Users } from "lucide-react";
+import {
+  Bell,
+  Briefcase,
+  Building2,
+  FileText,
+  ImagePlus,
+  Loader2,
+  Megaphone,
+  Pencil,
+  Send,
+  Trash2,
+  Users,
+  UserCircle,
+  Check,
+} from "lucide-react";
+import { displayNameFor, displayInitials } from "@/lib/staff";
+import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const applicationStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined", "archived"];
@@ -70,13 +86,62 @@ function ApplicationStatusBadge({ status }: { status: string }) {
   );
 }
 
-function WorkspaceOverview({ isAdmin, onAnnouncements }: { isAdmin: boolean; onAnnouncements: () => void }) {
+function WorkspaceOverview({
+  isAdmin,
+  me,
+  onAnnouncements,
+}: {
+  isAdmin: boolean;
+  me: ReturnType<typeof useQuery<typeof api.staff.me>>;
+  onAnnouncements: () => void;
+}) {
   const announcements = useQuery(api.staff.announcements);
   const applications = useQuery(api.careerApplications.listForAdmin);
   const recent = (announcements ?? []).slice(0, 3);
 
   return (
     <div className="space-y-5">
+      {/* Signed-in staff header: nickname first, never the email. */}
+      {me && me.signedIn && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#eef2ff] text-sm font-semibold text-[#7651c9]">
+                  {displayInitials(me)}
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-lg font-semibold">{displayNameFor(me)}</h2>
+                  <p className="text-xs text-slate-500">
+                    {me.isAdmin ? "Company admin" : me.isStaff ? "Company staff" : "Signed in"}
+                    {me.department || me.position ? ` · ${[me.department, me.position].filter(Boolean).join(" · ")}` : ""}
+                  </p>
+                </div>
+              </div>
+              {me.nickname ? (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                  <UserCircle className="size-3.5 text-slate-400" />
+                  Public nickname set · email stays private
+                </p>
+              ) : (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
+                  <UserCircle className="size-3.5 text-amber-600" />
+                  Pick a nickname to replace your name on the portal and public team pages
+                </p>
+              )}
+            </div>
+            {me.badge && (
+              <RoleBadge badge={me.badge} className="shrink-0" />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Nickname settings: first-login pick + always-change control. */}
+      {me && me.signedIn && me.isStaff && (
+        <NicknameSettings me={me} />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Announcements" value={announcements?.length ?? "—"} detail="Drafts and published updates" />
         <Stat label="Published" value={announcements?.filter((item) => item.status === "published").length ?? "—"} detail="Live on public News" />
@@ -143,6 +208,140 @@ function QuickLink({ to, title, detail }: { to: string; title: string; detail: s
       <strong className="text-sm">{title}</strong>
       <span className="mt-1 block text-xs text-slate-500">{detail}</span>
     </Link>
+  );
+}
+
+/**
+ * Staff nickname settings. On first login, when the account has no nickname,
+ * this shows a “pick a nickname” form. Once set, the same control is always
+ * available to change it. Emails are never shown as the user’s name.
+ */
+function NicknameSettings({
+  me,
+}: {
+  me: ReturnType<typeof useQuery<typeof api.staff.me>>;
+}) {
+  const setNick = useMutation(api.staff.setNick);
+  const [nickname, setNickname] = useState(me?.nickname ?? "");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  function resetSaved() {
+    setSaved(false);
+    setError("");
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!nickname.trim()) {
+      setError("Enter a nickname first.");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+
+    try {
+      await setNick({ nickname: nickname.trim() });
+      setSaved(true);
+      setTimeout(resetSaved, 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the nickname.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const editing = nickname !== (me?.nickname ?? "");
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex items-center gap-2">
+        <UserCircle className="size-4 text-slate-500" />
+        <h3 className="font-semibold text-sm">Public nickname</h3>
+      </div>
+
+      <p className="mt-2 text-xs text-slate-500">
+        This is the name shown on the staff board, announcements, and the public team page. Your email address is never shown as your name.
+      </p>
+
+      {saved ? (
+        <div className="mt-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          <Check className="size-4 shrink-0" />
+          Nickname saved. It may take a moment to appear everywhere.
+        </div>
+      ) : null}
+
+      {error && (
+        <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {error}
+        </p>
+      )}
+
+      <form onSubmit={save} className="mt-3 space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="staff-nickname" className="text-xs">
+            {me?.nickname ? "Change nickname" : "Pick a nickname"}
+          </Label>
+          <Input
+            id="staff-nickname"
+            value={nickname}
+            onChange={(event) => {
+              setNickname(event.target.value);
+              resetSaved();
+            }}
+            maxLength={MAX_NICKNAME_LENGTH}
+            placeholder="How should the team and public see you?"
+            disabled={busy}
+          />
+          <p className="flex justify-between text-[11px] text-slate-400">
+            <span>{me?.nickname ? `${me.nickname.length}/${MAX_NICKNAME_LENGTH}` : `${nickname.length}/${MAX_NICKNAME_LENGTH}`}</span>
+            <span>Letters, numbers, spaces, hyphens and underscores</span>
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={busy || !nickname.trim()}
+          >
+            {busy ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Saving…
+              </>
+            ) : editing ? (
+              <>
+                <Pencil className="size-4" />
+                Update nickname
+              </>
+            ) : null}
+          </Button>
+
+          {editing && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setNickname(me?.nickname ?? "");
+                resetSaved();
+              }}
+            >
+              Revert
+            </Button>
+          )}
+
+          {!editing && me?.nickname && (
+            <span className="text-xs text-slate-500">
+              Current: {me.nickname}
+            </span>
+          )}
+        </div>
+      </form>
+    </section>
   );
 }
 
@@ -980,10 +1179,11 @@ function ApplicationsPanel() {
   );
 }
 
-type SafeStaffWorkspaceProps = { isAdmin: boolean; userId: string };
+type SafeStaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId | undefined };
 
 const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId }) => {
   const location = useLocation();
+  const me = useQuery(api.staff.me);
   const tabs = [
     { id: "overview" as const, label: "Workspace", icon: Building2 },
     { id: "announcements" as const, label: "Announcements", icon: Megaphone },
@@ -1014,13 +1214,13 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
       </div>
 
       {selectedTab === "overview" ? (
-        <WorkspaceOverview isAdmin={isAdmin} onAnnouncements={() => {}} />
+        <WorkspaceOverview isAdmin={isAdmin} me={me} onAnnouncements={() => {}} />
       ) : selectedTab === "announcements" ? (
-        <AnnouncementsPanel isAdmin={isAdmin} userId="" />
+        <AnnouncementsPanel isAdmin={isAdmin} userId={userId ?? (me?.userId ?? "")} />
       ) : selectedTab === "applications" ? (
         <ApplicationsPanel />
       ) : (
-        <StaffBoard canDeleteAny={isAdmin} userId="" />
+        <StaffBoard canDeleteAny={isAdmin} userId={userId ?? (me?.userId ?? "")} />
       )}
     </div>
   );
@@ -1030,7 +1230,7 @@ export function StaffOverview() {
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId="" />
+      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
   );
 }
@@ -1039,7 +1239,7 @@ export function StaffAnnouncements() {
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId="" />
+      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
   );
 }
@@ -1048,7 +1248,7 @@ export function StaffMessages() {
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId="" />
+      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
   );
 }
@@ -1057,7 +1257,7 @@ export function StaffApplications() {
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId="" />
+      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
   );
 }
@@ -1065,5 +1265,5 @@ export function StaffApplications() {
 type StaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId };
 
 export function StaffWorkspace({ isAdmin, userId }: StaffWorkspaceProps) {
-  return <SafeStaffWorkspace isAdmin={isAdmin} userId="" />;
+  return <SafeStaffWorkspace isAdmin={isAdmin} userId={userId} />;
 }

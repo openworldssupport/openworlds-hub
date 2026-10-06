@@ -40,6 +40,9 @@ const schema = defineSchema(
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
       // Granted after a verified OTP for an invited, approved, or assigned staff account.
       staffAccess: v.optional(v.boolean()),
+      // Staff-chosen public name used across /staff and public team pages.
+      // Preferred over name; emails are never shown as display names.
+      nickname: v.optional(v.string()),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Emails explicitly approved for private company OTP sign-in.

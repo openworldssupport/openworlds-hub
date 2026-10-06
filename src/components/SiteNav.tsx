@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { badgeForUser } from "@/lib/staff";
+import { badgeForUser, displayInitials, displayNameFor } from "@/lib/staff";
 import { RoleBadge } from "@/components/RoleBadge";
 
 export function SiteNav() {
@@ -43,6 +43,14 @@ export function SiteNav() {
             >
               <RoleBadge badge={badge} />
             </Link>
+          )}
+          {user && badge && (
+            <span className="ml-1 inline-flex items-center gap-2 rounded-md px-2 py-1 text-xs text-slate-600">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                {displayInitials(user)}
+              </span>
+              <span className="max-w-[140px] truncate">{displayNameFor(user)}</span>
+            </span>
           )}
         </div>
 

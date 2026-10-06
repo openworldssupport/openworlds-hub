@@ -8,6 +8,17 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
 
+/** Longest nickname the portal accepts. */
+export const MAX_NICKNAME_LENGTH = 40;
+
+/**
+ * Preferred public display name for a staff member: nickname first, then the
+ * stored name, then a fallback. Emails are never used as display names.
+ */
+export function displayNameFor(user: { nickname?: string | null; name?: string | null }) {
+  return (user.nickname ?? user.name ?? "OpenWorlds team").trim() || "OpenWorlds team";
+}
+
 /** The signed-in user's document, or null when signed out. */
 async function currentUser(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -38,6 +49,7 @@ export const me = query({
         isStaff: false,
         isAdmin: false,
         name: null as string | null,
+        nickname: null as string | null,
         email: null as string | null,
         department: null as string | null,
         position: null as string | null,
@@ -56,6 +68,7 @@ export const me = query({
       isStaff: staff,
       isAdmin: admin,
       name: user.name?.trim() || null,
+      nickname: user.nickname?.trim() || null,
       email: user.email ?? null,
       department: staff ? department : null,
       position: staff ? position : null,
@@ -88,12 +101,13 @@ export const post = mutation({
       throw new Error(`Keep messages under ${MAX_MESSAGE_LENGTH} characters.`);
     }
 
-    const user = (await currentUser(ctx))!;
+    const user = await currentUser(ctx);
+    if (!user) throw new Error("Not authorized.");
     const department = user.department?.trim() || undefined;
     const position = user.position?.trim() || undefined;
     await ctx.db.insert("staffMessages", {
       authorId: user._id,
-      authorName: user.name?.trim() || user.email || "Team member",
+      authorName: displayNameFor(user),
       department,
       position,
       badge: user.publicBadge ?? deriveBadge(department ?? null, position ?? null),
@@ -137,6 +151,7 @@ export const listMembers = query({
       return {
         userId: user._id,
         name: user.name?.trim() || null,
+        nickname: user.nickname?.trim() || null,
         email: user.email ?? null,
         role: user.role ?? null,
         department,
@@ -234,8 +249,28 @@ export const setAssignment = mutation({
 });
 
 /**
- * Public: name + badge only ("Staff" or "Dev") for people who have been given
- * a department/position. Department, position and email stay private.
+ * Staff can update their own nickname. The email stays private; the nickname is
+ * the new public-facing name used across the portal and public team pages.
+ */
+export const setNick = mutation({
+  args: { nickname: v.string() },
+  handler: async (ctx, args) => {
+    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    const nickname = args.nickname.trim();
+    if (nickname.length === 0) throw new Error("Enter a nickname first.");
+    if (nickname.length > MAX_NICKNAME_LENGTH) {
+      throw new Error(`Nicknames are ${MAX_NICKNAME_LENGTH} characters or fewer.`);
+    }
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authorized.");
+    await ctx.db.patch(userId, { nickname });
+    return { ok: true, nickname };
+  },
+});
+
+/** Public: name + badge only ("Staff" or "Dev") for people who have been given
+ *  a department/position. Department, position and email stay private.
+ *  Nickname is preferred when present.
  */
 export const publicTeam = query({
   args: {},
@@ -244,7 +279,7 @@ export const publicTeam = query({
     return users
       .filter((user) => user.emailVerificationTime !== undefined && (user.staffAccess || user.department?.trim() || user.position?.trim()))
       .map((user) => ({
-        name: user.name?.trim() || "OpenWorlds team",
+        name: displayNameFor(user),
         badge: user.publicBadge ?? deriveBadge(user.department, user.position),
       }));
   },
@@ -393,7 +428,8 @@ export const saveAnnouncement = mutation({
       if (asset.altText && asset.altText.trim().length > 200) throw new Error("Keep image descriptions under 200 characters.");
     }
 
-    const user = (await currentUser(ctx))!;
+    const user = await currentUser(ctx);
+    if (!user) throw new Error("Not authorized.");
     const userId = user._id;
     const now = Date.now();
     const department = user.department?.trim() || undefined;
@@ -405,7 +441,7 @@ export const saveAnnouncement = mutation({
       media: args.media.map((asset) => ({ storageId: asset.storageId, mediaType: asset.mediaType, altText: asset.altText?.trim() || undefined })),
       category: args.category,
       status: args.status,
-      authorName: user.name?.trim() || user.email || "OpenWorlds team",
+      authorName: displayNameFor(user),
       department,
       position,
       badge: user.publicBadge ?? deriveBadge(department ?? null, position ?? null),
@@ -430,10 +466,10 @@ export const saveAnnouncement = mutation({
         }
       }
       for (const asset of args.media) {
-      const stored = await ctx.db.query("announcementAssets")
-        .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
-        .unique();
-      if (stored) await ctx.db.patch(stored._id, { announcementId: args.announcementId });
+        const stored = await ctx.db.query("announcementAssets")
+          .withIndex("by_storage_id", (q) => q.eq("storageId", asset.storageId!))
+          .unique();
+        if (stored) await ctx.db.patch(stored._id, { announcementId: args.announcementId });
       }
       await ctx.db.patch(args.announcementId, fields);
       return { announcementId: args.announcementId };

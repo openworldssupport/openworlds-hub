@@ -48,6 +48,38 @@ export function badgeLabel(badge: PublicBadge): string {
   return badge === "dev" ? "Dev" : "Staff";
 }
 
+/**
+ * Preferred public display name for a staff member: nickname first, then the
+ * stored name, then a fallback. Emails are never used as display names.
+ *
+ * Keep this in sync with the Convex helper `displayNameFor` in
+ * `src/convex/staff.ts`.
+ */
+export function displayNameFor(
+  user: {
+    nickname?: string | null;
+    name?: string | null;
+  } | null | undefined,
+): string {
+  const raw = user?.nickname ?? user?.name ?? "OpenWorlds team";
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  return trimmed || "OpenWorlds team";
+}
+
+/** Initials for a display name (nickname or name), for avatar circles. */
+export function displayInitials(user: {
+  nickname?: string | null;
+  name?: string | null;
+} | null | undefined): string {
+  const label = displayNameFor(user);
+  return label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join("") || "?";
+}
+
 type MaybeStaff = {
   department?: string | null;
   position?: string | null;

@@ -3,11 +3,15 @@ import { Link } from "react-router";
 import { Globe2, Share2, Heart, Users } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { displayInitials, displayNameFor } from "@/lib/staff";
 import { RoleBadge } from "@/components/RoleBadge";
 
 /**
  * Public team list: shows each assigned team member with their "Staff" or
  * "Dev" badge. Hidden until admins have assigned at least one position.
+ *
+ * Names shown here are staff-chosen nicknames where present, falling back to
+ * the stored name — never the email address.
  */
 function TeamSection() {
   const team = useQuery(api.staff.publicTeam);
@@ -27,22 +31,17 @@ function TeamSection() {
       </div>
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {team.map((member, index) => (
+        {team.map((member) => (
           <li
-            key={`${member.name}-${index}`}
+            key={`${member.name}-${member.badge}`}
             className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#f5f7fb] text-sm font-semibold text-slate-600">
-                {member.name
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((part) => part[0]!.toUpperCase())
-                  .join("") || "?"}
+                {displayInitials(member)}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-800">{member.name}</p>
+                <p className="truncate text-sm font-semibold text-slate-800">{displayNameFor(member)}</p>
                 <p className="text-xs text-slate-400">OpenWorlds team</p>
               </div>
             </div>
