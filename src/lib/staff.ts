@@ -1,12 +1,17 @@
 /** What the public website shows for a team member: "Staff" or "Dev". */
 export type PublicBadge = "staff" | "dev";
 
-/** Short list suggested in the admin panel; any department name is accepted. */
+/**
+ * Company departments suggested in the admin panel (invite + team assignment).
+ * The first five match the department names used on the careers page. Any other
+ * department name can still be typed by hand.
+ */
 export const DEPARTMENTS = [
   "Engineering",
-  "Design",
-  "Community",
-  "Marketing",
+  "Design & Creative",
+  "Community & Communications",
+  "Marketing & Partnerships",
+  "Business Strategy",
   "Support",
   "Operations",
   "Leadership",
