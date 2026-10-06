@@ -5,18 +5,20 @@ import { careerRoles } from "./careers";
 
 /**
  * Company departments suggested in the admin panel (invite + team assignment).
- * The first five match the department names used on the careers page. Any other
- * department name can still be typed by hand.
+ * Any other department name can still be typed by hand.
  */
 export const DEPARTMENTS = [
-  "Engineering",
-  "Design & Creative",
-  "Community & Communications",
-  "Marketing & Partnerships",
-  "Business Strategy",
-  "Support",
-  "Operations",
-  "Leadership",
+  "Executive Leadership",
+  "Engineering & Software Development",
+  "Game Design & Systems Architecture",
+  "Creative Content & Art Production",
+  "Community Operations & Player Engagement",
+  "Trust & Safety / Moderation",
+  "Data Science, Analytics & Research",
+  "AI & Procedural Systems",
+  "Operations & Internal Systems",
+  "Marketing & Growth",
+  "Business Development & Strategy",
 ] as const;
 
 /**
