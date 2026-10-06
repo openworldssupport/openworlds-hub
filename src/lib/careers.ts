@@ -31,10 +31,10 @@ export const careerBranches: CareerBranch[] = [
   {
     slug: "executive-leadership",
     title: "Executive Leadership",
-    summary: "Support the priorities, decisions, and coordination that keep the whole project moving.",
+    summary: "Lead the operating and technical direction that keeps the whole project moving.",
     roles: [
-      role("chief-of-staff", "Chief of Staff", "Executive Leadership", "Keep leadership priorities organized and turn decisions into tracked work.", ["Coordinate priorities across departments and flag conflicts early.", "Prepare concise briefs and notes for leadership discussions.", "Follow every commitment through from decision to completion."], ["Structured thinking and clear written communication.", "Comfortable coordinating several teams at once.", "Discretion with sensitive internal information."], "Open"),
-      role("executive-operations-associate", "Executive Operations Associate", "Executive Leadership", "Handle the records, scheduling, and follow-ups that keep the executive side of the project running.", ["Maintain agendas, meeting notes, and action lists.", "Prepare background research for planning sessions.", "Keep internal documents accurate and up to date."], ["Organized, reliable, and focused on detail.", "Can turn long discussions into clear next steps.", "Interested in how small teams plan and run projects."], "Open"),
+      role("chief-operating-officer", "Chief Operating Officer", "Executive Leadership", "Keep day-to-day work across departments coordinated, supported, and moving.", ["Set and track operating priorities across departments.", "Clear cross-team blockers and keep hand-offs between teams clear.", "Report progress, risks, and open decisions to leadership."], ["Comfortable running several workstreams at once.", "Calm, clear communication when priorities compete.", "Sound judgement about when to escalate a decision."], "Open"),
+      role("chief-technology-officer", "Chief Technology Officer", "Executive Leadership", "Own the technical direction and long-term health of the platform.", ["Set technical direction and review architecture decisions.", "Keep engineering standards, security, and tooling in good shape.", "Guide and support technical contributors across the project."], ["Experience leading technical work or technical people.", "Sound judgement about trade-offs, risk, and long-term maintenance.", "Can explain technical decisions to non-technical colleagues."], "Open"),
     ],
   },
   {
