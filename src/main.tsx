@@ -56,6 +56,10 @@ const StaffMessages = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })),
 );
+const StaffApplications = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffApplications })),
+);
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -206,6 +210,7 @@ createRoot(document.getElementById("root")!).render(
               />
               <Route path="/staff/overview" element={<StaffOverview />} />
               <Route path="/staff/announcements" element={<StaffAnnouncements />} />
+              <Route path="/staff/applications" element={<StaffApplications />} />
               <Route path="/staff/messages" element={<StaffMessages />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
