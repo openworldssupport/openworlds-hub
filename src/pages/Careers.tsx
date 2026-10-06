@@ -43,7 +43,6 @@ function PositionRow({ role }: { role: CareerRole }) {
 }
 
 export default function Careers() {
-  const positionCount = careerBranches.reduce((total, branch) => total + branch.roles.length, 0);
   const openCount = careerBranches.reduce(
     (total, branch) => total + branch.roles.filter((role) => role.status !== "Filled").length,
     0,
@@ -75,9 +74,7 @@ export default function Careers() {
             <p className="text-sm font-medium text-[#7651c9]">Careers</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Positions by department</h2>
           </div>
-          <p className="text-sm text-slate-500">
-            {openCount} open · {positionCount - openCount} filled
-          </p>
+          <p className="text-sm text-slate-500">{openCount} open positions</p>
         </div>
 
         <div className="space-y-5">
