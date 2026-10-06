@@ -1,6 +1,8 @@
 /** What the public website shows for a team member: "Staff" or "Dev". */
 export type PublicBadge = "staff" | "dev";
 
+import { careerRoles } from "./careers";
+
 /**
  * Company departments suggested in the admin panel (invite + team assignment).
  * The first five match the department names used on the careers page. Any other
@@ -16,6 +18,12 @@ export const DEPARTMENTS = [
   "Operations",
   "Leadership",
 ] as const;
+
+/**
+ * Positions suggested in the admin panel: every role the careers page lists,
+ * kept in careers-page order. Any other position can still be typed by hand.
+ */
+export const POSITIONS: string[] = [...new Set(careerRoles.map((role) => role.title))];
 
 /**
  * Departments/positions that read as engineering rather than general staff.

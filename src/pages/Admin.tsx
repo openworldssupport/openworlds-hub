@@ -5,7 +5,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteNav } from "@/components/SiteNav";
 import { RoleBadge } from "@/components/RoleBadge";
-import { DEPARTMENTS, deriveBadge, type PublicBadge } from "@/lib/staff";
+import { DEPARTMENTS, POSITIONS, deriveBadge, type PublicBadge } from "@/lib/staff";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -214,12 +214,13 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
         <form onSubmit={invite} className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="invite-email">Email</Label><Input id="invite-email" type="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" /></div>
           <div className="space-y-1.5"><Label htmlFor="invite-dept">Department</Label><Input id="invite-dept" list="ow-departments" required maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
-          <div className="space-y-1.5"><Label htmlFor="invite-position">Position</Label><Input id="invite-position" required maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
+          <div className="space-y-1.5"><Label htmlFor="invite-position">Position</Label><Input id="invite-position" list="ow-positions" required maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
           <div className="space-y-1.5"><Label htmlFor="invite-badge">Public badge</Label><select id="invite-badge" value={publicBadge} onChange={(e) => setPublicBadge(e.target.value as PublicBadge)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="dev">Dev</option></select></div>
           <div className="space-y-1.5"><Label htmlFor="invite-level">Access</Label><select id="invite-level" value={accessLevel} onChange={(e) => setAccessLevel(e.target.value as "admin" | "staff")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
           <div className="sm:col-span-2"><Button type="submit" disabled={Boolean(busy)}>{busy === "invite" ? <Loader2 className="size-4 animate-spin" /> : <UserRound className="size-4" />} Invite account</Button></div>
         </form>
         <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
+        <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
         {error && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       </section>
       <section className="rounded-lg border border-slate-200 bg-white">
@@ -252,6 +253,7 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
       <p className="text-sm text-slate-600">Assign a department and position to grant staff portal access. Clear both fields to remove it.</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
+      <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
       {members.length === 0 ? <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p> : members.map((member) => <TeamRow key={member.userId} member={member} busy={busyId === member.userId} saved={savedId === member.userId} onSave={save} />)}
     </div>
   );
@@ -269,7 +271,7 @@ function TeamRow({ member, busy, saved, onSave }: { member: TeamMember; busy: bo
       <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="flex items-center gap-2 text-sm font-semibold">{member.name || member.email || "Account"}{member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}</p><p className="text-xs text-slate-500">{member.email} · {member.isStaff ? "Staff access on" : "Staff access off"}</p></div></div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
         <div className="space-y-1"><Label htmlFor={`dept-${member.userId}`}>Department</Label><Input id={`dept-${member.userId}`} list="ow-departments" maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
-        <div className="space-y-1"><Label htmlFor={`position-${member.userId}`}>Position</Label><Input id={`position-${member.userId}`} maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
+        <div className="space-y-1"><Label htmlFor={`position-${member.userId}`}>Position</Label><Input id={`position-${member.userId}`} list="ow-positions" maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
         <div className="space-y-1"><Label htmlFor={`badge-${member.userId}`}>Badge</Label><select id={`badge-${member.userId}`} value={badge} onChange={(e) => setBadge(e.target.value as PublicBadge)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="dev">Dev</option></select></div>
       </div>
       <div className="mt-3 flex items-center gap-3"><Button size="sm" disabled={!isDirty || busy || (!active && !member.isStaff)} onClick={() => void onSave(member, department, position, badge)}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{member.isStaff ? "Save" : "Give staff access"}</Button>{saved && <span className="text-xs text-emerald-700">Saved</span>}</div>
