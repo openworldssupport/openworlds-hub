@@ -21,15 +21,23 @@ function PositionRow({ role }: { role: CareerRole }) {
         </div>
         <p className="mt-1 text-sm leading-6 text-slate-600">{role.summary}</p>
       </div>
-      <Link
-        to={`/careers/role/${role.slug}`}
-        className={`inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold hover:underline ${
-          isFilled ? "text-slate-600" : "text-[#0066cc]"
-        }`}
-        aria-label={`${isFilled ? "View filled position" : "View open position"}: ${role.title}`}
-      >
-        View position <ArrowRight className="size-4" />
-      </Link>
+      {isFilled ? (
+        <Link
+          to={`/careers/role/${role.slug}`}
+          className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-600 hover:underline"
+          aria-label={`View filled position: ${role.title}`}
+        >
+          View details <ArrowRight className="size-4" />
+        </Link>
+      ) : (
+        <Link
+          to={`/careers/apply/${role.slug}`}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-[#0066cc] px-4 text-sm font-semibold text-white transition hover:bg-[#004a99]"
+          aria-label={`Apply for ${role.title}`}
+        >
+          Apply <ArrowRight className="size-4" />
+        </Link>
+      )}
     </li>
   );
 }
