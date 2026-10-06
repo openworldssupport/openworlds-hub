@@ -29,6 +29,15 @@ const role = (
 
 export const careerBranches: CareerBranch[] = [
   {
+    slug: "executive-leadership",
+    title: "Executive Leadership",
+    summary: "Support the priorities, decisions, and coordination that keep the whole project moving.",
+    roles: [
+      role("chief-of-staff", "Chief of Staff", "Executive Leadership", "Keep leadership priorities organized and turn decisions into tracked work.", ["Coordinate priorities across departments and flag conflicts early.", "Prepare concise briefs and notes for leadership discussions.", "Follow every commitment through from decision to completion."], ["Structured thinking and clear written communication.", "Comfortable coordinating several teams at once.", "Discretion with sensitive internal information."], "Open"),
+      role("executive-operations-associate", "Executive Operations Associate", "Executive Leadership", "Handle the records, scheduling, and follow-ups that keep the executive side of the project running.", ["Maintain agendas, meeting notes, and action lists.", "Prepare background research for planning sessions.", "Keep internal documents accurate and up to date."], ["Organized, reliable, and focused on detail.", "Can turn long discussions into clear next steps.", "Interested in how small teams plan and run projects."], "Open"),
+    ],
+  },
+  {
     slug: "engineering",
     title: "Engineering",
     summary: "Help build reliable tools and experiences for creating and exploring worlds.",
