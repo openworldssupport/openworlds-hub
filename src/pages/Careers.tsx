@@ -213,8 +213,8 @@ export default function Careers() {
           <p className="text-sm font-medium text-[#7651c9]">Current openings</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Open roles</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Only confirmed openings are listed here. Titles are published once the team has verified
-            the role details.
+            All positions listed below are open for applications except Business Strategy Associate,
+            which has been filled.
           </p>
         </div>
 
@@ -259,9 +259,8 @@ export default function Careers() {
             Departments &amp; positions
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            This directory keeps all 14 position titles currently saved in the Careers draft visible.
-            It is not a confirmed copy of the original roster: 13 titles still need your confirmation
-            and are not open for applications. Only Business Strategy Associate is confirmed filled.
+            All 14 positions in this directory are open for applications except Business Strategy
+            Associate, which is filled.
           </p>
         </div>
         <div className="space-y-5">
@@ -291,10 +290,10 @@ export default function Careers() {
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         role.status === "Filled"
                           ? "bg-slate-100 text-slate-600"
-                          : "bg-amber-50 text-amber-800"
+                          : "bg-emerald-50 text-emerald-800"
                       }`}
                     >
-                      {role.status === "Filled" ? "Filled · confirmed" : "Unconfirmed · not open"}
+                      {role.status === "Filled" ? "Filled" : "Open · accepting applications"}
                     </span>
                   </li>
                 ))}
@@ -302,11 +301,7 @@ export default function Careers() {
             </section>
           ))}
         </div>
-        {filledRoles.length > 0 && (
-          <p className="mt-4 text-xs leading-5 text-slate-500">
-            Position statuses are only treated as current after confirmation by the OpenWorlds team.
-          </p>
-        )}
+
       </section>
 
       <section id="hiring" className="scroll-mt-24 border-y border-slate-100 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
