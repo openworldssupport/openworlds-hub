@@ -1,5 +1,5 @@
 import { SiteNav } from "@/components/SiteNav";
-import { careerRoles, type CareerRole, type CareerBranch } from "@/lib/careers";
+import { careerBranches, careerRoles, type CareerRole, type CareerBranch } from "@/lib/careers";
 import {
   Accordion,
   AccordionContent,
@@ -252,32 +252,62 @@ export default function Careers() {
         )}
       </section>
 
-      {filledRoles.length > 0 && (
-        <section className="mx-auto max-w-5xl px-5 pb-12 sm:px-8">
-          <div className="mb-5">
-            <p className="text-sm font-medium text-[#7651c9]">Recently filled</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight">Closed positions</h2>
-          </div>
-          <div className="space-y-3">
-            {filledRoles.map((role) => (
-              <div
-                key={role.slug}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4"
-              >
-                <div>
-                  <h3 className="font-semibold">{role.title}</h3>
-                  <p className="mt-0.5 text-sm text-slate-600">
-                    {role.department} · {role.summary}
-                  </p>
-                </div>
-                <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                  Filled
-                </span>
+      <section className="mx-auto max-w-5xl px-5 pb-12 sm:px-8">
+        <div className="mb-6">
+          <p className="text-sm font-medium text-[#7651c9]">Saved role directory</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+            Departments &amp; positions
+          </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            This directory keeps all 14 position titles currently saved in the Careers draft visible.
+            It is not a confirmed copy of the original roster: 13 titles still need your confirmation
+            and are not open for applications. Only Business Strategy Associate is confirmed filled.
+          </p>
+        </div>
+        <div className="space-y-5">
+          {careerBranches.map((branch) => (
+            <section
+              key={branch.slug}
+              aria-labelledby={`saved-branch-${branch.slug}`}
+              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+            >
+              <div className="border-b border-slate-100 bg-slate-50 px-5 py-4">
+                <h3 id={`saved-branch-${branch.slug}`} className="font-semibold">
+                  {branch.title}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">{branch.summary}</p>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+              <ul className="divide-y divide-slate-100">
+                {branch.roles.map((role) => (
+                  <li
+                    key={role.slug}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
+                  >
+                    <div>
+                      <p className="font-medium">{role.title}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">{role.department}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        role.status === "Filled"
+                          ? "bg-slate-100 text-slate-600"
+                          : "bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      {role.status === "Filled" ? "Filled · confirmed" : "Unconfirmed · not open"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+        {filledRoles.length > 0 && (
+          <p className="mt-4 text-xs leading-5 text-slate-500">
+            Position statuses are only treated as current after confirmation by the OpenWorlds team.
+          </p>
+        )}
+      </section>
 
       <section id="hiring" className="scroll-mt-24 border-y border-slate-100 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
         <div className="mx-auto max-w-5xl">
