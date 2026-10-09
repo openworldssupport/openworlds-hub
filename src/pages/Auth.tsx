@@ -142,7 +142,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
                 ? isStaffSignup
                   ? "Use your company-approved email. We’ll check its staff eligibility and send a one-time code."
                   : "Enter your staff email. We’ll send a one-time code."
-                : `Enter the one-time code sent to ${email}. The code expires after 15 minutes.`}
+                : `A one-time code was sent to the email address you entered. The code expires after 15 minutes.`}
           </p>
 
           {isCreate ? (

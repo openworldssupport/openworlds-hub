@@ -48,12 +48,14 @@ export function badgeLabel(badge: PublicBadge): string {
   return badge === "dev" ? "Dev" : "Staff";
 }
 
+/** Return true for an email-shaped value that should never be used as a display name. */
+export function isEmailAddress(value?: string | null): boolean {
+  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 /**
  * Preferred public display name for a staff member: nickname first, then the
  * stored name, then a fallback. Emails are never used as display names.
- *
- * Keep this in sync with the Convex helper `displayNameFor` in
- * `src/convex/staff.ts`.
  */
 export function displayNameFor(
   user: {
@@ -61,9 +63,10 @@ export function displayNameFor(
     name?: string | null;
   } | null | undefined,
 ): string {
-  const raw = user?.nickname ?? user?.name ?? "OpenWorlds team";
-  const trimmed = typeof raw === "string" ? raw.trim() : "";
-  return trimmed || "OpenWorlds team";
+  const displayName = [user?.nickname, user?.name].find(
+    (candidate) => typeof candidate === "string" && candidate.trim() && !isEmailAddress(candidate),
+  );
+  return displayName?.trim() || "OpenWorlds team";
 }
 
 /** Initials for a display name (nickname or name), for avatar circles. */

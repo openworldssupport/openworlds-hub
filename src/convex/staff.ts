@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
-import { deriveBadge, type PublicBadge } from "../lib/staff";
+import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 
@@ -16,7 +16,10 @@ export const MAX_NICKNAME_LENGTH = 40;
  * stored name, then a fallback. Emails are never used as display names.
  */
 export function displayNameFor(user: { nickname?: string | null; name?: string | null }) {
-  return (user.nickname ?? user.name ?? "OpenWorlds team").trim() || "OpenWorlds team";
+  const displayName = [user.nickname, user.name].find(
+    (candidate) => typeof candidate === "string" && candidate.trim() && !isEmailAddress(candidate),
+  );
+  return displayName?.trim() || "OpenWorlds team";
 }
 
 /** The signed-in user's document, or null when signed out. */
@@ -66,8 +69,8 @@ export const me = query({
       userId: user._id,
       isStaff: staff,
       isAdmin: admin,
-      name: staff ? user.name?.trim() || null : null,
-      nickname: staff ? user.nickname?.trim() || null : null,
+      name: staff && !isEmailAddress(user.name) ? user.name?.trim() || null : null,
+      nickname: staff && !isEmailAddress(user.nickname) ? user.nickname?.trim() || null : null,
       department: staff ? department : null,
       position: staff ? position : null,
       badge: staff ? (user.publicBadge ?? deriveBadge(department, position)) : null,
@@ -80,11 +83,15 @@ export const board = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isStaff(ctx))) return null;
-    return await ctx.db
+    const messages = await ctx.db
       .query("staffMessages")
       .withIndex("by_created_at")
       .order("desc")
       .take(100);
+    return messages.map((message) => ({
+      ...message,
+      authorName: displayNameFor({ name: message.authorName }),
+    }));
   },
 });
 
@@ -148,7 +155,7 @@ export const listMembers = query({
       const assigned = Boolean(department || position);
       return {
         userId: user._id,
-        name: user.name?.trim() || null,
+        name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
         role: user.role ?? null,
         department,
         position,
@@ -254,6 +261,7 @@ export const setNick = mutation({
     if (!(await isStaff(ctx))) throw new Error("Not authorized.");
     const nickname = args.nickname.trim();
     if (nickname.length === 0) throw new Error("Enter a nickname first.");
+    if (isEmailAddress(nickname)) throw new Error("Choose a nickname that is not an email address.");
     if (nickname.length > MAX_NICKNAME_LENGTH) {
       throw new Error(`Nicknames are ${MAX_NICKNAME_LENGTH} characters or fewer.`);
     }
@@ -372,6 +380,7 @@ export const announcements = query({
         publishedAt: row.publishedAt ?? 0,
         createdAt: row.createdAt,
         authorId: row.authorId,
+        authorName: displayNameFor({ name: row.authorName }),
         media,
       };
     }));
