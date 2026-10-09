@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Compass, Flag, Gamepad2, LifeBuoy, Mail, Map, Newspaper } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
 
@@ -7,49 +7,31 @@ const explore = [
     to: "/worlds",
     title: "Worlds",
     text: "No published worlds are available yet; check for updates.",
-    icon: Compass,
-    tone: "bg-blue-50 text-[#0066cc]",
-    accent: "border-t-[#0066cc]",
   },
   {
     to: "/events",
     title: "Events",
     text: "No confirmed event announcements are available yet.",
-    icon: CalendarDays,
-    tone: "bg-amber-50 text-[#987000]",
-    accent: "border-t-[#f3c64e]",
   },
   {
     to: "/roadmap",
     title: "Roadmap",
     text: "No roadmap milestones have been published yet.",
-    icon: Flag,
-    tone: "bg-violet-50 text-[#7651c9]",
-    accent: "border-t-[#7651c9]",
   },
   {
     to: "/learning",
     title: "Learning",
     text: "No learning guides have been published yet.",
-    icon: Map,
-    tone: "bg-blue-50 text-[#0066cc]",
-    accent: "border-t-[#0066cc]",
   },
   {
     to: "/news",
     title: "News",
     text: "Browse updates published by the team.",
-    icon: Newspaper,
-    tone: "bg-violet-50 text-[#7651c9]",
-    accent: "border-t-[#7651c9]",
   },
   {
     to: "/rules",
     title: "Rules",
     text: "General website and community guidelines.",
-    icon: Gamepad2,
-    tone: "bg-amber-50 text-[#987000]",
-    accent: "border-t-[#f3c64e]",
   },
 ];
 
@@ -60,9 +42,7 @@ export default function Landing() {
 
       <section className="ow-page-hero px-5 py-16 text-white sm:px-8 sm:py-24">
         <div className="mx-auto max-w-6xl">
-          <p className="flex items-center gap-2 text-sm font-medium text-blue-100">
-            <Gamepad2 className="size-4" /> OpenWorlds
-          </p>
+          <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
             A world built together.
           </h1>
@@ -72,19 +52,19 @@ export default function Landing() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               to="/community"
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
+              className="inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
             >
               Join the community <ArrowRight className="size-4" />
             </Link>
             <Link
               to="/careers"
-              className="inline-flex h-11 items-center rounded-lg border border-white/50 px-5 text-sm font-semibold text-white hover:bg-white/10"
+              className="inline-flex h-11 items-center rounded-sm border border-white/50 px-5 text-sm font-semibold text-white hover:bg-white/10"
             >
               Explore careers
             </Link>
             <Link
               to="/player-signup"
-              className="inline-flex h-11 items-center rounded-lg border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
+              className="inline-flex h-11 items-center rounded-sm border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
             >
               Player accounts · coming soon
             </Link>
@@ -113,18 +93,15 @@ export default function Landing() {
         </div>
 
         <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {explore.map(({ to, title, text, icon: Icon, tone, accent }) => (
+          {explore.map(({ to, title, text }) => (
             <Link
               key={to}
               to={to}
-              className={`group rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent} transition hover:-translate-y-0.5 hover:shadow-md`}
+              className="group rounded-lg border border-slate-200 bg-white p-5 transition-colors hover:border-slate-400"
             >
-              <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
-                <Icon className="size-5" />
-              </div>
-              <h3 className="mt-4 flex items-center gap-1.5 font-semibold">
+              <h3 className="flex items-center gap-1.5 font-semibold">
                 {title}
-                <ArrowRight className="size-4 -translate-x-1 opacity-0 transition group-hover:translate-x-0 group-hover:opacity-100" />
+                <ArrowRight className="size-4 opacity-0 transition-opacity group-hover:opacity-100" />
               </h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
             </Link>
@@ -132,42 +109,30 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-gradient-to-br from-slate-50 via-white to-violet-50 px-5 py-14 sm:px-8 sm:py-16">
+      <section className="border-y border-slate-200 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
-          <article className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-              <Flag className="size-5" />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold">Careers</h2>
+          <article className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Careers</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              All listed positions are open for applications except Business Strategy Associate, which is filled.
+              Browse current opportunities to contribute to OpenWorlds.
             </p>
             <Link to="/careers" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
-              Careers information <ArrowRight className="size-4" />
+              View careers <ArrowRight className="size-4" />
             </Link>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-violet-50 text-[#7651c9]">
-              <LifeBuoy className="size-5" />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold">Need a hand?</h2>
+          <article className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Need a hand?</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Read current support information or open a ticket.
             </p>
-            <div className="mt-5 flex flex-wrap gap-4 text-sm font-medium text-[#0066cc]">
+            <div className="mt-5 text-sm font-medium text-[#0066cc]">
               <Link to="/support" className="hover:underline">Visit support</Link>
-              <Link to="/support" className="inline-flex items-center gap-1 hover:underline">
-                <Mail className="size-4" /> Contact support
-              </Link>
             </div>
           </article>
 
-          <article className="rounded-xl border border-slate-200 bg-white p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]">
-              <CalendarDays className="size-5" />
-            </div>
-            <h2 className="mt-4 text-lg font-semibold">Events</h2>
+          <article className="rounded-lg border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Events</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Check for event announcements confirmed by the team.
             </p>
@@ -179,7 +144,7 @@ export default function Landing() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <div className="rounded-xl border border-[#f3c64e] bg-[#f3c64e]/10 p-6 sm:p-8">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 sm:p-8">
           <p className="text-sm font-medium text-[#7c5a00]">In development</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
             OpenWorlds is not released yet.
@@ -188,10 +153,10 @@ export default function Landing() {
             No public roadmap milestones or downloadable builds have been announced. Published updates are listed on the News page.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Link to="/roadmap" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">
+            <Link to="/roadmap" className="inline-flex h-11 items-center gap-2 rounded-sm bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">
               View the roadmap <ArrowRight className="size-4" />
             </Link>
-            <Link to="/downloads" className="inline-flex h-11 items-center rounded-lg border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Link to="/downloads" className="inline-flex h-11 items-center rounded-sm border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">
               Downloads
             </Link>
           </div>

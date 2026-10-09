@@ -1,57 +1,27 @@
 import { SiteNav } from "@/components/SiteNav";
-import { api } from "@/convex/_generated/api";
-import { useQuery } from "convex/react";
 import { careerBranches, type CareerRole } from "@/lib/careers";
-import { ArrowRight, BriefcaseBusiness, Clock3, HeartHandshake, Mail } from "lucide-react";
+import { ArrowRight, HeartHandshake } from "lucide-react";
 import { Link } from "react-router";
 
-function PositionRow({ role, isOpen }: { role: CareerRole; isOpen: boolean }) {
-  const isFilled = !isOpen;
-
+function PositionRow({ role }: { role: CareerRole }) {
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold text-slate-900">{role.title}</h3>
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              isFilled ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-800"
-            }`}
-          >
-            {isFilled ? "Filled" : "Open"}
-          </span>
-        </div>
+        <h3 className="font-semibold text-slate-900">{role.title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-600">{role.summary}</p>
       </div>
-      {isFilled ? (
-        <Link
-          to={`/careers/role/${role.slug}`}
-          className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-600 hover:underline"
-          aria-label={`View filled position: ${role.title}`}
-        >
-          View details <ArrowRight className="size-4" />
-        </Link>
-      ) : (
-        <Link
-          to={`/careers/apply/${role.slug}`}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-[#0066cc] px-4 text-sm font-semibold text-white transition hover:bg-[#004a99]"
-          aria-label={`Apply for ${role.title}`}
-        >
-          Apply <ArrowRight className="size-4" />
-        </Link>
-      )}
+      <Link
+        to={`/careers/role/${role.slug}`}
+        className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-slate-700 hover:underline"
+        aria-label={`View position: ${role.title}`}
+      >
+        View role <ArrowRight className="size-4" />
+      </Link>
     </li>
   );
 }
 
 export default function Careers() {
-  const availability = useQuery(api.careerApplications.roleAvailability);
-  const availabilityBySlug = new Map((availability ?? []).map((item) => [item.slug, item.isOpen]));
-  const openCount = careerBranches.reduce(
-    (total, branch) => total + branch.roles.filter((role) => availabilityBySlug.get(role.slug) ?? role.status !== "Filled").length,
-    0,
-  );
-
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
@@ -65,7 +35,7 @@ export default function Careers() {
           </p>
           <a
             href="#positions"
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
           >
             Browse positions <ArrowRight className="size-4" />
           </a>
@@ -78,7 +48,6 @@ export default function Careers() {
             <p className="text-sm font-medium text-[#7651c9]">Careers</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Positions by department</h2>
           </div>
-          <p className="text-sm text-slate-500">{openCount} open positions</p>
         </div>
 
         <div className="space-y-5">
@@ -96,35 +65,31 @@ export default function Careers() {
               </header>
               <ul className="divide-y divide-slate-100">
                 {branch.roles.map((role) => (
-                  <PositionRow key={role.slug} role={role} isOpen={availabilityBySlug.get(role.slug) ?? role.status !== "Filled"} />
+                  <PositionRow key={role.slug} role={role} />
                 ))}
               </ul>
             </section>
           ))}
         </div>
 
-        <aside className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <aside className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-start gap-3">
-            <HeartHandshake className="mt-0.5 size-5 shrink-0 text-amber-800" />
+            <HeartHandshake className="mt-0.5 size-5 shrink-0 text-slate-600" />
             <div>
-              <h3 className="font-semibold text-amber-950">Volunteer positions</h3>
-              <p className="mt-1 text-sm leading-6 text-amber-900">
-                All positions are unpaid and remote, with flexible hours.
+              <h3 className="font-semibold text-slate-900">Volunteer positions</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Positions are remote and unpaid, with flexible hours.
               </p>
             </div>
           </div>
           <Link
             to="/support"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-amber-950 underline"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 underline"
           >
-            <Mail className="size-4" /> Ask a question
+            Ask a question
           </Link>
         </aside>
 
-        <p className="mt-5 flex items-center gap-2 text-xs text-slate-500">
-          <Clock3 className="size-3.5" />
-          Open roles accept applications. Filled positions remain available to view, but cannot be applied for.
-        </p>
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">

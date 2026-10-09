@@ -53,7 +53,7 @@ export function SupportTicketForm() {
         <div>
           <p className="font-medium">Ticket received</p>
           <p className="mt-1 leading-6">
-            Your ticket has been saved. Email notification depends on the support inbox configuration; a reply is not guaranteed.
+            Your ticket has been saved. We usually reply by email.
           </p>
           {reference && (
             <p className="mt-3 rounded-lg border border-emerald-300 bg-white p-3">
@@ -93,7 +93,7 @@ export function SupportTicketForm() {
         <Label htmlFor="ticket-email">
           Email <span className="text-[#7651c9]">*</span>
         </Label>
-        <p className="text-xs text-slate-500">Use an address where you can receive a reply. A response is not guaranteed.</p>
+        <p className="text-xs text-slate-500">We’ll use this address to reply to your ticket.</p>
         <Input
           id="ticket-email"
           name="email"
@@ -158,7 +158,7 @@ export function SupportTicketForm() {
       )}
 
       <p className="text-xs leading-5 text-slate-500">
-        Your ticket is stored on the service and can be read by authorized company staff. The support email notification may include the details you submit. Do not include passwords or payment details.
+        Do not include passwords or payment details. Authorized company staff can read your ticket.
       </p>
 
       <div className="space-y-3 pt-2">
@@ -177,9 +177,7 @@ export function SupportTicketForm() {
             <Link to="/terms" className="font-medium text-[#0066cc] hover:underline">Terms of Service</Link>.
           </span>
         </label>
-        <p className="text-xs leading-5 text-slate-500">
-          Your ticket cannot be opened until you agree. Review the Privacy Policy for information about ticket data and use the support form for privacy questions.
-        </p>
+
       </div>
 
       <Button type="submit" className="w-full" disabled={status === "sending"}>

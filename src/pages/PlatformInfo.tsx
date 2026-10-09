@@ -41,7 +41,7 @@ const pages = {
     description: "For support or other questions, use the contact methods listed on this website.",
     icon: Mail,
     sections: [
-      { title: "Support contact", text: "Use the support form on this site. Replies are not guaranteed." },
+      { title: "Support contact", text: "Use the support form on this site and we’ll reply by email." },
       { title: "Company sign-in", text: "Company accounts are invitation-only and use a one-time email code. Public player sign-up is closed." },
     ],
   },
