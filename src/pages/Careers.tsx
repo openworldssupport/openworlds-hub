@@ -1,10 +1,12 @@
 import { SiteNav } from "@/components/SiteNav";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { careerBranches, type CareerRole } from "@/lib/careers";
 import { ArrowRight, BriefcaseBusiness, Clock3, HeartHandshake, Mail } from "lucide-react";
 import { Link } from "react-router";
 
-function PositionRow({ role }: { role: CareerRole }) {
-  const isFilled = role.status === "Filled";
+function PositionRow({ role, isOpen }: { role: CareerRole; isOpen: boolean }) {
+  const isFilled = !isOpen;
 
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -43,8 +45,10 @@ function PositionRow({ role }: { role: CareerRole }) {
 }
 
 export default function Careers() {
+  const availability = useQuery(api.careerApplications.roleAvailability);
+  const availabilityBySlug = new Map((availability ?? []).map((item) => [item.slug, item.isOpen]));
   const openCount = careerBranches.reduce(
-    (total, branch) => total + branch.roles.filter((role) => role.status !== "Filled").length,
+    (total, branch) => total + branch.roles.filter((role) => availabilityBySlug.get(role.slug) ?? role.status !== "Filled").length,
     0,
   );
 
@@ -92,7 +96,7 @@ export default function Careers() {
               </header>
               <ul className="divide-y divide-slate-100">
                 {branch.roles.map((role) => (
-                  <PositionRow key={role.slug} role={role} />
+                  <PositionRow key={role.slug} role={role} isOpen={availabilityBySlug.get(role.slug) ?? role.status !== "Filled"} />
                 ))}
               </ul>
             </section>

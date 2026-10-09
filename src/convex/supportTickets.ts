@@ -185,7 +185,7 @@ export const reopenTicket = mutation({
   },
 });
 
-/** Team-only: permanently delete a ticket. */
+/** Admin-only: permanently delete a ticket. */
 export const removeTicket = mutation({
   args: { ticketId: v.id("supportTickets") },
   handler: async (ctx, args) => {

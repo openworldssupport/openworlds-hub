@@ -264,23 +264,6 @@ export const setNick = mutation({
   },
 });
 
-/** Public: name + badge only ("Staff" or "Dev") for people who have been given
- *  a department/position. Department, position and email stay private.
- *  Nickname is preferred when present.
- */
-export const publicTeam = query({
-  args: {},
-  handler: async (ctx) => {
-    const users = await ctx.db.query("users").take(500);
-    return users
-      .filter((user) => user.emailVerificationTime !== undefined && (user.staffAccess || user.department?.trim() || user.position?.trim()))
-      .map((user) => ({
-        name: displayNameFor(user),
-        badge: user.publicBadge ?? deriveBadge(user.department, user.position),
-      }));
-  },
-});
-
 const announcementCategory = v.union(
   v.literal("announcement"),
   v.literal("development"),

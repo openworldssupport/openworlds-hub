@@ -189,11 +189,15 @@ export const submit = mutation({
     availabilityStart: v.string(),
     linkedin: v.string(),
     voluntaryConsent: v.boolean(),
-  },
-  handler: async (ctx, args) => {
+  },  handler: async (ctx, args) => {
     const role = careerRoles.find((item) => item.slug === args.roleSlug);
     if (!role) throw new Error("This position could not be found.");
-    if (role.status === "Filled") throw new Error("This position is filled and is no longer accepting applications.");
+    const availabilityOverride = await ctx.db
+      .query("careerRoleAvailability")
+      .withIndex("by_role_slug", (q) => q.eq("roleSlug", role.slug))
+      .first();
+    const isOpen = availabilityOverride?.isOpen ?? role.status !== "Filled";
+    if (!isOpen) throw new Error("This position is filled and is no longer accepting applications.");
     if (!args.voluntaryConsent) throw new Error("Please confirm that this is a voluntary, unpaid role.");
 
     const fullName = args.fullName.trim();
@@ -329,6 +333,46 @@ export const submit = mutation({
   },
 });
 
+/** Public role availability only; never includes applicant or account data. */
+export const roleAvailability = query({
+  args: {},
+  handler: async (ctx) => {
+    const overrides = await ctx.db.query("careerRoleAvailability").collect();
+    const bySlug = new Map(overrides.map((item) => [item.roleSlug, item.isOpen]));
+    return careerRoles.map((role) => ({
+      slug: role.slug,
+      title: role.title,
+      department: role.department,
+      isOpen: bySlug.get(role.slug) ?? role.status !== "Filled",
+    }));
+  },
+});
+
+/** Admin-only: turn a published contributor role on or off for applications. */
+export const setRoleAvailability = mutation({
+  args: { roleSlug: v.string(), isOpen: v.boolean() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const role = careerRoles.find((item) => item.slug === args.roleSlug);
+    if (!role) throw new Error("Choose a valid contributor role.");
+
+    const existing = await ctx.db
+      .query("careerRoleAvailability")
+      .withIndex("by_role_slug", (q) => q.eq("roleSlug", role.slug))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { isOpen: args.isOpen, updatedAt: Date.now() });
+    } else {
+      await ctx.db.insert("careerRoleAvailability", {
+        roleSlug: role.slug,
+        isOpen: args.isOpen,
+        updatedAt: Date.now(),
+      });
+    }
+    return { ok: true, isOpen: args.isOpen };
+  },
+});
+
 export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
@@ -413,7 +457,7 @@ export const setStatus = mutation({
   },
 });
 
-/** Team-only: permanently delete an application. */
+/** Admin-only: permanently delete an application. */
 export const remove = mutation({
   args: { applicationId: v.id("careerApplications") },
   handler: async (ctx, args) => {

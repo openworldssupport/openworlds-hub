@@ -56,6 +56,12 @@ const schema = defineSchema(
       invitedBy: v.id("users"),
     }).index("by_email", ["email"]),
 
+    careerRoleAvailability: defineTable({
+      roleSlug: v.string(),
+      isOpen: v.boolean(),
+      updatedAt: v.number(),
+    }).index("by_role_slug", ["roleSlug"]),
+
     careerApplications: defineTable({
       roleSlug: v.string(),
       roleTitle: v.string(),

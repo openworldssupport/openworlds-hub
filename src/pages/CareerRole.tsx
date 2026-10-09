@@ -1,16 +1,20 @@
 import { SiteNav } from "@/components/SiteNav";
 import { careerRoles } from "@/lib/careers";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useAuth } from "@/hooks/use-auth";
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { Textarea } from "@/components/ui/textarea";
 
 export function CareerRole() {
   const { roleSlug } = useParams();
+  const availability = useQuery(api.careerApplications.roleAvailability);
+  const availabilityEntry = availability?.find((item) => item.slug === roleSlug);
   const role = careerRoles.find((item) => item.slug === roleSlug);
+  const roleIsOpen = role ? availabilityEntry?.isOpen ?? role.status !== "Filled" : false;
 
   if (!role) {
     return (
@@ -40,7 +44,7 @@ export function CareerRole() {
         <div className="rounded-xl border border-slate-200 border-t-2 border-t-[#f3c64e] bg-white p-5 sm:p-7">
           <div className="flex flex-wrap gap-2 text-xs text-slate-600">
             <span className="rounded-md bg-slate-100 px-3 py-1.5">Department: {role.department}</span>
-            <span className="rounded-md bg-blue-50 px-3 py-1.5 font-medium text-[#0052a3]">{role.status}</span>
+            <span className="rounded-md bg-blue-50 px-3 py-1.5 font-medium text-[#0052a3]">{roleIsOpen ? "Open" : "Filled"}</span>
             <span className="rounded-md bg-violet-50 px-3 py-1.5 font-medium text-[#7651c9]">Voluntary · unpaid</span>
           </div>
           <div className="mt-8 space-y-6 border-t border-slate-200 pt-6">
@@ -50,7 +54,7 @@ export function CareerRole() {
             <div><h2 className="font-semibold">What helps you succeed</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.qualifications.map((item) => <li key={item} className="flex gap-2"><span className="text-[#7651c9]">·</span>{item}</li>)}</ul></div>
             <div><h2 className="font-semibold">Role details</h2><p className="mt-2 text-sm leading-6 text-slate-600">This is a voluntary, unpaid contributor role. Apply below to send your interest to the OpenWorlds team for private review.</p></div>
           </div>
-          {role.status === "Filled" ? (
+          {!roleIsOpen ? (
             <p className="mt-8 text-sm font-medium text-slate-600">This position is filled and is not accepting applications.</p>
           ) : (
             <Link to={`/careers/apply/${role.slug}`} className="mt-8 inline-flex h-11 items-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">Apply for this role <ArrowRight className="size-4" /></Link>
@@ -128,7 +132,10 @@ export function CareerApplicationsPage() {
 
 export function CareerApplicationGateway() {
   const { roleSlug } = useParams();
-  const role = careerRoles.find((item) => item.slug === roleSlug && item.status !== "Filled");
+  const availability = useQuery(api.careerApplications.roleAvailability);
+  const availabilityEntry = availability?.find((item) => item.slug === roleSlug);
+  const matchedRole = careerRoles.find((item) => item.slug === roleSlug);
+  const role = matchedRole && (availabilityEntry?.isOpen ?? matchedRole.status !== "Filled") ? matchedRole : undefined;
   const submitApplication = useMutation(api.careerApplications.submit);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");

@@ -126,7 +126,7 @@ function WorkspaceOverview({
               ) : (
                 <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
                   <UserCircle className="size-3.5 text-amber-600" />
-                  Pick a nickname to replace your name on the portal and public team pages
+                  Pick a nickname to replace your name on the staff portal
                 </p>
               )}
             </div>
@@ -263,7 +263,7 @@ function NicknameSettings({
       </div>
 
       <p className="mt-2 text-xs text-slate-500">
-        This is the name shown on the staff board, announcements, and the public team page. Your email address is never shown as your name.
+        This is the name shown on the staff portal, board, and announcements. It is not listed on the public About page.
       </p>
 
       {saved ? (

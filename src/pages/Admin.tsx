@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -95,6 +95,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
   const { signOut } = useAuth();
   const tickets = useQuery(api.supportTickets.listForAdmin);
   const applications = useQuery(api.careerApplications.listForAdmin);
+  const roleAvailability = useQuery(api.careerApplications.roleAvailability);
   const members = useQuery(api.staff.listMembers, canManageCompanyAccounts ? {} : "skip");
   const accounts = useQuery(api.admin.listCompanyAccess, canManageCompanyAccounts ? {} : "skip");
   const markResponded = useMutation(api.supportTickets.markResponded);
@@ -103,12 +104,15 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
   const removeTicket = useMutation(api.supportTickets.removeTicket);
   const setApplicationStatus = useMutation(api.careerApplications.setStatus);
   const removeApplication = useMutation(api.careerApplications.remove);
+  const setRoleAvailability = useMutation(api.careerApplications.setRoleAvailability);
   const inviteCompanyAccount = useMutation(api.admin.inviteCompanyAccount);
   const revokeCompanyAccount = useMutation(api.admin.revokeCompanyAccount);
 
-  const [tab, setTab] = useState<"tickets" | "applications" | "team" | "accounts">("tickets");
+  const [tab, setTab] = useState<"tickets" | "applications" | "careers" | "team" | "accounts">("tickets");
   const [filter, setFilter] = useState<"all" | "open" | "responded" | "closed">("all");
   const [error, setError] = useState("");
+  const [busyTicketId, setBusyTicketId] = useState<string | null>(null);
+  const [busyApplicationId, setBusyApplicationId] = useState<string | null>(null);
   const allTickets = tickets ?? [];
   const appList = applications ?? [];
   const visibleTickets = filter === "all" ? allTickets : allTickets.filter((ticket) => ticket.status === filter);
@@ -118,12 +122,29 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
     try { await action(); } catch { setError("Action failed. Please try again."); }
   }
 
+  async function deleteTicket(ticketId: Id<"supportTickets">) {
+    if (!window.confirm("Permanently delete this support ticket? This cannot be undone.")) return;
+    setBusyTicketId(ticketId);
+    setError("");
+    try { await removeTicket({ ticketId }); } catch { setError("Could not delete this ticket. Please try again."); }
+    finally { setBusyTicketId(null); }
+  }
+
+  async function deleteApplication(applicationId: Id<"careerApplications">) {
+    if (!window.confirm("Permanently delete this application? This cannot be undone.")) return;
+    setBusyApplicationId(applicationId);
+    setError("");
+    try { await removeApplication({ applicationId }); } catch { setError("Could not delete this application. Please try again."); }
+    finally { setBusyApplicationId(null); }
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           <Button variant={tab === "tickets" ? "default" : "outline"} onClick={() => setTab("tickets")}><Inbox className="size-4" /> Tickets <span className="ml-1 rounded bg-white/20 px-1.5 text-xs">{allTickets.length}</span></Button>
           <Button variant={tab === "applications" ? "default" : "outline"} onClick={() => setTab("applications")}><UserRound className="size-4" /> Applications <span className="ml-1 rounded bg-white/20 px-1.5 text-xs">{appList.length}</span></Button>
+          <Button variant={tab === "careers" ? "default" : "outline"} onClick={() => setTab("careers")}><Briefcase className="size-4" /> Careers</Button>
           <Button asChild variant="outline"><Link to="/applications">Open review page</Link></Button>
           <Button asChild variant="outline"><Link to="/staff">Staff workspace</Link></Button>
           {canManageCompanyAccounts && <Button variant={tab === "team" ? "default" : "outline"} onClick={() => setTab("team")}><Briefcase className="size-4" /> Team</Button>}
@@ -133,7 +154,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
       </div>
       {error && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
 
-      {tickets === undefined || applications === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : tab === "tickets" ? (
+      {tickets === undefined || applications === undefined || roleAvailability === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : tab === "tickets" ? (
         <div className="mt-6">
           <div className="grid gap-3 sm:grid-cols-3">
             <StatCard label="Open" value={allTickets.filter((t) => t.status === "open").length} />
@@ -145,7 +166,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
             <article key={ticket._id} className="rounded-lg border border-slate-200 bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold">{ticket.reference ?? "—"}</span><StatusBadge status={ticket.status} /></div><p className="mt-2 text-sm text-slate-600">{ticket.name || "No name"}{ticket.username ? ` · @${ticket.username}` : ""}</p></div><time className="text-xs text-slate-500">{new Date(ticket.submittedAt).toLocaleString()}</time></div>
               <p className="mt-3 text-sm font-medium">{ticket.reason}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{ticket.message}</p>
-              <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => run(() => markResponded({ ticketId: ticket._id }))}><CheckCircle2 className="size-4" /> Responded</Button><Button size="sm" variant="outline" onClick={() => run(() => closeTicket({ ticketId: ticket._id }))}><XCircle className="size-4" /> Close</Button><Button size="sm" variant="outline" onClick={() => run(() => reopenTicket({ ticketId: ticket._id }))}><RefreshCcw className="size-4" /> Reopen</Button><Button size="sm" variant="outline" onClick={() => { if (window.confirm("Delete this ticket?")) void run(() => removeTicket({ ticketId: ticket._id })); }}><Trash2 className="size-4" /> Delete</Button></div>
+              <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => run(() => markResponded({ ticketId: ticket._id }))}><CheckCircle2 className="size-4" /> Responded</Button><Button size="sm" variant="outline" onClick={() => run(() => closeTicket({ ticketId: ticket._id }))}><XCircle className="size-4" /> Close</Button><Button size="sm" variant="outline" onClick={() => run(() => reopenTicket({ ticketId: ticket._id }))}><RefreshCcw className="size-4" /> Reopen</Button><Button size="sm" variant="outline" disabled={busyTicketId !== null} onClick={() => void deleteTicket(ticket._id)}>{busyTicketId === ticket._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete permanently</Button></div>
             </article>
           ))}</div>}
         </div>
@@ -154,10 +175,15 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
           <article key={app._id} className="rounded-lg border border-slate-200 bg-white p-5">
             <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">{app.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{app.fullName}</p></div><StatusBadge status={app.status} /></div>
             <div className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-2"><p className="rounded-lg bg-slate-50 p-3"><strong>Experience:</strong><br />{app.experience}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Motivation:</strong><br />{app.motivation}</p><p className="rounded-lg bg-slate-50 p-3"><strong>First weeks:</strong><br />{app.roleApproach}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Collaboration:</strong><br />{app.collaboration}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Availability:</strong><br />{app.availability}</p>{app.strategyScenario && <p className="rounded-lg bg-slate-50 p-3"><strong>Scenario:</strong><br />{app.strategyScenario}</p>}{app.successMeasures && <p className="rounded-lg bg-slate-50 p-3"><strong>Success measures:</strong><br />{app.successMeasures}</p>}{app.decisionMaking && <p className="rounded-lg bg-slate-50 p-3"><strong>Decision making:</strong><br />{app.decisionMaking}</p>}{app.stakeholderCommunication && <p className="rounded-lg bg-slate-50 p-3"><strong>Stakeholder communication:</strong><br />{app.stakeholderCommunication}</p>}{app.toolsAndStrengths && <p className="rounded-lg bg-slate-50 p-3"><strong>Tools &amp; strengths:</strong><br />{app.toolsAndStrengths}</p>}{app.portfolio && <p className="rounded-lg bg-slate-50 p-3"><strong>Work samples:</strong><br />{app.portfolio}</p>}{app.weeklyHours && <p><strong>Weekly contribution:</strong> {app.weeklyHours}</p>}{app.timeZone && <p><strong>Time zone:</strong> {app.timeZone}</p>}{app.availabilityStart && <p><strong>Can start:</strong> {app.availabilityStart}</p>}{app.linkedin && <p><strong>LinkedIn:</strong> <a href={app.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#0066cc] underline">Profile</a></p>}</div>
-            <div className="mt-4 flex flex-wrap items-center gap-2"><label htmlFor={`status-${app._id}`} className="text-sm">Status</label><select id={`status-${app._id}`} defaultValue={app.status} onChange={(e) => void run(() => setApplicationStatus({ applicationId: app._id, status: e.target.value }))} className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm">{applicationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><Button size="sm" variant="outline" onClick={() => { if (window.confirm("Delete this application?")) void run(() => removeApplication({ applicationId: app._id })); }}><Trash2 className="size-4" /> Delete</Button></div>
+            <div className="mt-4 flex flex-wrap items-center gap-2"><label htmlFor={`status-${app._id}`} className="text-sm">Status</label><select id={`status-${app._id}`} defaultValue={app.status} onChange={(e) => void run(() => setApplicationStatus({ applicationId: app._id, status: e.target.value }))} className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm">{applicationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><Button size="sm" variant="outline" disabled={busyApplicationId !== null} onClick={() => void deleteApplication(app._id)}>{busyApplicationId === app._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Delete permanently</Button></div>
             <p className="mt-3 text-xs text-slate-500">Submitted {new Date(app.submittedAt).toLocaleString()} · Voluntary and unpaid</p>
           </article>
         ))}</div>
+      ) : tab === "careers" ? (
+        <CareerAvailabilityPanel
+          roles={roleAvailability}
+          onSetAvailability={(args) => run(() => setRoleAvailability(args))}
+        />
       ) : tab === "team" && canManageCompanyAccounts ? <TeamPanel members={members} /> : tab === "accounts" && canManageCompanyAccounts ? (
         <CompanyAccountsPanel
           accounts={accounts}
@@ -167,6 +193,76 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
       ) : <AccessDenied />}
       <div className="mt-8 flex gap-4 text-sm"><Link to="/" className="font-medium text-[#0066cc] hover:underline">Website</Link><Link to="/staff" className="font-medium text-[#0066cc] hover:underline">Staff portal</Link></div>
     </div>
+  );
+}
+
+type CareerAvailabilityItem = {
+  slug: string;
+  title: string;
+  department: string;
+  isOpen: boolean;
+};
+
+function CareerAvailabilityPanel({
+  roles,
+  onSetAvailability,
+}: {
+  roles: CareerAvailabilityItem[];
+  onSetAvailability: (args: { roleSlug: string; isOpen: boolean }) => Promise<void>;
+}) {
+  const [error, setError] = useState("");
+  const [busySlug, setBusySlug] = useState<string | null>(null);
+  const grouped = useMemo(() => {
+    const byDepartment = new Map<string, CareerAvailabilityItem[]>();
+    for (const role of roles) {
+      const departmentRoles = byDepartment.get(role.department) ?? [];
+      departmentRoles.push(role);
+      byDepartment.set(role.department, departmentRoles);
+    }
+    return [...byDepartment.entries()];
+  }, [roles]);
+
+  async function toggle(role: CareerAvailabilityItem) {
+    setBusySlug(role.slug);
+    setError("");
+    try {
+      await onSetAvailability({ roleSlug: role.slug, isOpen: !role.isOpen });
+    } catch {
+      setError("Could not update role availability. Please try again.");
+    } finally {
+      setBusySlug(null);
+    }
+  }
+
+  return (
+    <section className="mt-6 rounded-lg border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h2 className="font-semibold">Career role availability</h2>
+        <p className="mt-1 text-sm text-slate-600">Open roles accept applications. Filled roles remain visible but the application form is disabled.</p>
+      </div>
+      {error && <p role="alert" className="m-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      <div className="divide-y divide-slate-100">
+        {grouped.map(([department, departmentRoles]) => (
+          <section key={department} className="px-5 py-4">
+            <h3 className="text-sm font-semibold">{department}</h3>
+            <ul className="mt-2 divide-y divide-slate-100">
+              {departmentRoles.map((role) => (
+                <li key={role.slug} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div>
+                    <p className="text-sm font-medium">{role.title}</p>
+                    <p className="text-xs text-slate-500">Currently {role.isOpen ? "open" : "filled"}</p>
+                  </div>
+                  <Button type="button" size="sm" variant={role.isOpen ? "outline" : "default"} disabled={busySlug !== null} onClick={() => void toggle(role)}>
+                    {busySlug === role.slug ? <Loader2 className="size-4 animate-spin" /> : null}
+                    Mark {role.isOpen ? "filled" : "open"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
   );
 }
 
