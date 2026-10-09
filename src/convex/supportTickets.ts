@@ -202,6 +202,6 @@ export const listForAdmin = query({
 
     const tickets = await ctx.db.query("supportTickets").withIndex("by_submitted_at").order("desc").take(100);
     // Surface the derived status so the team sees the same state the user does.
-    return tickets.map((ticket) => ({ ...ticket, status: effectiveStatus(ticket) }));
+    return tickets.map(({ email: _email, ...ticket }) => ({ ...ticket, status: effectiveStatus(ticket) }));
   },
 });

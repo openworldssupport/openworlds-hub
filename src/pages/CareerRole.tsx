@@ -95,7 +95,7 @@ export function CareerApplicationsPage() {
             {applications.map((application) => (
               <article key={application._id} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><h2 className="font-semibold">{application.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{application.fullName} · <a href={`mailto:${application.email}`} className="text-[#0066cc] hover:underline">{application.email}</a></p></div>
+                  <div><h2 className="font-semibold">{application.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{application.fullName}</p></div>
                   <time className="text-xs text-slate-500" dateTime={new Date(application.submittedAt).toISOString()}>{new Date(application.submittedAt).toLocaleString()}</time>
                 </div>
                 <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
@@ -166,7 +166,7 @@ export function CareerApplicationGateway() {
       });
       setSubmitted(true);
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "We couldn’t submit your application. Please try again.");
+      setError("We couldn’t submit your application. Please check your details and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -256,7 +256,7 @@ export function CareerApplicationGateway() {
                   <input name="voluntaryConsent" type="checkbox" required className="mt-1 size-4 accent-[#0066cc]" />
                   <span>I understand this is a voluntary, unpaid contributor role.</span>
                 </label>
-                {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">We couldn’t submit your application. Please check your details and try again.</p>}
                 <div className="flex flex-wrap gap-3 pt-1">
                   <button type="submit" disabled={isSubmitting} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99] disabled:cursor-wait disabled:opacity-60">{isSubmitting ? "Submitting…" : "Submit application"}</button>
                   <Link to={`/careers/role/${role.slug}`} className="inline-flex h-11 items-center rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">Back to position</Link>

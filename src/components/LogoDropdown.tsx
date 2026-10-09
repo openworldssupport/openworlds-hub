@@ -22,7 +22,7 @@ export function LogoDropdown() {
       await signOut();
       navigate("/");
     } catch (error) {
-      console.error("Sign out error:", error);
+      console.error("Sign out failed.");
     }
   };
 

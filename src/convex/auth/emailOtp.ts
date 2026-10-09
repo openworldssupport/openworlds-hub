@@ -23,7 +23,7 @@ export const emailOtp = Email({
       if (!ctx) throw new Error("Missing auth context for company account check.");
       const emailLower = email.trim().toLowerCase();
       const allowed = await ctx.runQuery(internal.admin.isCompanyEmailAllowed, { email: emailLower });
-      if (!allowed) throw new Error("This email is not enabled for OpenWorlds company sign-in.");
+      if (!allowed) throw new Error("Could not send a sign-in code. If this account is eligible, try again shortly.");
       await axios.post(
         freebuffEmailOtpUrl(),
         {
@@ -68,12 +68,7 @@ function freebuffEmailOtpError(error: unknown): Error {
     error as { response?: { status?: number; data?: { error?: unknown } } }
   )?.response;
   if (response) {
-    const detail =
-      typeof response.data?.error === "string" ? `: ${response.data.error}` : "";
-    return new Error(
-      `Could not send the sign-in code (HTTP ${response.status})${detail}`,
-    );
+    return new Error("Could not send a sign-in code. Please try again later.");
   }
-  const message = error instanceof Error ? error.message : String(error);
-  return new Error(`Could not send the sign-in code: ${message}`);
+  return new Error("Could not send the sign-in code. Please try again later.");
 }

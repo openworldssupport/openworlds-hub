@@ -9,7 +9,7 @@ const sections: Section[] = [
     title: "1. Who we are",
     body: [
       "OpenWorlds is a community project for creating, sharing, and exploring worlds. In this policy, “we”, “us”, and “OpenWorlds” refer to the OpenWorlds team.",
-      "For a privacy question or request, contact support@openworlds.dk. The site operator's legal identity and location are not specified in this draft.",
+      "For a privacy question or request, use the support form on this site. The site operator's legal identity and location are not specified in this draft.",
     ],
   },
   {
@@ -46,7 +46,7 @@ const sections: Section[] = [
   {
     title: "6. Retention",
     body: [
-      "This site does not currently state fixed retention periods for tickets, applications, account records, or provider logs. Contact support@openworlds.dk with a data request or deletion question.",
+      "This site does not currently state fixed retention periods for tickets, applications, account records, or provider logs. Use the support form with a data request or deletion question.",
     ],
   },
   {
@@ -59,8 +59,8 @@ const sections: Section[] = [
   {
     title: "8. Your rights",
     body: [
-      "Applicable rights depend on the laws and jurisdiction governing the site's operator. Contact support@openworlds.dk with a request; this draft does not identify the operator or establish jurisdiction.",
-      "To exercise any of these rights, contact support@openworlds.dk. We may need to verify your identity before acting.",
+      "Applicable rights depend on the laws and jurisdiction governing the site's operator. Use the support form with a request; this draft does not identify the operator or establish jurisdiction.",
+      "To exercise any of these rights, use the support form. We may need to verify your identity before acting.",
     ],
   },
   {
@@ -83,7 +83,7 @@ const sections: Section[] = [
   },
   {
     title: "12. Contact",
-    body: ["For any question about this policy or your information, email support@openworlds.dk."],
+    body: ["For any question about this policy or your information, use the support form."],
   },
 ];
 

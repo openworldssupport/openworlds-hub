@@ -80,8 +80,8 @@ class ToolbarErrorBoundary extends React.Component<
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(err: Error) {
-    console.warn("[VlyToolbar] Caught error, toolbar disabled:", err.message);
+  componentDidCatch(_err: Error) {
+    console.warn("[VlyToolbar] Error; toolbar disabled.");
   }
   render() {
     return this.state.hasError ? null : this.props.children;
@@ -94,15 +94,15 @@ class RootErrorBoundary extends React.Component<
   { hasError: boolean; message: string; stack: string }
 > {
   state = { hasError: false, message: "", stack: "" };
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(_error: Error) {
     return {
       hasError: true,
-      message: error.message || "Unknown runtime error",
-      stack: error.stack || "",
+      message: "Unexpected application error.",
+      stack: "",
     };
   }
-  componentDidCatch(err: Error) {
-    console.error("[Preview] Root crash:", err);
+  componentDidCatch(_err: Error) {
+    console.error("[Preview] Root render failed.");
   }
   render() {
     if (this.state.hasError) {

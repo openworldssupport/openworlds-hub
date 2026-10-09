@@ -68,7 +68,14 @@ export const listCompanyAccess = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isCompanyAdmin(ctx))) return null;
-    return await ctx.db.query("companyAccess").withIndex("by_email").collect();
+    const accounts = await ctx.db.query("companyAccess").withIndex("by_email").collect();
+    return accounts.map(({ _id, department, position, publicBadge, accessLevel }) => ({
+      _id,
+      department,
+      position,
+      publicBadge,
+      accessLevel,
+    }));
   },
 });
 
@@ -131,16 +138,14 @@ export const inviteCompanyAccount = mutation({
 
 /** Admin-only: revoke a company invitation and remove any matching user role. */
 export const revokeCompanyAccount = mutation({
-  args: { email: v.string() },
-  handler: async (ctx, { email }) => {
+  args: { accountId: v.id("companyAccess") },
+  handler: async (ctx, { accountId }) => {
     await requireCompanyAdmin(ctx);
-    const normalized = email.trim().toLowerCase();
+    const invitation = await ctx.db.get(accountId);
+    if (!invitation) return { ok: true };
+    const normalized = invitation.email.trim().toLowerCase();
     if (normalized === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be revoked here.");
-    const invitation = await ctx.db
-      .query("companyAccess")
-      .withIndex("by_email", (q) => q.eq("email", normalized))
-      .unique();
-    if (invitation) await ctx.db.delete(invitation._id);
+    await ctx.db.delete(accountId);
     const user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", normalized))

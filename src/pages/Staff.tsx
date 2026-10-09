@@ -247,7 +247,7 @@ function NicknameSettings({
       setSaved(true);
       setTimeout(resetSaved, 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the nickname.");
+      setError("Could not save the nickname. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -450,7 +450,7 @@ function AnnouncementsPanel({
       void Promise.all(
         unused.map((storageId) => deleteUpload({ storageId })),
       ).catch((err) =>
-        setError(err instanceof Error ? err.message : "Could not discard an unused upload."),
+        setError("Could not discard an unused upload."),
       );
     }
 
@@ -521,7 +521,7 @@ function AnnouncementsPanel({
         ]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not upload media.");
+      setError("Could not upload media.");
     } finally {
       setUploading(false);
     }
@@ -560,7 +560,7 @@ function AnnouncementsPanel({
 
       resetForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save this announcement.");
+      setError("Could not save this announcement.");
     } finally {
       setBusy(false);
     }
@@ -574,7 +574,7 @@ function AnnouncementsPanel({
     try {
       await setStatus({ announcementId: item._id, status });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not change announcement status.");
+      setError("Could not change announcement status.");
     }
   }
 
@@ -586,7 +586,7 @@ function AnnouncementsPanel({
       await removeAnnouncement({ announcementId: item._id });
       if (editingId === item._id) resetForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete this announcement.");
+      setError("Could not delete this announcement.");
     }
   }
 
@@ -759,7 +759,7 @@ function AnnouncementsPanel({
                           void deleteUpload({
                             storageId: asset.storageId,
                           }).catch((err) =>
-                            setError(err instanceof Error ? err.message : "Could not discard upload."),
+                            setError("Could not discard upload."),
                           );
                         }
 
@@ -864,7 +864,7 @@ function StaffBoard({
       await post({ body });
       setBody("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not post the message.");
+      setError("Could not post the message.");
     } finally {
       setBusy(false);
     }
@@ -880,7 +880,7 @@ function StaffBoard({
     try {
       await removeMessage({ messageId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the message.");
+      setError("Could not delete the message.");
     }
   }
 
@@ -1006,7 +1006,7 @@ function ApplicationsPanel() {
     try {
       await setApplicationStatus({ applicationId, status });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update the application status.");
+      setError("Could not update the application status.");
     } finally {
       setBusy(false);
     }
@@ -1023,7 +1023,7 @@ function ApplicationsPanel() {
     try {
       await removeApplication({ applicationId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the application.");
+      setError("Could not delete the application.");
     } finally {
       setBusy(false);
     }
@@ -1106,10 +1106,7 @@ function ApplicationsPanel() {
                         <ApplicationStatusBadge status={application.status} />
                       </div>
                       <p className="mt-1 text-sm text-slate-600">
-                        {application.fullName} ·{" "}
-                        <a href={`mailto:${application.email}`} className="text-[#0066cc] hover:underline">
-                          {application.email}
-                        </a>
+                        {application.fullName}
                       </p>
                     </div>
                     <time className="text-xs text-slate-500">

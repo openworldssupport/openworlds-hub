@@ -109,12 +109,12 @@ export default function Careers() {
               </p>
             </div>
           </div>
-          <a
-            href="mailto:careers@openworlds.dk"
+          <Link
+            to="/support"
             className="inline-flex items-center gap-2 text-sm font-semibold text-amber-950 underline"
           >
             <Mail className="size-4" /> Ask a question
-          </a>
+          </Link>
         </aside>
 
         <p className="mt-5 flex items-center gap-2 text-xs text-slate-500">

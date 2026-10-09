@@ -157,9 +157,9 @@ export default function Landing() {
             </p>
             <div className="mt-5 flex flex-wrap gap-4 text-sm font-medium text-[#0066cc]">
               <Link to="/support" className="hover:underline">Visit support</Link>
-              <a href="mailto:support@openworlds.dk" className="inline-flex items-center gap-1 hover:underline">
-                <Mail className="size-4" /> Email us
-              </a>
+              <Link to="/support" className="inline-flex items-center gap-1 hover:underline">
+                <Mail className="size-4" /> Contact support
+              </Link>
             </div>
           </article>
 

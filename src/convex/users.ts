@@ -11,6 +11,18 @@ export const currentUser = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+
+    // Expose only the profile fields needed by the client; never return the raw
+    // auth user document (which includes the private sign-in email).
+    return {
+      name: user.name ?? null,
+      role: user.role ?? null,
+      department: user.department ?? null,
+      position: user.position ?? null,
+      publicBadge: user.publicBadge ?? null,
+      nickname: user.nickname ?? null,
+    };
   },
 });

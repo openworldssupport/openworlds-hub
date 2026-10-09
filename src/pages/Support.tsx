@@ -1,7 +1,7 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { SupportTicketForm } from "@/components/ui/support-ticket-form";
-import { ClipboardCheck, LifeBuoy, Mail } from "lucide-react";
+import { ClipboardCheck, LifeBuoy } from "lucide-react";
 
 const faqs = [
 
@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "How can I contact the team?",
     answer:
-      "Use the support form on this page or email support@openworlds.dk. A response is not guaranteed.",
+      "Use the support form on this page. A response is not guaranteed.",
   },
 ];
 
@@ -66,11 +66,6 @@ export default function Support() {
               </AccordionItem>
             ))}
           </Accordion>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-            <Mail className="size-5 text-[#0066cc]" />
-            <span>Prefer email? Write to <a href="mailto:support@openworlds.dk" className="font-medium text-[#0066cc] hover:underline">support@openworlds.dk</a>.</span>
-          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
             <ClipboardCheck className="size-5 text-[#0066cc]" />

@@ -89,7 +89,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
       await signIn("email-otp", { email: email.trim().toLowerCase() });
       setStep("code");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send a sign-in code.");
+      setError("Could not send a sign-in code. If this account is eligible, try again shortly.");
     } finally {
       setBusy(false);
     }
@@ -103,7 +103,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
       await signIn("email-otp", { email: email.trim().toLowerCase(), code: code.trim() });
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "That code was not accepted.");
+      setError("That code could not be verified. Check it and try again.");
     } finally {
       setBusy(false);
     }

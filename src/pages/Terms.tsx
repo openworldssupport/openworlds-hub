@@ -45,7 +45,7 @@ const sections: Section[] = [
   {
     title: "6. Intellectual property",
     body: [
-      "The site does not state who owns the OpenWorlds name, logo, or other content. Contact support@openworlds.dk before reusing material if you are unsure.",
+      "The site does not state who owns the OpenWorlds name, logo, or other content. Use the support form before reusing material if you are unsure.",
       "The rights and permissions applicable to content submitted through this site have not been established in this draft. Avoid submitting material you do not wish the site operator to receive.",
     ],
   },
@@ -82,7 +82,7 @@ const sections: Section[] = [
   },
   {
     title: "12. Contact",
-    body: ["Questions about these terms? Email support@openworlds.dk."],
+    body: ["Questions about these terms? Use the support form."],
   },
 ];
 

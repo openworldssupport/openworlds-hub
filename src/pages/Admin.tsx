@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -26,7 +27,6 @@ import {
   XCircle,
 } from "lucide-react";
 
-const SUPPORT_EMAIL = "support@openworlds.dk";
 const applicationStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined", "archived"];
 const statusStyles: Record<string, string> = {
   open: "border-blue-200 bg-blue-50 text-[#0052a3]",
@@ -45,7 +45,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function Admin() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const companyAccess = useQuery(api.staff.me);
   const canOpenAdmin = companyAccess?.isAdmin === true;
 
@@ -59,11 +59,10 @@ export default function Admin() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">Admin</h1>
             <p className="mt-1 text-sm text-slate-500">Tickets, applications, and company accounts.</p>
           </div>
-          {isAuthenticated && <span className="text-sm text-slate-500">{user?.email}</span>}
         </div>
       </header>
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
-        {isLoading || companyAccess === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : !isAuthenticated ? <AdminSignIn /> : !canOpenAdmin ? <AccessDenied email={user?.email ?? ""} /> : <AdminDashboard />}
+        {isLoading || companyAccess === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : !isAuthenticated ? <AdminSignIn /> : !canOpenAdmin ? <AccessDenied /> : <AdminDashboard canManageCompanyAccounts={canOpenAdmin} />}
       </section>
     </main>
   );
@@ -80,21 +79,20 @@ function AdminSignIn() {
   );
 }
 
-function AccessDenied({ email }: { email: string }) {
+function AccessDenied() {
   const { signOut } = useAuth();
   return (
     <div className="mx-auto max-w-md rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
       <AlertCircle className="mx-auto size-6 text-amber-700" />
       <h2 className="mt-3 font-semibold text-amber-900">Admin access required</h2>
-      <p className="mt-2 text-sm text-amber-900">{email || "This account"} is not an active company account with access to the Admin workspace.</p>
+      <p className="mt-2 text-sm text-amber-900">This account does not have access to the Admin workspace.</p>
       <Button variant="outline" className="mt-4" onClick={() => signOut()}>Sign out</Button>
     </div>
   );
 }
 
-function AdminDashboard() {
-  const { signOut, user } = useAuth();
-  const canManageCompanyAccounts = user?.role === "admin" || user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;
+function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts: boolean }) {
+  const { signOut } = useAuth();
   const tickets = useQuery(api.supportTickets.listForAdmin);
   const applications = useQuery(api.careerApplications.listForAdmin);
   const members = useQuery(api.staff.listMembers, canManageCompanyAccounts ? {} : "skip");
@@ -117,7 +115,7 @@ function AdminDashboard() {
 
   async function run(action: () => Promise<unknown>) {
     setError("");
-    try { await action(); } catch (err) { setError(err instanceof Error ? err.message : "Action failed."); }
+    try { await action(); } catch { setError("Action failed. Please try again."); }
   }
 
   return (
@@ -133,7 +131,6 @@ function AdminDashboard() {
         </div>
         <Button variant="outline" onClick={() => signOut()}><LogOut className="size-4" /> Sign out</Button>
       </div>
-      <p className="mt-3 text-xs text-slate-500">Signed in as {user?.email}</p>
       {error && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
 
       {tickets === undefined || applications === undefined ? <div className="flex justify-center py-16"><Loader2 className="size-5 animate-spin text-slate-400" /></div> : tab === "tickets" ? (
@@ -146,7 +143,7 @@ function AdminDashboard() {
           <div className="mt-5 flex flex-wrap gap-2">{(["all", "open", "responded", "closed"] as const).map((item) => <button key={item} type="button" onClick={() => setFilter(item)} className={`rounded-md border px-3 py-1.5 text-sm capitalize ${filter === item ? "border-[#0066cc] bg-[#0066cc] text-white" : "border-slate-200 bg-white text-slate-600"}`}>{item}</button>)}</div>
           {visibleTickets.length === 0 ? <p className="mt-4 rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">No tickets in this view.</p> : <div className="mt-4 space-y-3">{visibleTickets.map((ticket) => (
             <article key={ticket._id} className="rounded-lg border border-slate-200 bg-white p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold">{ticket.reference ?? "—"}</span><StatusBadge status={ticket.status} /></div><p className="mt-2 text-sm text-slate-600">{ticket.name || "No name"} · <a className="text-[#0066cc] hover:underline" href={`mailto:${ticket.email}`}>{ticket.email}</a>{ticket.username ? ` · @${ticket.username}` : ""}</p></div><time className="text-xs text-slate-500">{new Date(ticket.submittedAt).toLocaleString()}</time></div>
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><span className="font-mono text-sm font-semibold">{ticket.reference ?? "—"}</span><StatusBadge status={ticket.status} /></div><p className="mt-2 text-sm text-slate-600">{ticket.name || "No name"}{ticket.username ? ` · @${ticket.username}` : ""}</p></div><time className="text-xs text-slate-500">{new Date(ticket.submittedAt).toLocaleString()}</time></div>
               <p className="mt-3 text-sm font-medium">{ticket.reason}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{ticket.message}</p>
               <div className="mt-4 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => run(() => markResponded({ ticketId: ticket._id }))}><CheckCircle2 className="size-4" /> Responded</Button><Button size="sm" variant="outline" onClick={() => run(() => closeTicket({ ticketId: ticket._id }))}><XCircle className="size-4" /> Close</Button><Button size="sm" variant="outline" onClick={() => run(() => reopenTicket({ ticketId: ticket._id }))}><RefreshCcw className="size-4" /> Reopen</Button><Button size="sm" variant="outline" onClick={() => { if (window.confirm("Delete this ticket?")) void run(() => removeTicket({ ticketId: ticket._id })); }}><Trash2 className="size-4" /> Delete</Button></div>
             </article>
@@ -155,7 +152,7 @@ function AdminDashboard() {
       ) : tab === "applications" ? (
         <div className="mt-6 space-y-3">{appList.length === 0 ? <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">No applications have been submitted.</p> : appList.map((app) => (
           <article key={app._id} className="rounded-lg border border-slate-200 bg-white p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">{app.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{app.fullName} · <a className="text-[#0066cc] hover:underline" href={`mailto:${app.email}`}>{app.email}</a></p></div><StatusBadge status={app.status} /></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-semibold">{app.roleTitle}</h2><p className="mt-1 text-sm text-slate-600">{app.fullName}</p></div><StatusBadge status={app.status} /></div>
             <div className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-2"><p className="rounded-lg bg-slate-50 p-3"><strong>Experience:</strong><br />{app.experience}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Motivation:</strong><br />{app.motivation}</p><p className="rounded-lg bg-slate-50 p-3"><strong>First weeks:</strong><br />{app.roleApproach}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Collaboration:</strong><br />{app.collaboration}</p><p className="rounded-lg bg-slate-50 p-3"><strong>Availability:</strong><br />{app.availability}</p>{app.strategyScenario && <p className="rounded-lg bg-slate-50 p-3"><strong>Scenario:</strong><br />{app.strategyScenario}</p>}{app.successMeasures && <p className="rounded-lg bg-slate-50 p-3"><strong>Success measures:</strong><br />{app.successMeasures}</p>}{app.decisionMaking && <p className="rounded-lg bg-slate-50 p-3"><strong>Decision making:</strong><br />{app.decisionMaking}</p>}{app.stakeholderCommunication && <p className="rounded-lg bg-slate-50 p-3"><strong>Stakeholder communication:</strong><br />{app.stakeholderCommunication}</p>}{app.toolsAndStrengths && <p className="rounded-lg bg-slate-50 p-3"><strong>Tools &amp; strengths:</strong><br />{app.toolsAndStrengths}</p>}{app.portfolio && <p className="rounded-lg bg-slate-50 p-3"><strong>Work samples:</strong><br />{app.portfolio}</p>}{app.weeklyHours && <p><strong>Weekly contribution:</strong> {app.weeklyHours}</p>}{app.timeZone && <p><strong>Time zone:</strong> {app.timeZone}</p>}{app.availabilityStart && <p><strong>Can start:</strong> {app.availabilityStart}</p>}{app.linkedin && <p><strong>LinkedIn:</strong> <a href={app.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#0066cc] underline">Profile</a></p>}</div>
             <div className="mt-4 flex flex-wrap items-center gap-2"><label htmlFor={`status-${app._id}`} className="text-sm">Status</label><select id={`status-${app._id}`} defaultValue={app.status} onChange={(e) => void run(() => setApplicationStatus({ applicationId: app._id, status: e.target.value }))} className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm">{applicationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}</select><Button size="sm" variant="outline" onClick={() => { if (window.confirm("Delete this application?")) void run(() => removeApplication({ applicationId: app._id })); }}><Trash2 className="size-4" /> Delete</Button></div>
             <p className="mt-3 text-xs text-slate-500">Submitted {new Date(app.submittedAt).toLocaleString()} · Voluntary and unpaid</p>
@@ -165,9 +162,9 @@ function AdminDashboard() {
         <CompanyAccountsPanel
           accounts={accounts}
           onInvite={(args) => run(() => inviteCompanyAccount(args))}
-          onRevoke={(email) => run(() => revokeCompanyAccount({ email }))}
+          onRevoke={(accountId) => run(() => revokeCompanyAccount({ accountId }))}
         />
-      ) : <AccessDenied email={user?.email ?? ""} />}
+      ) : <AccessDenied />}
       <div className="mt-8 flex gap-4 text-sm"><Link to="/" className="font-medium text-[#0066cc] hover:underline">Website</Link><Link to="/staff" className="font-medium text-[#0066cc] hover:underline">Staff portal</Link></div>
     </div>
   );
@@ -177,12 +174,12 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-sm text-slate-500">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>;
 }
 
-type CompanyAccount = { email: string; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff" };
+type CompanyAccount = { _id: Id<"companyAccess">; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff" };
 
 function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
   accounts: CompanyAccount[] | null | undefined;
   onInvite: (args: { email: string; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff" }) => Promise<void>;
-  onRevoke: (email: string) => Promise<void>;
+  onRevoke: (accountId: Id<"companyAccess">) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
@@ -192,18 +189,18 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
 
-  async function invite(event: React.FormEvent<HTMLFormElement>) {
+  async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setBusy("invite");
     try { await onInvite({ email, department, position, publicBadge, accessLevel }); setEmail(""); setDepartment(""); setPosition(""); }
-    catch (err) { setError(err instanceof Error ? err.message : "Could not invite the account."); }
+    catch { setError("Could not invite the account. Please check the details and try again."); }
     finally { setBusy(""); }
   }
 
-  async function revoke(address: string) {
-    if (!window.confirm(`Revoke company access for ${address}?`)) return;
-    setBusy(address); setError("");
-    try { await onRevoke(address); }
-    catch (err) { setError(err instanceof Error ? err.message : "Could not revoke the account."); }
+  async function revoke(accountId: Id<"companyAccess">) {
+    if (!window.confirm("Revoke company access for this account?")) return;
+    setBusy(accountId); setError("");
+    try { await onRevoke(accountId); }
+    catch { setError("Could not revoke the account. Please try again."); }
     finally { setBusy(""); }
   }
 
@@ -225,13 +222,13 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
       </section>
       <section className="rounded-lg border border-slate-200 bg-white">
         <h2 className="border-b border-slate-100 px-5 py-4 font-semibold">Company accounts</h2>
-        {accounts === undefined ? <p className="p-5 text-sm text-slate-500">Loading accounts…</p> : accounts === null ? <p className="p-5 text-sm text-slate-600">Admin access required.</p> : accounts.length === 0 ? <p className="p-5 text-sm text-slate-500">No invited accounts yet.</p> : <ul className="divide-y divide-slate-100">{accounts.map((account) => <li key={account.email} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><p className="text-sm font-medium">{account.email}</p><p className="mt-0.5 text-xs text-slate-500">{account.department} · {account.position} · {account.accessLevel}</p></div><div className="flex items-center gap-3"><RoleBadge badge={account.publicBadge} /><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void revoke(account.email)}>{busy === account.email ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Revoke</Button></div></li>)}</ul>}
+        {accounts === undefined ? <p className="p-5 text-sm text-slate-500">Loading accounts…</p> : accounts === null ? <p className="p-5 text-sm text-slate-600">Admin access required.</p> : accounts.length === 0 ? <p className="p-5 text-sm text-slate-500">No invited accounts yet.</p> : <ul className="divide-y divide-slate-100">{accounts.map((account) => <li key={account._id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><p className="text-sm font-medium">Company account</p><p className="mt-0.5 text-xs text-slate-500">{account.department} · {account.position} · {account.accessLevel}</p></div><div className="flex items-center gap-3"><RoleBadge badge={account.publicBadge} /><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void revoke(account._id)}>{busy === account._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Revoke</Button></div></li>)}</ul>}
       </section>
     </div>
   );
 }
 
-type TeamMember = { userId: Id<"users">; name: string | null; email: string | null; role: string | null; department: string | null; position: string | null; isStaff: boolean; badge: PublicBadge | null };
+type TeamMember = { userId: Id<"users">; name: string | null; role: string | null; department: string | null; position: string | null; isStaff: boolean; badge: PublicBadge | null };
 
 function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
   const setAssignment = useMutation(api.staff.setAssignment);
@@ -242,7 +239,7 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
   async function save(member: TeamMember, department: string, position: string, badge: PublicBadge) {
     setError(""); setSavedId(null); setBusyId(member.userId);
     try { await setAssignment({ userId: member.userId, department, position, badge }); setSavedId(member.userId); }
-    catch (err) { setError(err instanceof Error ? err.message : "Could not save the assignment."); }
+    catch { setError("Could not save the assignment. Please try again."); }
     finally { setBusyId(null); }
   }
 
@@ -268,7 +265,7 @@ function TeamRow({ member, busy, saved, onSave }: { member: TeamMember; busy: bo
   const active = Boolean(department.trim() || position.trim());
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="flex items-center gap-2 text-sm font-semibold">{member.name || member.email || "Account"}{member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}</p><p className="text-xs text-slate-500">{member.email} · {member.isStaff ? "Staff access on" : "Staff access off"}</p></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="flex items-center gap-2 text-sm font-semibold">{member.name || "Company account"}{member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}</p><p className="text-xs text-slate-500">{member.isStaff ? "Staff access on" : "Staff access off"}</p></div></div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
         <div className="space-y-1"><Label htmlFor={`dept-${member.userId}`}>Department</Label><Input id={`dept-${member.userId}`} list="ow-departments" maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
         <div className="space-y-1"><Label htmlFor={`position-${member.userId}`}>Position</Label><Input id={`position-${member.userId}`} list="ow-positions" maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>

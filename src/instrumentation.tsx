@@ -25,50 +25,13 @@ type GenericError = {
   componentStack?: string;
 };
 
-function normalizeError(value: unknown): GenericError {
-  if (value instanceof Error) {
-    return {
-      error: value.message || "Unknown runtime error",
-      stack: value.stack || "",
-    };
-  }
-
-  if (typeof value === "string") {
-    return { error: value || "Unknown runtime error", stack: "" };
-  }
-
-  if (value && typeof value === "object") {
-    const candidate = value as {
-      message?: unknown;
-      error?: unknown;
-      stack?: unknown;
-    };
-    const message =
-      typeof candidate.message === "string"
-        ? candidate.message
-        : typeof candidate.error === "string"
-          ? candidate.error
-          : "";
-
-    return {
-      error: message || "Unknown runtime error",
-      stack: typeof candidate.stack === "string" ? candidate.stack : "",
-    };
-  }
-
-  return {
-    error: value == null ? "Unknown runtime error" : String(value),
-    stack: "",
-  };
+function normalizeError(_value: unknown): GenericError {
+  // Error messages and stacks can contain request data, emails, tokens, or URLs.
+  // Keep user-facing and reported diagnostics generic rather than echoing them.
+  return { error: "Unexpected application error.", stack: "" };
 }
 
-async function reportErrorToVly(errorData: {
-  error: string;
-  stackTrace?: string;
-  filename?: string;
-  lineno?: number;
-  colno?: number;
-}) {
+async function reportErrorToVly() {
   const appId = import.meta.env.VITE_VLY_APP_ID;
   const monitoringUrl = import.meta.env.VITE_VLY_MONITORING_URL;
 
@@ -80,13 +43,13 @@ async function reportErrorToVly(errorData: {
     await fetch(monitoringUrl, {
       method: "POST",
       body: JSON.stringify({
-        ...errorData,
-        url: window.location.href,
+        error: "Unexpected application error.",
+        // Query/hash strings can contain codes, tokens, or user-entered information.
+        url: `${window.location.origin}${window.location.pathname}`,
         projectSemanticIdentifier: appId,
       }),
-    });
-  } catch (error) {
-    console.error("Failed to report error to Vly:", error);
+    });    } catch {
+    console.error("Failed to report runtime error.");
   }
 }
 
@@ -199,24 +162,13 @@ class ErrorBoundary extends React.Component<
     };
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    const normalizedError = normalizeError(error);
-    const componentStack = info.componentStack?.trim();
+  componentDidCatch(_error: Error, _info: React.ErrorInfo) {
+    reportErrorToVly();
 
-    reportErrorToVly({
-      error: normalizedError.error,
-      stackTrace: [normalizedError.stack, componentStack]
-        .filter(Boolean)
-        .join("\n\n"),
-    });
-
-    this.setState((state) => ({
+    this.setState({
       hasError: true,
-      error: {
-        ...(state.error ?? normalizedError),
-        componentStack,
-      },
-    }));
+      error: { error: "Unexpected application error.", stack: "" },
+    });
   }
 
   render() {
@@ -248,39 +200,22 @@ export function InstrumentationProvider({
     const handleError = async (event: ErrorEvent) => {
       try {
         event.preventDefault();
-        const normalizedError = normalizeError(event.error ?? event.message);
-        const capturedError = {
-          ...normalizedError,
-          filename: event.filename || undefined,
-          lineno: event.lineno || undefined,
-          colno: event.colno || undefined,
-        };
-        setError(capturedError);
-
-        await reportErrorToVly({
-          error: normalizedError.error,
-          stackTrace: normalizedError.stack,
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-        });
-      } catch (error) {
-        console.error("Error in handleError:", error);
+        setError({ error: "Unexpected application error.", stack: "" });
+        await reportErrorToVly();
+      } catch {
+        console.error("Could not process a runtime error event.");
       }
     };
 
     const handleRejection = async (event: PromiseRejectionEvent) => {
       try {
-        const normalizedError = normalizeError(event.reason);
-        console.error("[Freebuff runtime error]", normalizedError.error);
-        setError(normalizedError);
+        event.preventDefault();
+        console.error("[Freebuff runtime error]", "Unhandled promise rejection.");
+        setError({ error: "Unexpected application error.", stack: "" });
 
-        await reportErrorToVly({
-          error: normalizedError.error,
-          stackTrace: normalizedError.stack,
-        });
-      } catch (error) {
-        console.error("Error in handleRejection:", error);
+        await reportErrorToVly();
+      } catch {
+        console.error("Could not process an unhandled promise rejection.");
       }
     };
 

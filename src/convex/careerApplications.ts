@@ -117,8 +117,8 @@ export const sendNotification = internalAction({
 
         const data = (await response.json().catch(() => ({}))) as { id?: string };
         return { sent: true, id: data.id ?? null };
-      } catch (error) {
-        console.error("[careers] Failed to send career notification email:", error);
+      } catch {
+        console.error("[careers] Failed to send notification email.");
         return { sent: false, reason: "network-error" };
       }
     }
@@ -147,8 +147,8 @@ export const sendNotification = internalAction({
         }
         const data = (await response.json().catch(() => ({}))) as { id?: string };
         return { sent: true, id: data.id ?? null };
-      } catch (error) {
-        console.error("[careers] Failed to send application email:", error);
+      } catch {
+        console.error("[careers] Failed to send notification email.");
         return { sent: false, reason: "network-error" };
       }
     }
@@ -334,7 +334,8 @@ export const listForAdmin = query({
   handler: async (ctx) => {
     if (!(await isAdmin(ctx))) return null;
 
-    return await ctx.db.query("careerApplications").withIndex("by_submitted_at").order("desc").take(100);
+    const applications = await ctx.db.query("careerApplications").withIndex("by_submitted_at").order("desc").take(100);
+    return applications.map(({ email: _email, ...application }) => application);
   },
 });
 

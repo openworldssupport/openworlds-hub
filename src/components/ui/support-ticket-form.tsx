@@ -42,11 +42,7 @@ export function SupportTicketForm() {
       setStatus("sent");
     } catch (submissionError) {
       setStatus("error");
-      setError(
-        submissionError instanceof Error
-          ? submissionError.message
-          : "We couldn’t open your ticket. Please try again.",
-      );
+      setError("We couldn’t open your ticket. Please check your details and try again.");
     }
   }
 
@@ -182,7 +178,7 @@ export function SupportTicketForm() {
           </span>
         </label>
         <p className="text-xs leading-5 text-slate-500">
-          Your ticket cannot be opened until you agree. Review the Privacy Policy for information about ticket data and contact support@openworlds.dk with privacy questions.
+          Your ticket cannot be opened until you agree. Review the Privacy Policy for information about ticket data and use the support form for privacy questions.
         </p>
       </div>
 
