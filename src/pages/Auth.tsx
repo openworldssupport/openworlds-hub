@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { AlertCircle, KeyRound, Mail } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,27 @@ export default function AuthPage({ mode = "login" }: AuthProps) {
   return <StaffAuthPage mode={mode} />;
 }
 
+function OpenWorldsLogo() {
+  return (
+    <svg
+      role="img"
+      aria-label="OpenWorlds logo"
+      viewBox="0 0 512 512"
+      fill="none"
+      className="size-10 text-[#0066cc]"
+    >
+      <circle cx="256" cy="256" r="154" stroke="currentColor" strokeWidth="24" />
+      <path
+        d="M102 256h308M256 102c43 42 65 94 65 154s-22 112-65 154m0-308c-43 42-65 94-65 154s22 112 65 154"
+        stroke="currentColor"
+        strokeWidth="22"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
   const isSignup = mode === "player-signup";
 
@@ -27,9 +47,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
       <SiteNav />
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-            <AlertCircle className="size-5" />
-          </span>
+          <OpenWorldsLogo />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
             OpenWorlds player account
           </p>
@@ -114,15 +132,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
       <SiteNav />
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <span className="flex size-10 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-            {isCreate ? (
-              <AlertCircle className="size-5" />
-            ) : step === "email" ? (
-              <Mail className="size-5" />
-            ) : (
-              <KeyRound className="size-5" />
-            )}
-          </span>
+          <OpenWorldsLogo />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
             OpenWorlds company
           </p>
