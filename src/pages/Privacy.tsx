@@ -137,7 +137,8 @@ export default function Privacy() {
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · All rights reserved.
+        <p>OpenWorlds © 2026 · All rights reserved.</p>
+        <p className="mt-1 text-xs">OpenWorlds is not currently a registered company.</p>
       </footer>
     </main>
   );
