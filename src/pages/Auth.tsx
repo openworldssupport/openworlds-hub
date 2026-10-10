@@ -25,7 +25,7 @@ function OpenWorldsLogo() {
       aria-label="OpenWorlds logo"
       viewBox="0 0 512 512"
       fill="none"
-      className="size-10 text-[#0066cc]"
+      className="size-12 text-[#0066cc]"
     >
       <circle cx="256" cy="256" r="154" stroke="currentColor" strokeWidth="24" />
       <path
