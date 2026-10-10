@@ -198,3 +198,40 @@ main > footer {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Carry the home page's restrained styling across public and staff screens. */
+main [class*="bg-gradient-to-"] {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+}
+
+main [class*="rounded-xl"],
+main [class*="rounded-2xl"] {
+  border-radius: 0.5rem !important;
+}
+
+main [class*="border-t-2"] {
+  border-top-width: 1px !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+main :is(a, button)[class*="rounded-"] {
+  border-radius: 0.125rem !important;
+}
+
+main :is(div, span).flex[class*="size-"]:has(> svg),
+main :is(div, span).inline-flex[class*="size-"]:has(> svg) {
+  background-color: transparent !important;
+  color: #475569 !important;
+}
+
+main .ow-page-hero :is(div, span).flex[class*="size-"]:has(> svg),
+main .ow-page-hero :is(div, span).inline-flex[class*="size-"]:has(> svg) {
+  color: #fff !important;
+}
+
+main a[class*="hover:-translate-y-"]:hover,
+main a[class*="hover:shadow-"]:hover {
+  box-shadow: none !important;
+  transform: none !important;
+}
