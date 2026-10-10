@@ -3,7 +3,7 @@ import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { privacySections } from "@/pages/Privacy";
 import { termsSections } from "@/pages/Terms";
-import { ACTIVE_PRIVACY_VERSION, ACTIVE_TERMS_VERSION } from "@/lib/legalVersions";
+import { ACTIVE_AGREEMENT_REVISION, ACTIVE_PRIVACY_VERSION, ACTIVE_TERMS_VERSION } from "@/lib/legalVersions";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router";
 import {
@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const storageKey = `openworlds-policy-acceptance:${ACTIVE_PRIVACY_VERSION}:${ACTIVE_TERMS_VERSION}`;
+const storageKey = `openworlds-policy-acceptance:${ACTIVE_PRIVACY_VERSION}:${ACTIVE_TERMS_VERSION}:${ACTIVE_AGREEMENT_REVISION}`;
 
 export function LegalPolicyGate({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -46,7 +46,11 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
     setError("");
     try {
       if (isAuthenticated) {
-        await acceptCurrent({ privacyVersion: ACTIVE_PRIVACY_VERSION, termsVersion: ACTIVE_TERMS_VERSION });
+        await acceptCurrent({
+          privacyVersion: ACTIVE_PRIVACY_VERSION,
+          termsVersion: ACTIVE_TERMS_VERSION,
+          agreementRevision: ACTIVE_AGREEMENT_REVISION,
+        });
       } else {
         window.localStorage.setItem(storageKey, "accepted");
         setLocalAccepted(true);

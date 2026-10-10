@@ -60,10 +60,12 @@ const schema = defineSchema(
       userId: v.id("users"),
       privacyVersion: v.string(),
       termsVersion: v.string(),
+      agreementRevision: v.optional(v.string()),
       acceptedAt: v.number(),
     })
       .index("by_user", ["userId"])
-      .index("by_user_and_versions", ["userId", "privacyVersion", "termsVersion"]),
+      .index("by_user_and_versions", ["userId", "privacyVersion", "termsVersion"])
+      .index("by_user_versions_revision", ["userId", "privacyVersion", "termsVersion", "agreementRevision"]),
 
     careerRoleAvailability: defineTable({
       roleSlug: v.string(),
