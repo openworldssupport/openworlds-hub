@@ -44,7 +44,7 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-            A world built together.
+            A community built together.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
             OpenWorlds is in development. Follow official project updates and find the current status of public resources.
