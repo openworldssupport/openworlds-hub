@@ -137,7 +137,10 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
         </div>
 
         <footer className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-          <p className="text-xs leading-5 text-slate-500">Signed-in agreements are saved to your account; visitor agreements are saved in this browser.</p>
+          <div className="text-xs leading-5 text-slate-500">
+            <p>Signed-in agreements are saved to your account; visitor agreements are saved in this browser.</p>
+            <p className="mt-1">OpenWorlds is not currently a registered company.</p>
+          </div>
           <Button onClick={handleAccept} disabled={!agreed || submitting}>
             {submitting ? "Saving…" : "Agree and continue"}
           </Button>
