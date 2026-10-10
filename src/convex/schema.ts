@@ -56,6 +56,15 @@ const schema = defineSchema(
       invitedBy: v.id("users"),
     }).index("by_email", ["email"]),
 
+    legalAcceptances: defineTable({
+      userId: v.id("users"),
+      privacyVersion: v.string(),
+      termsVersion: v.string(),
+      acceptedAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_and_versions", ["userId", "privacyVersion", "termsVersion"]),
+
     careerRoleAvailability: defineTable({
       roleSlug: v.string(),
       isOpen: v.boolean(),

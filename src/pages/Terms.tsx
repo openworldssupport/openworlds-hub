@@ -1,21 +1,22 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { Scale } from "lucide-react";
+import { ACTIVE_TERMS_VERSION } from "@/lib/legalVersions";
 
 type Section = { title: string; body: string[] };
 
-const sections: Section[] = [
+export const termsSections: Section[] = [
   {
     title: "1. Acceptance of these terms",
     body: [
-      "This page is an informational draft. It does not establish that the site operator has adopted these terms as a binding agreement.",
+      "These Terms describe use of the OpenWorlds website and, once the OpenWorlds Meta Quest game is released, its related services. They are not VRChat terms. The site operator should confirm its legal identity, jurisdiction, and final adoption of these Terms before treating them as a binding agreement.",
     ],
   },
   {
     title: "2. The service",
     body: [
-      "OpenWorlds is a community website for creating, sharing, and exploring worlds. Some features described on the site are planned and not yet available. No OpenWorlds Meta Quest app is currently published through this website.",
-      "Public player accounts and game downloads are not available through this website. Company sign-in is invitation-only and uses a one-time email code. If OpenWorlds is submitted to the Meta Horizon Store, the App Website URL is required and must open a working page relevant to the app or publisher, meet Meta's Content Guidelines, and not be hosted on another app distribution platform. The /terms page displays these Terms directly rather than as a document download. Support and Terms URLs are optional; if supplied, each must open a working, relevant page that meets Meta's Content Guidelines. Verify the production URLs before submission; app listing configuration is managed separately from this website.",
+      "OpenWorlds is a community project for creating, sharing, and exploring worlds. This website's company sign-in is invitation-only and uses a one-time email code; public player accounts and downloads are not currently available through this website. The Meta Quest game's current release status and features must be confirmed separately from this site.",
+      "Use of the Meta Quest game may also be subject to Meta's platform terms and policies. These website Terms do not replace those rules or the Privacy Policy's app-specific data disclosures. The /terms page is displayed as web text; confirm the published page and any Meta Horizon Store listing URLs directly in the production environment.",
     ],
   },
   {
@@ -52,7 +53,7 @@ const sections: Section[] = [
   {
     title: "7. Third-party links",
     body: [
-      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it. Any future Quest app may also use services operated by Meta or other providers; those services will be identified in the app-specific disclosures where applicable.",
+      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it. The OpenWorlds Meta Quest game may interact with Meta platform services and other providers; the game team must identify applicable services and explain their role in the Privacy Policy before release.",
     ],
   },
   {
@@ -71,7 +72,7 @@ const sections: Section[] = [
   {
     title: "10. Changes to these terms",
     body: [
-      "We may update these Terms as the website or services change. If a Terms URL is entered in a Meta Horizon Store listing, keep it pointed directly to the current page. This draft does not establish when revisions take effect; review the current version and obtain legal advice before relying on it.",
+      "We may update these Terms as the website, game, or services change. The current version is shown above. Signed-in website users will be asked to review and accept the current versions when either these Terms or the Privacy Policy changes. To trigger a new notice, the operator must update the version in the site's legal version configuration as well as publish the revised text. Review the current version and obtain legal advice before relying on these draft Terms.",
     ],
   },
   {
@@ -105,7 +106,7 @@ export default function Terms() {
             <Scale className="size-4" /> Legal
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Terms of Service</h1>
-          <p className="mt-4 text-blue-50">Review date: October 2026 · Draft</p>
+          <p className="mt-4 text-blue-50">Version {ACTIVE_TERMS_VERSION} · Draft for review</p>
         </div>
       </section>
 
@@ -115,7 +116,7 @@ export default function Terms() {
         </p>
 
         <div className="mt-8 space-y-8">
-          {sections.map((section) => (
+          {termsSections.map((section) => (
             <div key={section.title}>
               <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
               <div className="mt-2 space-y-3 text-sm leading-6 text-slate-600">

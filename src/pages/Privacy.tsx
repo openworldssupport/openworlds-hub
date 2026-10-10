@@ -1,26 +1,29 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { ShieldCheck } from "lucide-react";
+import { ACTIVE_PRIVACY_VERSION } from "@/lib/legalVersions";
 
 type Section = { title: string; body: string[] };
 
-const sections: Section[] = [
+export const privacySections: Section[] = [
   {
     title: "1. Who we are",
     body: [
       "OpenWorlds is a community project for creating, sharing, and exploring worlds. In this policy, “we”, “us”, and “OpenWorlds” refer to the team responsible for this website and the official OpenWorlds services that link to this policy.",
-      "This policy is maintained on the official OpenWorlds website and is intended to be publicly readable without signing in. Before using it as a Meta Horizon Store privacy-policy URL, verify that the live page is directly accessible over HTTPS without a warning or redirect. This code cannot verify the deployed domain, certificate, or listing configuration. The site operator's legal identity and location are not specified in this draft.",
-      "This notice describes the website data practices listed below; it does not yet inventory data collected by a specific Meta Quest app, its SDKs, or connected platform services. Before submitting an app, update this notice to accurately cover that app's actual data practices and providers.",
+      "This policy is for OpenWorlds and its Meta Quest app; OpenWorlds is not affiliated with VRChat. The website and game are separate products, and the in-game data inventory must be confirmed against the actual game build, Meta platform features, SDKs, and backend before publication.",
+      "This page is intended to be publicly readable without signing in. The site operator should confirm its legal identity and contact details before treating this draft as a final legal notice.",
     ],
   },
   {
     title: "2. Information we collect",
     body: [
-      "Support tickets: the reason you select, your message, and the email address you provide. Your name and OpenWorlds username are optional. Authorized company staff can view submitted tickets; configured email notifications may also include ticket details.",
-      "Career applications: where an approved role is available, the form may collect your name, email address, answers, and optional work samples.",
-      "Company sign-in: invited company email addresses and account access/assignment details are stored to provide private staff access.",
-      "Hosting and service providers may process technical request data to operate and secure the website. The exact data and retention periods depend on provider configuration and are not specified here.",
-      "This website notice is not an inventory of data a specific OpenWorlds Meta Quest app or its SDKs may collect or access. If an app is submitted, document its actual data categories, collection methods, purposes, and relevant service providers here before relying on this policy for the app.",
+      "Support tickets: the email address, selected reason, and message are required. Name, OpenWorlds username, and subject are optional. Ticket records include a reference, status, and submission/response/closure timestamps; ticket details can be read by authorized company staff and may be sent to the configured support email provider.",
+      "Career applications: when a role accepts applications, we collect name, email, role, written answers, availability, and any optional portfolio or LinkedIn link supplied. Applications are stored for team review and sent to the configured careers email provider.",
+      "Company accounts: invited or approved staff accounts store email, verification time, role/access assignment, and optional staff profile fields such as name, nickname, department, position, badge, and image when provided. One-time sign-in codes are sent to the account email address; session/authentication records are handled by the authentication service.",
+      "Staff features: staff messages and announcements store the author account, displayed staff details, message or announcement content, timestamps, and any uploaded image/video and its metadata. Uploaded media is stored using the site's configured file storage.",
+      "Policy acceptance: when you agree to an updated policy while signed in, we store your account ID, the Privacy Policy and Terms versions accepted, and the acceptance timestamp. If you are signed out, your browser stores a version-specific acceptance marker in local storage; it is not linked to a named account by this site.",
+      "Website infrastructure: Convex and the hosting/authentication providers process information needed to serve the site, database, sign-in, and file storage. Email delivery may use the configured Vly or Resend integration. Those providers may process technical connection and delivery metadata under their own terms. This codebase does not include an analytics or in-game telemetry integration; deployment/provider logs and the actual game build still need separate verification.",
+      "In-game / Meta Quest data: this website repository contains no game client or game telemetry implementation, so it cannot establish what the Meta Quest game collects. We do not claim that the website inventory above covers in-game account identifiers, gameplay events, voice/chat, device data, crash reports, or any Meta platform data. The game team must inventory the shipped game, every SDK and Meta API, backend services, and sharing flows, then replace this notice with the verified categories, purposes, recipients, retention, and controls before app release.",
     ],
   },
   {
@@ -29,7 +32,7 @@ const sections: Section[] = [
       "To reply to your support request and resolve the issue you reported.",
       "To review and respond to voluntary contributor applications.",
       "To manage company accounts and respond to website requests.",
-      "To operate and secure the website and its company sign-in and support features. Any future Quest app's data uses will be described here before that app is released.",
+      "To operate and secure the website, authenticate approved staff, manage staff communications and announcements, store uploaded media, respond to support requests, and review contributor applications. Game-specific purposes cannot be confirmed from this website codebase and must be documented from the actual app and its SDKs before release.",
     ],
   },
   {
@@ -41,14 +44,14 @@ const sections: Section[] = [
   {
     title: "5. Sharing",
     body: [
-      "Support ticket details may be sent to the configured email notification provider and are stored by the site's database provider. Other processing and sharing depend on the providers configured for the service.",
-      "This page does not confirm a complete list of subprocessors or all sharing arrangements. Do not submit sensitive information through public forms.",
+      "Website records are available to authorized OpenWorlds staff and relevant providers: Convex provides the app database/authentication/storage, and the configured Vly or Resend integration may deliver support and career notification emails. The exact provider configuration should be checked against the live deployment.",
+      "Meta and any other game provider may separately process data when you use the Quest app. This draft does not describe or verify those game data flows; the app-specific inventory must identify them before release. Do not submit passwords or payment details through website forms.",
     ],
   },
   {
     title: "6. Retention",
     body: [
-      "This site does not currently state fixed retention periods for tickets, applications, account records, or provider logs. Use the support form with a data request or deletion question.",
+      "The current site implementation does not define fixed retention periods for support tickets, career applications, account records, staff posts, uploaded assets, policy acceptance records, or provider logs. Authorized staff can remove tickets, applications, and announcement uploads through the site tools. Ask through Support about access or deletion; provider backups and records held by Meta may follow separate retention rules. The game team's retention periods are not available in this repository and must be added after verification.",
     ],
   },
   {
@@ -75,13 +78,13 @@ const sections: Section[] = [
   {
     title: "10. Cookies and local storage",
     body: [
-      "The site uses authentication/session mechanisms for company sign-in. Other cookie, analytics, or local-storage use depends on the deployed platform and provider configuration; this page does not claim a complete inventory.",
+      "The site uses authentication/session mechanisms for company sign-in. Signed-out visitors who accept this version of the policies have a version-specific marker stored in browser local storage. The codebase has no analytics integration; other cookie or local-storage use depends on deployed platform/provider configuration and should be verified.",
     ],
   },
   {
     title: "11. Changes to this policy",
     body: [
-      "We may update this policy as the project changes. When we do, we will revise the “last updated” date at the top of this page.",
+      "We may update this policy as the website, game, SDKs, or data practices change. Its version is shown above. Signed-in website users are asked to review and accept the current Privacy Policy and Terms again when either policy version changes. To trigger that notice after a future change, the site operator must update the corresponding version in the site's legal version configuration and publish the revised text here.",
     ],
   },
   {
@@ -105,17 +108,17 @@ export default function Privacy() {
             <ShieldCheck className="size-4" /> Legal
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Privacy Policy</h1>
-          <p className="mt-4 text-blue-50">Review date: October 2026 · Draft</p>
+          <p className="mt-4 text-blue-50">Version {ACTIVE_PRIVACY_VERSION} · Draft for review</p>
         </div>
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          This is an informational draft, not a complete privacy notice or legal advice. Provider configuration and applicable business details have not been independently confirmed; review and complete this notice before relying on it.
+          This privacy notice includes verified website collection points visible in this repository. It is not a complete Meta Quest game data inventory: the game build, SDKs, backend, Meta integrations, operator identity, and deployment provider settings still require confirmation before this becomes the app's final notice.
         </p>
 
         <div className="mt-8 space-y-8">
-          {sections.map((section) => (
+          {privacySections.map((section) => (
             <div key={section.title}>
               <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
               <div className="mt-2 space-y-3 text-sm leading-6 text-slate-600">

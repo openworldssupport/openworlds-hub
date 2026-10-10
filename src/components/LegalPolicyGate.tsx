@@ -1,0 +1,148 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { privacySections } from "@/pages/Privacy";
+import { termsSections } from "@/pages/Terms";
+import { ACTIVE_PRIVACY_VERSION, ACTIVE_TERMS_VERSION } from "@/lib/legalVersions";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const storageKey = `openworlds-policy-acceptance:${ACTIVE_PRIVACY_VERSION}:${ACTIVE_TERMS_VERSION}`;
+
+export function LegalPolicyGate({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
+  const legalStatus = useQuery(api.legal.status, isAuthenticated ? {} : "skip");
+  const acceptCurrent = useMutation(api.legal.acceptCurrent);
+  const [localReady, setLocalReady] = useState(false);
+  const [localAccepted, setLocalAccepted] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    try {
+      setLocalAccepted(window.localStorage.getItem(storageKey) === "accepted");
+    } catch {
+      setLocalAccepted(false);
+    }
+    setLocalReady(true);
+  }, []);
+
+  const isPublicPolicyPage = location.pathname === "/privacy" || location.pathname === "/terms";
+  const isChecking = isAuthLoading || (isAuthenticated && legalStatus === undefined) || (!isAuthenticated && !localReady);
+  const isAccepted = isAuthenticated ? legalStatus?.accepted === true : localAccepted;
+
+  async function handleAccept() {
+    if (!agreed || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      if (isAuthenticated) {
+        await acceptCurrent({ privacyVersion: ACTIVE_PRIVACY_VERSION, termsVersion: ACTIVE_TERMS_VERSION });
+      } else {
+        window.localStorage.setItem(storageKey, "accepted");
+        setLocalAccepted(true);
+      }
+    } catch {
+      setError("We couldn't save your agreement. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Keep these public legal URLs directly readable without accepting a modal first.
+  if (isPublicPolicyPage) return <>{children}</>;
+
+  if (isChecking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground" role="status" aria-live="polite">
+        Checking policy agreement…
+      </main>
+    );
+  }
+  if (isAccepted) return <>{children}</>;
+
+  return (
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        showCloseButton={false}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        onPointerDownOutside={(event) => event.preventDefault()}
+        className="flex max-h-[94vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
+      >
+        <DialogHeader className="border-b border-slate-200 px-5 py-5 text-left sm:px-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0066cc]">OpenWorlds · Privacy &amp; terms</p>
+          <DialogTitle className="mt-2 text-2xl">Please review and agree</DialogTitle>
+          <DialogDescription className="mt-2 text-sm leading-6">
+            Review the current policies below before continuing. Returning visitors will be asked again only when a policy version changes.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-6 sm:px-7">
+          <article>
+            <h2 className="font-semibold">Privacy Policy · version {ACTIVE_PRIVACY_VERSION}</h2>
+            <p className="mt-2 text-slate-600">This policy lists website data visible in the project: company account and sign-in details; support contact information and messages; career application answers and contact details; staff messages and announcements; and uploaded announcement media. Convex provides the website database, authentication, and file storage. Configured Vly or Resend email services may deliver support and application notifications.</p>
+            <p className="mt-2 text-slate-600">This repository contains no Meta Quest game client or in-game telemetry code, so it cannot confirm what the game collects. We do not claim that no in-game data is collected. The game team must verify the shipped game, Meta platform APIs, SDKs, backend, and data-sharing flows and complete the app-specific data inventory before release.</p>
+            <details id="policy-full-privacy" open className="mt-4 border-t border-slate-200 pt-3">
+              <summary className="cursor-pointer font-medium text-[#0066cc]">Read the complete Privacy Policy</summary>
+              <div className="mt-4 space-y-5">
+                {privacySections.map((section) => (
+                  <section key={section.title}>
+                    <h3 className="font-semibold">{section.title}</h3>
+                    <div className="mt-2 space-y-2 text-slate-600">
+                      {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </details>
+          </article>
+
+          <article className="border-t border-slate-200 pt-5">
+            <h2 className="font-semibold">Terms of Service · version {ACTIVE_TERMS_VERSION}</h2>
+            <p className="mt-2 text-slate-600">The Terms clarify that OpenWorlds is a Meta Quest project, not VRChat, and explain that Meta's platform terms are separate from these OpenWorlds website Terms.</p>
+            <details id="policy-full-terms" open className="mt-4 border-t border-slate-200 pt-3">
+              <summary className="cursor-pointer font-medium text-[#0066cc]">Read the complete Terms of Service</summary>
+              <div className="mt-4 space-y-5">
+                {termsSections.map((section) => (
+                  <section key={section.title}>
+                    <h3 className="font-semibold">{section.title}</h3>
+                    <div className="mt-2 space-y-2 text-slate-600">
+                      {section.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </details>
+          </article>
+
+          <label className="flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-5 font-medium text-slate-800">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => setAgreed(event.target.checked)}
+              className="mt-1 size-4 shrink-0 accent-[#0066cc]"
+            />
+            <span>I have reviewed and agree to the current OpenWorlds Privacy Policy and Terms of Service.</span>
+          </label>
+          {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        </div>
+
+        <footer className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <p className="text-xs leading-5 text-slate-500">Signed-in agreements are saved to your account; visitor agreements are saved in this browser.</p>
+          <Button onClick={handleAccept} disabled={!agreed || submitting}>
+            {submitting ? "Saving…" : "Agree and continue"}
+          </Button>
+        </footer>
+      </DialogContent>
+    </Dialog>
+  );
+}

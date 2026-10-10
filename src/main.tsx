@@ -6,6 +6,7 @@ import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { RequireAuth } from "@/components/RequireAuth";
+import { LegalPolicyGate } from "@/components/LegalPolicyGate";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -159,9 +160,10 @@ createRoot(document.getElementById("root")!).render(
       </ToolbarErrorBoundary>
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
+          <LegalPolicyGate>
+            <RouteSyncer />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
               <Route path="/downloads" element={<Downloads />} />
@@ -214,7 +216,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/messages" element={<StaffMessages />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </Suspense>
+            </Suspense>
+          </LegalPolicyGate>
         </BrowserRouter>
         <Toaster />
       </ConvexAuthProvider>
