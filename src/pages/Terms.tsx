@@ -14,8 +14,8 @@ const sections: Section[] = [
   {
     title: "2. The service",
     body: [
-      "OpenWorlds is a community website for creating, sharing, and exploring worlds. Some features described on the site are planned and not yet available.",
-      "Public player accounts and game downloads are not available through this website. Company sign-in is invitation-only and uses a one-time email code.",
+      "OpenWorlds is a community website for creating, sharing, and exploring worlds. Some features described on the site are planned and not yet available. No OpenWorlds Meta Quest app is currently published through this website.",
+      "Public player accounts and game downloads are not available through this website. Company sign-in is invitation-only and uses a one-time email code. If OpenWorlds is submitted to the Meta Horizon Store, the App Website URL is required and must open a working page relevant to the app or publisher, meet Meta's Content Guidelines, and not be hosted on another app distribution platform. The /terms page displays these Terms directly rather than as a document download. Support and Terms URLs are optional; if supplied, each must open a working, relevant page that meets Meta's Content Guidelines. Verify the production URLs before submission; app listing configuration is managed separately from this website.",
     ],
   },
   {
@@ -52,7 +52,7 @@ const sections: Section[] = [
   {
     title: "7. Third-party links",
     body: [
-      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it.",
+      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it. Any future Quest app may also use services operated by Meta or other providers; those services will be identified in the app-specific disclosures where applicable.",
     ],
   },
   {
@@ -71,7 +71,7 @@ const sections: Section[] = [
   {
     title: "10. Changes to these terms",
     body: [
-      "This draft does not establish a notice process or when updated terms take effect. Review the current version and obtain legal advice before relying on it.",
+      "We may update these Terms as the website or services change. If a Terms URL is entered in a Meta Horizon Store listing, keep it pointed directly to the current page. This draft does not establish when revisions take effect; review the current version and obtain legal advice before relying on it.",
     ],
   },
   {
@@ -82,7 +82,15 @@ const sections: Section[] = [
   },
   {
     title: "12. Contact",
-    body: ["Questions about these terms? Use the support form."],
+    body: ["Questions about these Terms? Use the Support page at /support, which provides a way to contact the OpenWorlds team. The site operator's legal identity and location are not specified in this draft."],
+  },
+  {
+    title: "13. Meta Horizon Store links",
+    body: [
+      "For VRC.Publishing.1, the App Website URL in a Meta Horizon Store submission must open a working page relevant to OpenWorlds, without security warnings, and must not be hosted on another app distribution platform. The production website URL must be supplied and tested in Meta's listing; this website cannot configure or verify that listing.",
+      "For VRC.Publishing.2, a support URL is optional. If supplied, it must open a working support page with a clear way to contact the team. The /support page provides a support ticket form; verify the live page before submitting it.",
+      "For VRC.Publishing.3, a Terms URL is optional. If supplied, it should link directly to this page, where the Terms are displayed as webpage text rather than only in a downloadable document. Verify the production URL loads directly before submitting it.",
+    ],
   },
 ];
 

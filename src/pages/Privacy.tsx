@@ -8,8 +8,9 @@ const sections: Section[] = [
   {
     title: "1. Who we are",
     body: [
-      "OpenWorlds is a community project for creating, sharing, and exploring worlds. In this policy, “we”, “us”, and “OpenWorlds” refer to the OpenWorlds team.",
-      "For a privacy question or request, use the support form on this site. The site operator's legal identity and location are not specified in this draft.",
+      "OpenWorlds is a community project for creating, sharing, and exploring worlds. In this policy, “we”, “us”, and “OpenWorlds” refer to the team responsible for this website and the official OpenWorlds services that link to this policy.",
+      "This policy is maintained on the official OpenWorlds website and is intended to be publicly readable without signing in. Before using it as a Meta Horizon Store privacy-policy URL, verify that the live page is directly accessible over HTTPS without a warning or redirect. This code cannot verify the deployed domain, certificate, or listing configuration. The site operator's legal identity and location are not specified in this draft.",
+      "This notice describes the website data practices listed below; it does not yet inventory data collected by a specific Meta Quest app, its SDKs, or connected platform services. Before submitting an app, update this notice to accurately cover that app's actual data practices and providers.",
     ],
   },
   {
@@ -18,7 +19,8 @@ const sections: Section[] = [
       "Support tickets: the reason you select, your message, and the email address you provide. Your name and OpenWorlds username are optional. Authorized company staff can view submitted tickets; configured email notifications may also include ticket details.",
       "Career applications: where an approved role is available, the form may collect your name, email address, answers, and optional work samples.",
       "Company sign-in: invited company email addresses and account access/assignment details are stored to provide private staff access.",
-      "Hosting and service providers may process technical request data. The exact data and retention periods depend on provider configuration and are not specified here.",
+      "Hosting and service providers may process technical request data to operate and secure the website. The exact data and retention periods depend on provider configuration and are not specified here.",
+      "This website notice is not an inventory of data a specific OpenWorlds Meta Quest app or its SDKs may collect or access. If an app is submitted, document its actual data categories, collection methods, purposes, and relevant service providers here before relying on this policy for the app.",
     ],
   },
   {
@@ -27,7 +29,7 @@ const sections: Section[] = [
       "To reply to your support request and resolve the issue you reported.",
       "To review and respond to voluntary contributor applications.",
       "To manage company accounts and respond to website requests.",
-      "To operate the website and its company sign-in and support features.",
+      "To operate and secure the website and its company sign-in and support features. Any future Quest app's data uses will be described here before that app is released.",
     ],
   },
   {
@@ -59,8 +61,9 @@ const sections: Section[] = [
   {
     title: "8. Your rights",
     body: [
-      "Applicable rights depend on the laws and jurisdiction governing the site's operator. Use the support form with a request; this draft does not identify the operator or establish jurisdiction.",
-      "To exercise any of these rights, use the support form. We may need to verify your identity before acting.",
+      "You may use the support form to ask what personal information we hold, request correction, or request deletion. Include enough information for us to locate the relevant ticket, application, or company account, but do not send passwords or identity documents unless we specifically explain a secure method.",
+      "We may need to verify your identity before acting and may retain information where required for security, legal, or operational reasons. This website cannot delete information held separately by Meta or another platform; use that provider's privacy tools for its records.",
+      "Applicable rights and response requirements depend on the laws and jurisdiction governing the site's operator. The operator's legal identity and location are not specified in this draft.",
     ],
   },
   {
@@ -82,8 +85,12 @@ const sections: Section[] = [
     ],
   },
   {
-    title: "12. Contact",
-    body: ["For any question about this policy or your information, use the support form."],
+    title: "12. Contact and privacy requests",
+    body: ["For questions about this policy, or to request access, correction, or deletion of information held by OpenWorlds, use the Support page and identify the email address or ticket reference associated with your request. Do not send passwords or unnecessary sensitive information. You can read this policy without signing in."],
+  },
+  {
+    title: "13. Meta Quest app notice",
+    body: ["For VRC.Quest.Privacy.1, the Meta Horizon Store Privacy Policy URL must point directly to a live, publicly readable privacy statement managed by the app team, served over HTTPS, and must not redirect to a home page or require sign-in or a download. The intended route for this site is /privacy; configure its full production HTTPS URL in the app listing and verify it from a signed-out browser before submission. This code cannot verify the live URL, TLS certificate, redirects, or Meta listing settings. This criterion checks the policy URL; it does not replace accurate app-specific data disclosures."],
   },
 ];
 
