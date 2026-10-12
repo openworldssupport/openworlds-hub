@@ -1,6 +1,6 @@
-import { useMutation } from "convex/react";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useMutation } from "convex/react";
+
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { loadEnv } from "vite";
@@ -24,25 +24,6 @@ type TeamMember = {
   memberStatus: "volunteer-thank-you" | null;
   isBanned: boolean;
   assignedBy: Id<"users"> | null;
-};
-
-type GetTeamMembersResult = {
-  members: (
-    | {
-        userId: Id<"users">;
-        name: string | null;
-        role: string | null;
-        department: string | null;
-        position: string | null;
-        publicBadge: "staff" | "dev" | null;
-        memberStatus: "volunteer-thank-you" | null;
-        isSiteBanned: boolean;
-        hasAdminAssignment: boolean;
-        assignedBy: Id<"users"> | null;
-        createdAt: string;
-      }
-    | null
-  )[];
 };
 
 type TeamRowProps = {
@@ -104,10 +85,10 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
-  const [localAssignedBy, setLocalAssignedBy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [assignedBy, setAssignedBy] = useState<Id<"users"> | null>(user?.userId ?? null);
   const [banReason, setBanReason] = useState<string>(user?.userId ?? "");
 
   async function save(
@@ -126,7 +107,7 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
         await setMemberStatus({ userId: member.userId, memberStatus });
         return;
       }
-      if (member.assignedBy !== localAssignedBy) {
+      if (member.assignedBy !== assignedBy) {
         setError("Current ticket is not assigned to the same admin.");
         return;
       }
@@ -164,7 +145,7 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
             busy={busyId === member.userId}
             saved={savedId === member.userId}
             onSave={save}
-            assignedBy={localAssignedBy ?? member.assignedBy ?? null}
+            assignedBy={assignedBy ?? member.assignedBy ?? null}
           />
         ))
       )}
@@ -179,7 +160,7 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
   const [badge, setBadge] = useState<"staff" | "dev">(defaultBadge);
   const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
   const [assignedById, setAssignedById] = useState<string | null>(member.assignedBy ?? null);
-  const [banReason, setBanReason] = useState<string>(member.isBanned ? (member.assignedBy ?? "") : "");
+  const [banReasonField, setBanReasonField] = useState<string>(member.isBanned ? (member.assignedBy ?? "") : "");
   const [banned, setBanned] = useState(member.isBanned);
   const isDirty = member.isAdmin
     ? memberStatus !== (member.memberStatus ?? "none") || assignedById !== (member.assignedBy ?? null)
@@ -188,7 +169,7 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
       badge !== defaultBadge ||
       memberStatus !== (member.memberStatus ?? "none") ||
       banned !== member.isBanned ||
-      banReason !== "";
+      banReasonField !== "";
   const active = Boolean(department.trim() || position.trim());
 
   return (
@@ -268,8 +249,8 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
                 <Label htmlFor={`member-ban-reason-${member.userId}`}>Ban reason</Label>
                 <Input
                   id={`member-ban-reason-${member.userId}`}
-                  value={banReason}
-                  onChange={(e) => setBanReason(e.target.value)}
+                  value={banReasonField}
+                  onChange={(e) => setBanReasonField(e.target.value)}
                   placeholder="Why was this person restricted?"
                 />
               </div>
