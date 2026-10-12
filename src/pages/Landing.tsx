@@ -66,7 +66,7 @@ export default function Landing() {
               to="/player-signup"
               className="inline-flex h-11 items-center rounded-sm border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
             >
-              Player accounts · coming soon
+              Create a player account
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">

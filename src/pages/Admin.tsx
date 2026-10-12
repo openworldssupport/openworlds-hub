@@ -1,17 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { loadEnv } from "vite";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { deriveBadge, type PublicBadge } from "@/lib/staff";
 import { Loader2, Save } from "lucide-react";
-
-loadEnv("development", "VITE_");
+import { SiteNav } from "@/components/SiteNav";
 
 type TeamMember = {
   userId: Id<"users">;
@@ -38,7 +36,7 @@ type TeamRowProps = {
     memberStatus: "none" | "volunteer-thank-you",
     banned: boolean
   ) => Promise<void>;
-  assignedBy: Id<"users"> | null;
+  assignedBy?: Id<"users"> | null;
 };
 
 const DEPARTMENTS = [
@@ -105,10 +103,6 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
     try {
       if (member.isAdmin) {
         await setMemberStatus({ userId: member.userId, memberStatus });
-        return;
-      }
-      if (member.assignedBy !== assignedBy) {
-        setError("Current ticket is not assigned to the same admin.");
         return;
       }
       await setAssignment({ userId: member.userId, department, position, badge, memberStatus });
@@ -309,5 +303,19 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
         {saved && <span className="text-xs text-emerald-700">Saved</span>}
       </div>
     </article>
+  );
+}
+
+export default function AdminPage() {
+  const members = useQuery(api.staff.listMembers);
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <SiteNav />
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+        <p className="text-sm font-medium text-[#7651c9]">OpenWorlds</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Team access</h1>
+        <TeamPanel members={members as TeamMember[] | null | undefined} />
+      </section>
+    </main>
   );
 }

@@ -89,6 +89,19 @@ const schema = defineSchema(
       attempts: v.number(),
     }).index("by_user_created", ["userId", "createdAt"]),
 
+    // Private game profile and progress. Every read/write is scoped to the
+    // authenticated player by gameData.ts; clients never supply a userId.
+    playerGameData: defineTable({
+      userId: v.id("users"),
+      displayName: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      state: v.object({
+        version: v.number(),
+        data: v.any(),
+      }),
+    }).index("by_user", ["userId"]),
+
     legalAcceptances: defineTable({
       userId: v.id("users"),
       privacyVersion: v.string(),

@@ -18,12 +18,14 @@ export const currentUser = query({
     // Expose only the profile fields needed by the client; never return the raw
     // auth user document (which includes the private sign-in email).
     return {
+      userId: user._id,
       name: isEmailAddress(user.name) ? null : user.name ?? null,
       role: user.role ?? null,
       department: user.department ?? null,
       position: user.position ?? null,
       publicBadge: user.publicBadge ?? null,
       nickname: isEmailAddress(user.nickname) ? null : user.nickname ?? null,
+      ...(user.role === "user" ? { playerName: user.name ?? "Player" } : {}),
     };
   },
 });

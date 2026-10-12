@@ -74,12 +74,12 @@ export function RequireAuth({
             You'll come straight back to this page once you're signed in.
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <Button className="w-full" onClick={() => navigate(signInHref)}>
+            <Button className="w-full" onClick={() => navigate(signUpHref?.startsWith("/player-signup") ? `/player-login?returnTo=${encodeURIComponent(returnTo)}` : signInHref)}>
               Sign in
             </Button>
             {signUpHref && (
               <Button variant="outline" className="w-full" onClick={() => navigate(signUpHref)}>
-                Staff sign up
+                {signUpHref.startsWith("/player-signup") ? "Create player account" : "Staff sign up"}
               </Button>
             )}
             <Button

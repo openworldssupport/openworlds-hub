@@ -186,13 +186,12 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
-              <Route path="/applications" element={<CareerApplicationsPage />} />
-              <Route
-                path="/dashboard"
+              <Route path="/applications" element={<CareerApplicationsPage />} /><Route path="/dashboard"
                 element={
                   <RequireAuth
                     title="Sign in to see your hub"
                     description="Your OpenWorlds player hub is available to signed-in members."
+                    signUpHref="/player-signup?returnTo=%2Fdashboard"
                   >
                     <Dashboard />
                   </RequireAuth>

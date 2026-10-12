@@ -5,7 +5,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RequireAuth } from "./src/components/RequireAuth";
 import DashboardPage from "./src/pages/Dashboard.tsx";
-import StaffPage from "./src/pages/Staff.tsx";
+import { StaffWorkspace } from "./src/pages/Staff.tsx";
 
 /** Mirrors the real /dashboard route: page behind the RequireAuth guard. */
 const GuardedDashboard = () => (
@@ -17,7 +17,7 @@ const GuardedDashboard = () => (
 /** Mirrors the real /staff route: company portal behind the RequireAuth guard. */
 const GuardedStaff = () => (
   <RequireAuth title="Staff sign in" description="The OpenWorlds company portal is for admins and company staff.">
-    <StaffPage />
+    <StaffWorkspace isAdmin={false} userId={undefined as any} />
   </RequireAuth>
 );
 
@@ -41,10 +41,12 @@ const routes = [
   ["/privacy", "Privacy", () => import("./src/pages/Privacy.tsx")],
   ["/terms", "Terms", () => import("./src/pages/Terms.tsx")],
   ["/auth", "Auth", () => import("./src/pages/Auth.tsx")],
+  ["/player-signup", "PlayerSignup", () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-signup" }) }))],
+  ["/player-login", "PlayerLogin", () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-login" }) }))],
   ["/admin", "Admin", () => import("./src/pages/Admin.tsx")],
-  ["/dashboard", "Dashboard", () => import("./src/pages/Dashboard.tsx")],
+  ["/dashboard", "Dashboard (guarded)", async () => ({ default: GuardedDashboard })],
   ["/dashboard (guard)", "Dashboard+RequireAuth", async () => ({ default: GuardedDashboard })],
-  ["/staff", "Staff", () => import("./src/pages/Staff.tsx")],
+  ["/staff", "Staff", () => import("./src/pages/Staff.tsx").then((module) => ({ default: module.StaffWorkspace }))],
   ["/staff (guard)", "Staff+RequireAuth", async () => ({ default: GuardedStaff })],
   ["/platform-info", "PlatformInfo", () => import("./src/pages/PlatformInfo.tsx")],
   ["/nope", "NotFound", () => import("./src/pages/NotFound.tsx")],

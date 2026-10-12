@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type AuthMode = "login" | "create" | "player-login" | "player-signup";
 
@@ -41,6 +42,42 @@ function OpenWorldsLogo() {
 
 function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
   const isSignup = mode === "player-signup";
+  const { signIn } = useAuthActions();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get("returnTo");
+  const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard";
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    if (isSignup && password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await signIn("player-password", {
+        flow: isSignup ? "signUp" : "signIn",
+        email: email.trim().toLowerCase(),
+        ...(isSignup ? { name: name.trim() } : {}),
+        password,
+      });
+      if (!result.signingIn) throw new Error("Player sign-in did not complete.");
+      navigate(destination, { replace: true });
+    } catch {
+      setError(isSignup ? "Could not create your account. Check your details and try another email if one is already registered." : "Email or password is incorrect.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -48,36 +85,19 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
-            OpenWorlds player account
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {isSignup ? "Player sign-up is coming soon" : "Player log in is coming soon"}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Player sign up and player log in are coming soon. When they are active, you can create a player account
-            or sign in to the game-side profile here.
-          </p>
-          <div role="status" className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-            Player {isSignup ? "sign-up" : "log in"} is coming soon.
-          </div>
-          <div className="mt-6 flex flex-col gap-3">
-            <Link
-              to={isSignup ? "/player-login" : "/player-signup"}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]"
-            >
-              {isSignup ? "Player log in" : "Player sign up"} · coming soon
-            </Link>
-            <Link to="/" className="inline-flex h-10 items-center justify-center text-sm font-medium text-slate-600 hover:text-slate-900">
-              Back to OpenWorlds
-            </Link>
-          </div>
-          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
-            Company staff?{" "}
-            <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">
-              Staff sign in
-            </Link>
-          </div>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{isSignup ? "Create your player account" : "Player sign in"}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{isSignup ? "Create an account to keep your player profile and game progress saved securely." : "Sign in to access your saved player profile and game progress."}</p>
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
+            <div className="space-y-2"><Label htmlFor="player-email">Email</Label><Input id="player-email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
+            {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
+            {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+            <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in"}</Button>
+          </form>
+          <p className="mt-5 text-center text-sm text-slate-600">{isSignup ? "Already have an account? " : "New to OpenWorlds? "}<Link to={isSignup ? "/player-login" : "/player-signup"} className="font-medium text-[#0066cc] hover:underline">{isSignup ? "Sign in" : "Create an account"}</Link></p>
+          <p className="mt-5 border-t border-slate-100 pt-5 text-center text-xs leading-5 text-slate-500">Player accounts are separate from company staff access. <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link></p>
         </div>
       </section>
     </main>
