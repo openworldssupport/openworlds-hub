@@ -118,8 +118,7 @@ function WorkspaceOverview({
                     {me.isAdmin ? "Company admin" : me.isStaff ? "Company staff" : "Signed in"}
                     {me.department || me.position ? ` · ${[me.department, me.position].filter(Boolean).join(" · ")}` : ""}
                   </p>
-                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer thank you</span>}
-                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer thank you</span>}
+                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer</span>}
                 </div>
               </div>
               {me.nickname ? (
