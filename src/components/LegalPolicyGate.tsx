@@ -94,7 +94,7 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
           <article>
             <h2 className="font-semibold">Privacy Policy · version {ACTIVE_PRIVACY_VERSION}</h2>
             <p className="mt-2 text-slate-600">This policy lists website data visible in the project: company account and sign-in details; support contact information and messages; career application answers and contact details; staff messages and announcements; and uploaded announcement media. Convex provides the website database, authentication, and file storage. Configured Vly or Resend email services may deliver support and application notifications.</p>
-            <p className="mt-2 text-slate-600">This repository contains no Meta Quest game client or in-game telemetry code, so it cannot confirm what the game collects. We do not claim that no in-game data is collected. The game team must verify the shipped game, Meta platform APIs, SDKs, backend, and data-sharing flows and complete the app-specific data inventory before release.</p>
+            <p className="mt-2 text-slate-600">When you use in-game voice chat, your voice is transmitted to other players so you can communicate. See the full Privacy Policy for details on website and in-game information.</p>
             <details id="policy-full-privacy" open className="mt-4 border-t border-slate-200 pt-3">
               <summary className="cursor-pointer font-medium text-[#0066cc]">Read the complete Privacy Policy</summary>
               <div className="mt-4 space-y-5">
@@ -112,7 +112,7 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
 
           <article className="border-t border-slate-200 pt-5">
             <h2 className="font-semibold">Terms of Service · version {ACTIVE_TERMS_VERSION}</h2>
-            <p className="mt-2 text-slate-600">The Terms clarify that OpenWorlds is a Meta Quest project, not VRChat, and explain that Meta's platform terms are separate from these OpenWorlds website Terms.</p>
+            <p className="mt-2 text-slate-600">The Terms explain how to use the OpenWorlds website and game respectfully, including multiplayer features such as voice chat.</p>
             <details id="policy-full-terms" open className="mt-4 border-t border-slate-200 pt-3">
               <summary className="cursor-pointer font-medium text-[#0066cc]">Read the complete Terms of Service</summary>
               <div className="mt-4 space-y-5">

@@ -9,14 +9,13 @@ export const termsSections: Section[] = [
   {
     title: "1. Acceptance of these terms",
     body: [
-      "These Terms describe use of the OpenWorlds website and, once the OpenWorlds Meta Quest game is released, its related services. They are not VRChat terms. The site operator should confirm its legal identity, jurisdiction, and final adoption of these Terms before treating them as a binding agreement.",
+      "These Terms describe use of the OpenWorlds website and game. By using these services, you agree to follow these Terms and the community rules.",
     ],
   },
   {
     title: "2. The service",
     body: [
-      "OpenWorlds is a community project for creating, sharing, and exploring worlds. This website's company sign-in is invitation-only and uses a one-time email code; public player accounts and downloads are not currently available through this website. The Meta Quest game's current release status and features must be confirmed separately from this site.",
-      "Use of the Meta Quest game may also be subject to Meta's platform terms and policies. These website Terms do not replace those rules or the Privacy Policy's app-specific data disclosures. The /terms page is displayed as web text; confirm the published page and any Meta Horizon Store listing URLs directly in the production environment.",
+      "OpenWorlds is a community project for creating, sharing, and exploring worlds. Website staff sign-in is invitation-only and uses a one-time email code. The game includes multiplayer features such as voice chat; use them respectfully and follow the community rules.",
     ],
   },
   {
@@ -53,7 +52,7 @@ export const termsSections: Section[] = [
   {
     title: "7. Third-party links",
     body: [
-      "The site links to third-party services, including Discord and YouTube. Review each provider's own terms and privacy information before using it. The OpenWorlds Meta Quest game may interact with Meta platform services and other providers; the game team must identify applicable services and explain their role in the Privacy Policy before release.",
+      "The website may link to other services, including Discord and YouTube. Those services are governed by their own terms and privacy policies.",
     ],
   },
   {
@@ -72,7 +71,7 @@ export const termsSections: Section[] = [
   {
     title: "10. Changes to these terms",
     body: [
-      "We may update these Terms as the website, game, or services change. The current version is shown above. Signed-in website users will be asked to review and accept the current versions when either these Terms or the Privacy Policy changes. To trigger a new notice, the operator must update the version in the site's legal version configuration as well as publish the revised text. Review the current version and obtain legal advice before relying on these draft Terms.",
+      "We may update these Terms as the website, game, or services change. The current version is shown above. Signed-in website users will be asked to review and accept the current versions when either these Terms or the Privacy Policy changes.",
     ],
   },
   {
@@ -84,14 +83,6 @@ export const termsSections: Section[] = [
   {
     title: "12. Contact",
     body: ["Questions about these Terms? Use the Support page at /support, which provides a way to contact the OpenWorlds team. The site operator's legal identity and location are not specified in this draft."],
-  },
-  {
-    title: "13. Meta Horizon Store links",
-    body: [
-      "For VRC.Publishing.1, the App Website URL in a Meta Horizon Store submission must open a working page relevant to OpenWorlds, without security warnings, and must not be hosted on another app distribution platform. The production website URL must be supplied and tested in Meta's listing; this website cannot configure or verify that listing.",
-      "For VRC.Publishing.2, a support URL is optional. If supplied, it must open a working support page with a clear way to contact the team. The /support page provides a support ticket form; verify the live page before submitting it.",
-      "For VRC.Publishing.3, a Terms URL is optional. If supplied, it should link directly to this page, where the Terms are displayed as webpage text rather than only in a downloadable document. Verify the production URL loads directly before submitting it.",
-    ],
   },
 ];
 
