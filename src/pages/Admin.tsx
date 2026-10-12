@@ -1,12 +1,21 @@
-import { Id } from "convex/ids";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
+import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
-import { PublicBadge } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { loadEnv } from "vite";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RoleBadge } from "@/components/RoleBadge";
+import { deriveBadge, type PublicBadge } from "@/lib/staff";
+import { Loader2, Save } from "lucide-react";
+
+loadEnv("development", "VITE_");
 
 type TeamMember = {
   userId: Id<"users">;
   name: string | null;
-  role: string | null;
   department: string | null;
   position: string | null;
   isStaff: boolean;
@@ -14,7 +23,26 @@ type TeamMember = {
   badge: PublicBadge | null;
   memberStatus: "volunteer-thank-you" | null;
   isBanned: boolean;
-  assignedBy: string | null;
+  assignedBy: Id<"users"> | null;
+};
+
+type GetTeamMembersResult = {
+  members: (
+    | {
+        userId: Id<"users">;
+        name: string | null;
+        role: string | null;
+        department: string | null;
+        position: string | null;
+        publicBadge: "staff" | "dev" | null;
+        memberStatus: "volunteer-thank-you" | null;
+        isSiteBanned: boolean;
+        hasAdminAssignment: boolean;
+        assignedBy: Id<"users"> | null;
+        createdAt: string;
+      }
+    | null
+  )[];
 };
 
 type TeamRowProps = {
@@ -29,18 +57,58 @@ type TeamRowProps = {
     memberStatus: "none" | "volunteer-thank-you",
     banned: boolean
   ) => Promise<void>;
-  assignedBy: string;
+  assignedBy: Id<"users"> | null;
 };
 
+const DEPARTMENTS = [
+  "Executive Leadership",
+  "Engineering & Software Development",
+  "Game Design & Systems Architecture",
+  "Creative Content & Art Production",
+  "Community Operations & Player Engagement",
+  "Trust & Safety / Moderation",
+  "Data Science, Analytics & Research",
+  "AI & Procedural Systems",
+  "Operations & Internal Systems",
+  "Marketing & Growth",
+  "Business Development & Strategy",
+];
+
+const POSITIONS = [
+  "Chief Executive Officer",
+  "Chief Technology Officer",
+  "Chief Design Officer",
+  "Chief Marketing Officer",
+  "Chief People Officer",
+  "Chief Finance Officer",
+  "Chief Legal Officer",
+  "Head of Community",
+  "Lead Game Designer",
+  "Lead Programmer",
+  "Lead Artist",
+  "Senior Developer",
+  "Developer",
+  "Producer",
+  "Community Manager",
+  "Customer Support Lead",
+  "Senior QA Engineer",
+  "Data Analyst",
+  "AI Researcher",
+  "AI Engineer",
+  "Art Director",
+  "Technical Writer",
+];
+
 function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
+  const { user } = useAuth();
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
+  const [localAssignedBy, setLocalAssignedBy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [assignedBy, setAssignedBy] = useState<string | null>(member.assignedBy ?? null);
-  const [banReason, setBanReason] = useState<string>(member.isBanned ? (member.assignedBy ?? "") : "");
+  const [banReason, setBanReason] = useState<string>(user?.userId ?? "");
 
   async function save(
     member: TeamMember,
@@ -58,7 +126,7 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
         await setMemberStatus({ userId: member.userId, memberStatus });
         return;
       }
-      if (member.assignedBy !== assignedBy) {
+      if (member.assignedBy !== localAssignedBy) {
         setError("Current ticket is not assigned to the same admin.");
         return;
       }
@@ -89,14 +157,14 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
       {members.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p>
       ) : (
-        members.map((item) => (
+        members.map((member) => (
           <TeamRow
-            key={item.userId}
-            member={item}
-            busy={busyId === item.userId}
-            saved={savedId === item.userId}
+            key={member.userId}
+            member={member}
+            busy={busyId === member.userId}
+            saved={savedId === member.userId}
             onSave={save}
-            assignedBy={item.userId}
+            assignedBy={localAssignedBy ?? member.assignedBy ?? null}
           />
         ))
       )}
@@ -108,11 +176,11 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
   const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
   const [department, setDepartment] = useState(member.department ?? "");
   const [position, setPosition] = useState(member.position ?? "");
-  const [badge, setBadge] = useState<PublicBadge>(defaultBadge);
+  const [badge, setBadge] = useState<"staff" | "dev">(defaultBadge);
   const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
   const [assignedById, setAssignedById] = useState<string | null>(member.assignedBy ?? null);
-  const [banned, setBanned] = useState(member.isBanned);
   const [banReason, setBanReason] = useState<string>(member.isBanned ? (member.assignedBy ?? "") : "");
+  const [banned, setBanned] = useState(member.isBanned);
   const isDirty = member.isAdmin
     ? memberStatus !== (member.memberStatus ?? "none") || assignedById !== (member.assignedBy ?? null)
     : department !== (member.department ?? "") ||
@@ -172,7 +240,7 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
               <select
                 id={`badge-${member.userId}`}
                 value={badge}
-                onChange={(e) => setBadge(e.target.value as PublicBadge)}
+                onChange={(e) => setBadge(e.target.value as "staff" | "dev")}
                 className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
               >
                 <option value="staff">Staff</option>
