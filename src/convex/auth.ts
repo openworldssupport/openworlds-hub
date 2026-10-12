@@ -59,6 +59,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
                   position: position || undefined,
                   publicBadge,
                   staffAccess: Boolean(department?.trim() || position?.trim() || invitation || approvedApplication || assignedUser?.staffAccess),
+                  memberStatus: invitation?.memberStatus ?? assignedUser?.memberStatus,
                 }
               : { staffAccess: true }),
           }

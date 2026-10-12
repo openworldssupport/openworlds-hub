@@ -1,8 +1,10 @@
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 import { isAdmin, requireAdmin } from "./admin";
+import { recordSecurityViolation } from "./security";
 
 /** Rejection message when the sender has not accepted the policies. */
 export const SUPPORT_TERMS_CONSENT_MESSAGE =
@@ -52,6 +54,10 @@ export const create = mutation({
       return { reference: null };
     }
 
+    const currentUserId = await getAuthUserId(ctx);
+    const currentUser = currentUserId ? await ctx.db.get(currentUserId) : null;
+    if (currentUser && "isSiteBanned" in currentUser && currentUser.isSiteBanned) throw new Error("This account is restricted from submitting tickets.");
+
     const email = args.email.trim().toLowerCase();
     const name = args.name?.trim() ?? "";
     const username = args.username?.trim() ?? "";
@@ -70,6 +76,7 @@ export const create = mutation({
       throw new Error("Describe your request in 20–5,000 characters.");
     }
     if (!args.privacyAndTermsAccepted) {
+      await recordSecurityViolation(ctx);
       throw new Error(SUPPORT_TERMS_CONSENT_MESSAGE);
     }
 

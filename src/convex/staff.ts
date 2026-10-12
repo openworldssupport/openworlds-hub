@@ -4,6 +4,7 @@ import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { recordSecurityViolation } from "./security";
 
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -34,10 +35,13 @@ async function currentUser(ctx: QueryCtx | MutationCtx) {
  * department/position. Mirrors `isStaffUser` in `src/lib/staff.ts`.
  */
 export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
-  if (await isAdmin(ctx)) return true;
+  if (await isAdmin(ctx)) {
+    const user = await currentUser(ctx);
+    return Boolean(user && !user.isSiteBanned);
+  }
   const user = await currentUser(ctx);
   if (!user || user.emailVerificationTime === undefined) return false;
-  return Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
+  return !user.isSiteBanned && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
 }
 
 /** The portal header data: who you are, your department/position, your badge. */
@@ -56,11 +60,12 @@ export const me = query({
         department: null as string | null,
         position: null as string | null,
         badge: null as PublicBadge | null,
+        memberStatus: null as "volunteer-thank-you" | null,
       };
     }
 
     const admin = await isAdmin(ctx);
-    const staff = admin || (user.emailVerificationTime !== undefined && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim()));
+    const staff = (admin || (user.emailVerificationTime !== undefined && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim()))) && !user.isSiteBanned;
     const department = user.department?.trim() || null;
     const position = user.position?.trim() || null;
 
@@ -69,6 +74,8 @@ export const me = query({
       userId: user._id,
       isStaff: staff,
       isAdmin: admin,
+      isBanned: user.isSiteBanned === true,
+      memberStatus: staff ? user.memberStatus ?? null : null,
       name: staff && !isEmailAddress(user.name) ? user.name?.trim() || null : null,
       nickname: staff && !isEmailAddress(user.nickname) ? user.nickname?.trim() || null : null,
       department: staff ? department : null,
@@ -99,7 +106,10 @@ export const board = query({
 export const post = mutation({
   args: { body: v.string() },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
     const body = args.body.trim();
     if (body.length < 1) throw new Error("Write a message first.");
     if (body.length > MAX_MESSAGE_LENGTH) {
@@ -127,7 +137,10 @@ export const post = mutation({
 export const removeMessage = mutation({
   args: { messageId: v.id("staffMessages") },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
     const message = await ctx.db.get(args.messageId);
     if (!message) return { ok: true };
 
@@ -159,8 +172,11 @@ export const listMembers = query({
         role: user.role ?? null,
         department,
         position,
-        isStaff: assigned || user.staffAccess === true || user.role === "admin",
-        badge: assigned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
+        isStaff: (assigned || user.staffAccess === true || user.role === "admin") && !user.isSiteBanned,
+        isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk",
+        badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
+        memberStatus: user.memberStatus ?? null,
+        isBanned: user.isSiteBanned === true,
       };
     });
   },
@@ -170,12 +186,31 @@ export const listMembers = query({
  * Admin only: assign (or clear) a person's department, position and public
  * badge. Clearing both department and position removes staff access.
  */
+export const setMemberStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    memberStatus: v.union(v.literal("none"), v.literal("volunteer-thank-you")),
+  },
+  handler: async (ctx, args) => {
+    await requireCompanyAdmin(ctx);
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("Account not found.");
+    if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "support@openworlds.dk") {
+      throw new Error("This control is only for admin accounts.");
+    }
+    await ctx.db.patch(args.userId, { memberStatus: args.memberStatus === "none" ? undefined : args.memberStatus });
+    return { ok: true };
+  },
+});
+
 export const setAssignment = mutation({
   args: {
     userId: v.id("users"),
     department: v.string(),
     position: v.string(),
     badge: v.union(v.literal("staff"), v.literal("dev")),
+    memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
+    isBanned: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
@@ -189,14 +224,23 @@ export const setAssignment = mutation({
 
     if (!department && !position) {
       const target = await ctx.db.get(args.userId);
-      if (target?.role === "admin" || target?.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      if (!target) throw new Error("Account not found.");
+      if (target.role === "admin" || target.email?.trim().toLowerCase() === "support@openworlds.dk") {
         throw new Error("The bootstrap admin cannot be removed from staff access.");
       }
+      const clearedStatus = args.memberStatus === "none" ? undefined : (args.memberStatus ?? target.memberStatus);
+      const keepBan = args.isBanned ?? (target.isSiteBanned === true);
+      const clearedMemberStatus = args.memberStatus === "none" ? undefined : (args.memberStatus ?? target.memberStatus);
       await ctx.db.patch(args.userId, {
         department: undefined,
         position: undefined,
         publicBadge: undefined,
         staffAccess: undefined,
+        memberStatus: clearedMemberStatus,
+        role: "user",
+        isSiteBanned: keepBan ? true : undefined,
+        siteBanReason: keepBan ? (target.siteBanReason ?? "Staff moderation") : undefined,
+        siteBannedAt: keepBan ? (target.siteBannedAt ?? Date.now()) : undefined,
       });
       const user = await ctx.db.get(args.userId);
       const email = user?.email?.trim().toLowerCase();
@@ -215,12 +259,19 @@ export const setAssignment = mutation({
     if (target.role === "admin" || target.email?.trim().toLowerCase() === "support@openworlds.dk") {
       throw new Error("Admin accounts cannot be changed from the team assignment panel.");
     }
+    const finalStatus = args.memberStatus ?? (target.memberStatus ? "volunteer-thank-you" : "none");
+    const isBanned = args.isBanned ?? (target.isSiteBanned === true);
     if (target.emailVerificationTime !== undefined) {
       await ctx.db.patch(args.userId, {
         department: department || undefined,
         position: position || undefined,
         publicBadge: args.badge,
         staffAccess: true,
+        role: "member",
+        memberStatus: finalStatus === "none" ? undefined : finalStatus,
+        isSiteBanned: isBanned ? true : undefined,
+        siteBanReason: isBanned ? (target.siteBanReason ?? "Staff moderation") : undefined,
+        siteBannedAt: isBanned ? (target.siteBannedAt ?? Date.now()) : undefined,
       });
     }
     const email = target.email?.trim().toLowerCase();
@@ -235,7 +286,8 @@ export const setAssignment = mutation({
           department,
           position,
           publicBadge: args.badge,
-          accessLevel: "staff",
+        accessLevel: "staff",
+        memberStatus: finalStatus === "none" ? undefined : finalStatus,
           invitedAt: Date.now(),
           invitedBy: (await getAuthUserId(ctx))!,
         });
@@ -244,6 +296,8 @@ export const setAssignment = mutation({
           department,
           position,
           publicBadge: args.badge,
+        accessLevel: "staff",
+        memberStatus: finalStatus === "none" ? undefined : finalStatus,
         });
       }
     }
@@ -258,7 +312,10 @@ export const setAssignment = mutation({
 export const setNick = mutation({
   args: { nickname: v.string() },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
     const nickname = args.nickname.trim();
     if (nickname.length === 0) throw new Error("Enter a nickname first.");
     if (isEmailAddress(nickname)) throw new Error("Choose a nickname that is not an email address.");
@@ -309,7 +366,12 @@ export const publicAnnouncements = query({
 export const generateAnnouncementUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return null;
+    }
+    const user = await currentUser(ctx);
+    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return null;
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -321,9 +383,13 @@ export const finalizeAnnouncementUpload = mutation({
     mediaType: v.union(v.literal("image"), v.literal("video")),
   },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { storageId: args.storageId, mediaType: args.mediaType, url: null };
+    }
+    const user = await currentUser(ctx);
+    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return { storageId: args.storageId, mediaType: args.mediaType, url: null };
+    const userId = user._id;
     const metadata = await ctx.db.system.get("_storage", args.storageId);
     if (!metadata) throw new Error("Upload not found.");
     const contentType = metadata.contentType ?? "";
@@ -403,7 +469,12 @@ export const saveAnnouncement = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { restricted: true };
+    }
+    const user = await currentUser(ctx);
+    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return { restricted: true };
     const title = args.title.trim();
     const summary = args.summary.trim();
     const body = args.body.trim();
@@ -416,7 +487,6 @@ export const saveAnnouncement = mutation({
       if (asset.altText && asset.altText.trim().length > 200) throw new Error("Keep image descriptions under 200 characters.");
     }
 
-    const user = await currentUser(ctx);
     if (!user) throw new Error("Not authorized.");
     const userId = user._id;
     const now = Date.now();
@@ -501,7 +571,12 @@ async function validateAnnouncementAssets(
 export const deleteAnnouncementUpload = mutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
+    const user = await currentUser(ctx);
+    if (!user || (!(await isAdmin(ctx)) && (user.newsPostingVerifiedUntil ?? 0) < Date.now())) return { ok: false, restricted: true };
     const userId = await getAuthUserId(ctx);
     const stored = await ctx.db.query("announcementAssets")
       .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
@@ -518,7 +593,10 @@ export const deleteAnnouncementUpload = mutation({
 export const removeAnnouncement = mutation({
   args: { announcementId: v.id("gameAnnouncements") },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
     const announcement = await ctx.db.get(args.announcementId);
     if (!announcement) return { ok: true };
     const userId = await getAuthUserId(ctx);
@@ -542,7 +620,14 @@ export const removeAnnouncement = mutation({
 export const setAnnouncementStatus = mutation({
   args: { announcementId: v.id("gameAnnouncements"), status: announcementStatus },
   handler: async (ctx, args) => {
-    if (!(await isStaff(ctx))) throw new Error("Not authorized.");
+    if (!(await isStaff(ctx))) {
+      await recordSecurityViolation(ctx);
+      return { ok: false, restricted: true };
+    }
+    const user = await currentUser(ctx);
+    if (args.status === "published" && (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now())) {
+      return { ok: false, restricted: true };
+    }
     const announcement = await ctx.db.get(args.announcementId);
     if (!announcement) throw new Error("Announcement not found.");
     const userId = await getAuthUserId(ctx);

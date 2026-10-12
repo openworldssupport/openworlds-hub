@@ -108,7 +108,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
   const inviteCompanyAccount = useMutation(api.admin.inviteCompanyAccount);
   const revokeCompanyAccount = useMutation(api.admin.revokeCompanyAccount);
 
-  const [tab, setTab] = useState<"tickets" | "applications" | "careers" | "team" | "accounts">("tickets");
+  const [tab, setTab] = useState<"tickets" | "applications" | "careers" | "team" | "accounts" | "security">("tickets");
   const [filter, setFilter] = useState<"all" | "open" | "responded" | "closed">("all");
   const [error, setError] = useState("");
   const [busyTicketId, setBusyTicketId] = useState<string | null>(null);
@@ -149,6 +149,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
           <Button asChild variant="outline"><Link to="/staff">Staff workspace</Link></Button>
           {canManageCompanyAccounts && <Button variant={tab === "team" ? "default" : "outline"} onClick={() => setTab("team")}><Briefcase className="size-4" /> Team</Button>}
           {canManageCompanyAccounts && <Button variant={tab === "accounts" ? "default" : "outline"} onClick={() => setTab("accounts")}><LockKeyhole className="size-4" /> Company accounts</Button>}
+          {canManageCompanyAccounts && <Button variant={tab === "security" ? "default" : "outline"} onClick={() => setTab("security")}><ShieldCheck className="size-4" /> Bans &amp; appeals</Button>}
         </div>
         <Button variant="outline" onClick={() => signOut()}><LogOut className="size-4" /> Sign out</Button>
       </div>
@@ -184,7 +185,7 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
           roles={roleAvailability}
           onSetAvailability={(args) => run(() => setRoleAvailability(args))}
         />
-      ) : tab === "team" && canManageCompanyAccounts ? <TeamPanel members={members} /> : tab === "accounts" && canManageCompanyAccounts ? (
+      ) : tab === "team" && canManageCompanyAccounts ? <TeamPanel members={members} /> : tab === "security" && canManageCompanyAccounts ? <SecurityPanel /> : tab === "accounts" && canManageCompanyAccounts ? (
         <CompanyAccountsPanel
           accounts={accounts}
           onInvite={(args) => run(() => inviteCompanyAccount(args))}
@@ -192,6 +193,40 @@ function AdminDashboard({ canManageCompanyAccounts }: { canManageCompanyAccounts
         />
       ) : <AccessDenied />}
       <div className="mt-8 flex gap-4 text-sm"><Link to="/" className="font-medium text-[#0066cc] hover:underline">Website</Link><Link to="/staff" className="font-medium text-[#0066cc] hover:underline">Staff portal</Link></div>
+    </div>
+  );
+}
+
+function SecurityPanel() {
+  const data = useQuery(api.security.listBansAndAppeals);
+  const setBan = useMutation(api.security.setBan);
+  const reviewAppeal = useMutation(api.security.reviewAppeal);
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function runSecurityAction(id: string, action: () => Promise<unknown>) {
+    setBusyId(id);
+    setError("");
+    try { await action(); }
+    catch { setError("Could not complete the security action. Please try again."); }
+    finally { setBusyId(null); }
+  }
+
+  if (data === undefined) return <div className="flex justify-center py-12"><Loader2 className="size-5 animate-spin text-slate-400" /></div>;
+  if (data === null) return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Admin access required.</p>;
+
+  return (
+    <div className="mt-6 space-y-5">
+      <p className="text-sm leading-6 text-slate-600">Review accounts restricted by security checks, remove bans, and decide submitted appeals.</p>
+      {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      <section className="rounded-lg border border-slate-200 bg-white">
+        <h2 className="border-b border-slate-100 px-5 py-4 font-semibold">Active website bans <span className="ml-1 text-sm font-normal text-slate-500">{data.bans.length}</span></h2>
+        {data.bans.length === 0 ? <p className="p-5 text-sm text-slate-500">No active bans.</p> : <ul className="divide-y divide-slate-100">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-start justify-between gap-3 px-5 py-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email}</p><p className="mt-2 text-sm text-slate-700">{ban.reason}</p><p className="mt-1 text-xs text-slate-400">Banned {ban.bannedAt ? new Date(ban.bannedAt).toLocaleString() : "—"}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void runSecurityAction(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Unban</Button></li>)}</ul>}
+      </section>
+      <section className="rounded-lg border border-slate-200 bg-white">
+        <h2 className="border-b border-slate-100 px-5 py-4 font-semibold">Appeals awaiting review <span className="ml-1 text-sm font-normal text-slate-500">{data.appeals.length}</span></h2>
+        {data.appeals.length === 0 ? <p className="p-5 text-sm text-slate-500">No appeals need review.</p> : <ul className="divide-y divide-slate-100">{data.appeals.map((appeal) => <li key={appeal._id} className="px-5 py-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium">{appeal.name}</p><p className="text-sm text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">Pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-4 flex flex-wrap gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void runSecurityAction(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}>{busyId === appeal._id ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Approve appeal &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void runSecurityAction(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline appeal</Button></div></li>)}</ul>}
+      </section>
     </div>
   );
 }
@@ -270,24 +305,25 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return <div className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-sm text-slate-500">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>;
 }
 
-type CompanyAccount = { _id: Id<"companyAccess">; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff" };
+type CompanyAccount = { _id: Id<"companyAccess">; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff"; memberStatus: "volunteer-thank-you" | null };
 
 function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
   accounts: CompanyAccount[] | null | undefined;
-  onInvite: (args: { email: string; department: string; position: string; publicBadge: PublicBadge; accessLevel: "admin" | "staff" }) => Promise<void>;
+  onInvite: (args: { email: string; department: string; position: string; publicBadge: PublicBadge; accessLevel: "staff"; memberStatus?: "volunteer-thank-you" }) => Promise<void>;
   onRevoke: (accountId: Id<"companyAccess">) => Promise<void>;
 }) {
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
   const [publicBadge, setPublicBadge] = useState<PublicBadge>("staff");
-  const [accessLevel, setAccessLevel] = useState<"admin" | "staff">("staff");
+  const accessLevel = "staff" as const;
+  const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">("none");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
 
   async function invite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setBusy("invite");
-    try { await onInvite({ email, department, position, publicBadge, accessLevel }); setEmail(""); setDepartment(""); setPosition(""); }
+    try { await onInvite({ email, department, position, publicBadge, accessLevel, memberStatus: memberStatus === "none" ? undefined : memberStatus }); setEmail(""); setDepartment(""); setPosition(""); }
     catch { setError("Could not invite the account. Please check the details and try again."); }
     finally { setBusy(""); }
   }
@@ -309,7 +345,8 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
           <div className="space-y-1.5"><Label htmlFor="invite-dept">Department</Label><Input id="invite-dept" list="ow-departments" required maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
           <div className="space-y-1.5"><Label htmlFor="invite-position">Position</Label><Input id="invite-position" list="ow-positions" required maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
           <div className="space-y-1.5"><Label htmlFor="invite-badge">Public badge</Label><select id="invite-badge" value={publicBadge} onChange={(e) => setPublicBadge(e.target.value as PublicBadge)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="dev">Dev</option></select></div>
-          <div className="space-y-1.5"><Label htmlFor="invite-level">Access</Label><select id="invite-level" value={accessLevel} onChange={(e) => setAccessLevel(e.target.value as "admin" | "staff")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>
+          <div className="space-y-1.5"><Label htmlFor="invite-level">Access level</Label><Input id="invite-level" value="Staff" readOnly aria-readonly="true" className="bg-slate-50" /></div>
+          <div className="space-y-1.5"><Label htmlFor="invite-status">Status</Label><select id="invite-status" value={memberStatus} onChange={(e) => setMemberStatus(e.target.value as "none" | "volunteer-thank-you")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="none">No status</option><option value="volunteer-thank-you">Volunteer thank you</option></select></div>
           <div className="sm:col-span-2"><Button type="submit" disabled={Boolean(busy)}>{busy === "invite" ? <Loader2 className="size-4 animate-spin" /> : <UserRound className="size-4" />} Invite account</Button></div>
         </form>
         <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
@@ -318,23 +355,33 @@ function CompanyAccountsPanel({ accounts, onInvite, onRevoke }: {
       </section>
       <section className="rounded-lg border border-slate-200 bg-white">
         <h2 className="border-b border-slate-100 px-5 py-4 font-semibold">Company accounts</h2>
-        {accounts === undefined ? <p className="p-5 text-sm text-slate-500">Loading accounts…</p> : accounts === null ? <p className="p-5 text-sm text-slate-600">Admin access required.</p> : accounts.length === 0 ? <p className="p-5 text-sm text-slate-500">No invited accounts yet.</p> : <ul className="divide-y divide-slate-100">{accounts.map((account) => <li key={account._id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><p className="text-sm font-medium">Company account</p><p className="mt-0.5 text-xs text-slate-500">{account.department} · {account.position} · {account.accessLevel}</p></div><div className="flex items-center gap-3"><RoleBadge badge={account.publicBadge} /><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void revoke(account._id)}>{busy === account._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Revoke</Button></div></li>)}</ul>}
+        {accounts === undefined ? <p className="p-5 text-sm text-slate-500">Loading accounts…</p> : accounts === null ? <p className="p-5 text-sm text-slate-600">Admin access required.</p> : accounts.length === 0 ? <p className="p-5 text-sm text-slate-500">No invited accounts yet.</p> : <ul className="divide-y divide-slate-100">{accounts.map((account) => <li key={account._id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"><div><p className="text-sm font-medium">Company account</p><p className="mt-0.5 text-xs text-slate-500">{account.department} · {account.position} · {account.accessLevel === "admin" ? "Admin" : "Staff"}{account.memberStatus ? " · Volunteer thank you" : ""}</p></div><div className="flex items-center gap-3"><RoleBadge badge={account.publicBadge} /><Button type="button" size="sm" variant="outline" disabled={Boolean(busy)} onClick={() => void revoke(account._id)}>{busy === account._id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Revoke</Button></div></li>)}</ul>}
       </section>
     </div>
   );
 }
 
-type TeamMember = { userId: Id<"users">; name: string | null; role: string | null; department: string | null; position: string | null; isStaff: boolean; badge: PublicBadge | null };
+type TeamMember = { userId: Id<"users">; name: string | null; role: string | null; department: string | null; position: string | null; isStaff: boolean; isAdmin: boolean; badge: PublicBadge | null; memberStatus: "volunteer-thank-you" | null; isBanned: boolean };
 
 function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
   const setAssignment = useMutation(api.staff.setAssignment);
+  const setMemberStatus = useMutation(api.staff.setMemberStatus);
+  const setBan = useMutation(api.security.setBan);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
 
-  async function save(member: TeamMember, department: string, position: string, badge: PublicBadge) {
+  async function save(member: TeamMember, department: string, position: string, badge: PublicBadge, memberStatus: "none" | "volunteer-thank-you", banned: boolean) {
     setError(""); setSavedId(null); setBusyId(member.userId);
-    try { await setAssignment({ userId: member.userId, department, position, badge }); setSavedId(member.userId); }
+    try {
+      if (member.isAdmin) {
+        await setMemberStatus({ userId: member.userId, memberStatus });
+      } else {
+        await setAssignment({ userId: member.userId, department, position, badge, memberStatus });
+        if (banned !== member.isBanned) await setBan({ userId: member.userId, banned, reason: "Staff moderation" });
+      }
+      setSavedId(member.userId);
+    }
     catch { setError("Could not save the assignment. Please try again."); }
     finally { setBusyId(null); }
   }
@@ -352,22 +399,29 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
   );
 }
 
-function TeamRow({ member, busy, saved, onSave }: { member: TeamMember; busy: boolean; saved: boolean; onSave: (member: TeamMember, department: string, position: string, badge: PublicBadge) => Promise<void> }) {
+function TeamRow({ member, busy, saved, onSave }: { member: TeamMember; busy: boolean; saved: boolean; onSave: (member: TeamMember, department: string, position: string, badge: PublicBadge, memberStatus: "none" | "volunteer-thank-you", banned: boolean) => Promise<void> }) {
   const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
   const [department, setDepartment] = useState(member.department ?? "");
   const [position, setPosition] = useState(member.position ?? "");
   const [badge, setBadge] = useState<PublicBadge>(defaultBadge);
-  const isDirty = department !== (member.department ?? "") || position !== (member.position ?? "") || badge !== defaultBadge;
+  const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
+  const [banned, setBanned] = useState(member.isBanned);
+  const isDirty = member.isAdmin ? memberStatus !== (member.memberStatus ?? "none") : department !== (member.department ?? "") || position !== (member.position ?? "") || badge !== defaultBadge || memberStatus !== (member.memberStatus ?? "none") || banned !== member.isBanned;
   const active = Boolean(department.trim() || position.trim());
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="flex items-center gap-2 text-sm font-semibold">{member.name || "Company account"}{member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}</p><p className="text-xs text-slate-500">{member.isStaff ? "Staff access on" : "Staff access off"}</p></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="flex items-center gap-2 text-sm font-semibold">{member.name || "Company account"}{member.isAdmin ? <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">Admin</span> : member.isStaff && <RoleBadge badge={member.badge ?? defaultBadge} />}</p><p className="text-xs text-slate-500">{member.isAdmin ? "Admin access protected" : member.isStaff ? "Staff access on" : "Staff access off"}</p></div></div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-        <div className="space-y-1"><Label htmlFor={`dept-${member.userId}`}>Department</Label><Input id={`dept-${member.userId}`} list="ow-departments" maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
-        <div className="space-y-1"><Label htmlFor={`position-${member.userId}`}>Position</Label><Input id={`position-${member.userId}`} list="ow-positions" maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
-        <div className="space-y-1"><Label htmlFor={`badge-${member.userId}`}>Badge</Label><select id={`badge-${member.userId}`} value={badge} onChange={(e) => setBadge(e.target.value as PublicBadge)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="dev">Dev</option></select></div>
+        {!member.isAdmin && <>
+          <div className="space-y-1"><Label htmlFor={`dept-${member.userId}`}>Department</Label><Input id={`dept-${member.userId}`} list="ow-departments" maxLength={80} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Engineering" /></div>
+          <div className="space-y-1"><Label htmlFor={`position-${member.userId}`}>Position</Label><Input id={`position-${member.userId}`} list="ow-positions" maxLength={100} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Developer" /></div>
+          <div className="space-y-1"><Label htmlFor={`badge-${member.userId}`}>Badge</Label><select id={`badge-${member.userId}`} value={badge} onChange={(e) => setBadge(e.target.value as PublicBadge)} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="staff">Staff</option><option value="dev">Dev</option></select></div>
+        </>}
+        {!member.isAdmin && <div className="space-y-1"><Label htmlFor={`member-status-${member.userId}`}>Status</Label><select id={`member-status-${member.userId}`} value={memberStatus} onChange={(e) => setMemberStatus(e.target.value as "none" | "volunteer-thank-you")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="none">No status</option><option value="volunteer-thank-you">Volunteer thank you</option></select></div>}
+        {!member.isAdmin && <div className="space-y-1"><Label htmlFor={`member-ban-${member.userId}`}>Website access</Label><select id={`member-ban-${member.userId}`} value={banned ? "banned" : "active"} onChange={(e) => setBanned(e.target.value === "banned")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="active">Active</option><option value="banned">Banned</option></select></div>}
       </div>
-      <div className="mt-3 flex items-center gap-3"><Button size="sm" disabled={!isDirty || busy || (!active && !member.isStaff)} onClick={() => void onSave(member, department, position, badge)}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{member.isStaff ? "Save" : "Give staff access"}</Button>{saved && <span className="text-xs text-emerald-700">Saved</span>}</div>
+      {member.isAdmin && <div className="mt-4 max-w-sm space-y-1"><Label htmlFor={`member-status-${member.userId}`}>Status</Label><select id={`member-status-${member.userId}`} value={memberStatus} onChange={(e) => setMemberStatus(e.target.value as "none" | "volunteer-thank-you")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"><option value="none">No status</option><option value="volunteer-thank-you">Volunteer thank you</option></select></div>}
+      <div className="mt-3 flex items-center gap-3"><Button size="sm" disabled={!isDirty || busy || (!active && !member.isStaff && banned === member.isBanned)} onClick={() => void onSave(member, department, position, badge, memberStatus, banned)}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{member.isAdmin ? "Save status" : member.isStaff ? "Save" : "Give staff access"}</Button>{saved && <span className="text-xs text-emerald-700">Saved</span>}</div>
     </article>
   );
 }

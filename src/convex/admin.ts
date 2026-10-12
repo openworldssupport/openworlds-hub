@@ -69,12 +69,14 @@ export const listCompanyAccess = query({
   handler: async (ctx) => {
     if (!(await isCompanyAdmin(ctx))) return null;
     const accounts = await ctx.db.query("companyAccess").withIndex("by_email").collect();
-    return accounts.map(({ _id, department, position, publicBadge, accessLevel }) => ({
+    return accounts.map(({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => ({
       _id,
       department,
       position,
       publicBadge,
       accessLevel,
+      memberStatus: memberStatus ?? null,
+      email,
     }));
   },
 });
@@ -86,7 +88,8 @@ export const inviteCompanyAccount = mutation({
     department: v.string(),
     position: v.string(),
     publicBadge: v.union(v.literal("staff"), v.literal("dev")),
-    accessLevel: v.union(v.literal("admin"), v.literal("staff")),
+    accessLevel: v.literal("staff"),
+    memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
@@ -97,6 +100,8 @@ export const inviteCompanyAccount = mutation({
     if (email === SUPPORT_EMAIL) {
       throw new Error("The bootstrap admin is managed separately and cannot be changed here.");
     }
+    const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
+    if (existingUser?.role === "admin") throw new Error("Existing admin accounts cannot be changed through staff invitations.");
     const department = args.department.trim();
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
@@ -106,12 +111,22 @@ export const inviteCompanyAccount = mutation({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
-    const values = {
+    const values: {
+      email: string;
+      department: string;
+      position: string;
+      publicBadge: "staff" | "dev";
+      accessLevel: "staff";
+      memberStatus?: "volunteer-thank-you";
+      invitedAt: number;
+      invitedBy: NonNullable<Awaited<ReturnType<typeof getAuthUserId>>>;
+    } = {
       email,
       department,
       position,
       publicBadge: args.publicBadge,
       accessLevel: args.accessLevel,
+      ...(args.memberStatus === "volunteer-thank-you" ? { memberStatus: "volunteer-thank-you" as const } : {}),
       invitedAt: Date.now(),
       invitedBy: (await getAuthUserId(ctx))!,
     };
@@ -127,8 +142,13 @@ export const inviteCompanyAccount = mutation({
         department,
         position,
         publicBadge: args.publicBadge,
-        role: args.accessLevel === "admin" ? "admin" : "member",
+        role: "member",
         staffAccess: true,
+        memberStatus: args.memberStatus === "volunteer-thank-you" ? "volunteer-thank-you" : undefined,
+        isSiteBanned: undefined,
+        siteBanReason: undefined,
+        siteBannedAt: undefined,
+        securityViolationCount: 0,
         emailVerificationTime: Date.now(),
       });
     }
@@ -145,6 +165,8 @@ export const revokeCompanyAccount = mutation({
     if (!invitation) return { ok: true };
     const normalized = invitation.email.trim().toLowerCase();
     if (normalized === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be revoked here.");
+    const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalized)).first();
+    if (existingUser?.role === "admin") throw new Error("Existing admin accounts cannot be revoked through staff invitations.");
     await ctx.db.delete(accountId);
     const user = await ctx.db
       .query("users")
@@ -158,6 +180,7 @@ export const revokeCompanyAccount = mutation({
         position: undefined,
         publicBadge: undefined,
         staffAccess: undefined,
+        memberStatus: undefined,
       });
     }
     const acceptedApplications = await ctx.db

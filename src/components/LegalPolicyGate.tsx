@@ -5,6 +5,7 @@ import { privacySections } from "@/pages/Privacy";
 import { termsSections } from "@/pages/Terms";
 import { ACTIVE_AGREEMENT_REVISION, ACTIVE_PRIVACY_VERSION, ACTIVE_TERMS_VERSION } from "@/lib/legalVersions";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useLocation } from "react-router";
 import {
   Dialog,
@@ -20,12 +21,16 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
   const legalStatus = useQuery(api.legal.status, isAuthenticated ? {} : "skip");
+  const siteAccess = useQuery(api.security.accessStatus);
   const acceptCurrent = useMutation(api.legal.acceptCurrent);
+  const submitAppeal = useMutation(api.security.submitAppeal);
   const [localReady, setLocalReady] = useState(false);
   const [localAccepted, setLocalAccepted] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [appealText, setAppealText] = useState("");
+  const [appealSent, setAppealSent] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,8 +42,19 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
   }, []);
 
   const isPublicPolicyPage = location.pathname === "/privacy" || location.pathname === "/terms";
-  const isChecking = isAuthLoading || (isAuthenticated && legalStatus === undefined) || (!isAuthenticated && !localReady);
+  const isChecking = isAuthLoading || siteAccess === undefined || (isAuthenticated && legalStatus === undefined) || (!isAuthenticated && !localReady);
   const isAccepted = isAuthenticated ? legalStatus?.accepted === true : localAccepted;
+
+  async function handleAppeal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    try {
+      await submitAppeal({ message: appealText });
+      setAppealSent(true);
+    } catch {
+      setError("Could not submit your appeal. Please try again.");
+    }
+  }
 
   async function handleAccept() {
     if (!agreed || submitting) return;
@@ -60,6 +76,30 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (siteAccess?.isBanned) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5 text-slate-900">
+        <section className="w-full max-w-xl rounded-xl border border-amber-200 bg-white p-6 shadow-sm sm:p-8">
+          <h1 className="text-2xl font-semibold">Website access restricted</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Our security system restricted this account after repeated failed verification attempts. If you think this was a mistake, submit an appeal for staff review.</p>
+          {siteAccess.reason && <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Reason: {siteAccess.reason}</p>}
+          {appealSent || siteAccess.hasPendingAppeal ? (
+            <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{appealSent ? "Your appeal has been sent for review." : "Your appeal is awaiting staff review."}</p>
+          ) : isAuthenticated ? (
+            <form onSubmit={(event) => void handleAppeal(event)} className="mt-5 space-y-3">
+              <label htmlFor="ban-appeal" className="text-sm font-medium">Appeal this restriction</label>
+              <Textarea id="ban-appeal" value={appealText} onChange={(event) => setAppealText(event.target.value)} minLength={20} maxLength={3000} required rows={5} placeholder="Explain why you believe this restriction should be reviewed." />
+              <Button type="submit" disabled={appealText.trim().length < 20}>Send appeal</Button>
+            </form>
+          ) : (
+            <p className="mt-5 text-sm text-slate-600">Sign in to the affected account to submit an appeal.</p>
+          )}
+          {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+        </section>
+      </main>
+    );
   }
 
   // Keep these public legal URLs directly readable without accepting a modal first.

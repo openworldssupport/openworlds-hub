@@ -43,6 +43,18 @@ const schema = defineSchema(
       // Staff-chosen public name used across /staff and public team pages.
       // Preferred over name; emails are never shown as display names.
       nickname: v.optional(v.string()),
+      // Optional recognition status displayed to company admins.
+      memberStatus: v.optional(v.literal("volunteer-thank-you")),
+      // Site-wide moderation controls and short-lived news verification.
+      isSiteBanned: v.optional(v.boolean()),
+      siteBanReason: v.optional(v.string()),
+      siteBannedAt: v.optional(v.number()),
+      securityViolationCount: v.optional(v.number()),
+      lastSecurityViolationAt: v.optional(v.number()),
+      newsPostingVerifiedUntil: v.optional(v.number()),
+      newsPostingCodeWindowAt: v.optional(v.number()),
+      newsPostingCodeRequestCount: v.optional(v.number()),
+      newsPostingCodeRequestedAt: v.optional(v.number()),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Emails explicitly approved for private company OTP sign-in.
@@ -52,9 +64,30 @@ const schema = defineSchema(
       position: v.string(),
       publicBadge: v.union(v.literal("staff"), v.literal("dev")),
       accessLevel: v.union(v.literal("admin"), v.literal("staff")),
+      memberStatus: v.optional(v.literal("volunteer-thank-you")),
       invitedAt: v.number(),
       invitedBy: v.id("users"),
     }).index("by_email", ["email"]),
+
+    securityAppeals: defineTable({
+      userId: v.id("users"),
+      email: v.string(),
+      message: v.string(),
+      status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined")),
+      createdAt: v.number(),
+      reviewedAt: v.optional(v.number()),
+      reviewedBy: v.optional(v.id("users")),
+    })
+      .index("by_user", ["userId"])
+      .index("by_status_created", ["status", "createdAt"]),
+
+    newsPostingCodes: defineTable({
+      userId: v.id("users"),
+      codeHash: v.string(),
+      createdAt: v.number(),
+      expiresAt: v.number(),
+      attempts: v.number(),
+    }).index("by_user_created", ["userId", "createdAt"]),
 
     legalAcceptances: defineTable({
       userId: v.id("users"),

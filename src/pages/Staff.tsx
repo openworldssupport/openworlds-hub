@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { Link, useLocation } from "react-router";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -19,7 +19,9 @@ import {
   Megaphone,
   Pencil,
   Send,
+  ShieldCheck,
   Trash2,
+  XCircle,
   Users,
   UserCircle,
   Check,
@@ -116,6 +118,8 @@ function WorkspaceOverview({
                     {me.isAdmin ? "Company admin" : me.isStaff ? "Company staff" : "Signed in"}
                     {me.department || me.position ? ` · ${[me.department, me.position].filter(Boolean).join(" · ")}` : ""}
                   </p>
+                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer thank you</span>}
+                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer thank you</span>}
                 </div>
               </div>
               {me.nickname ? (
@@ -423,6 +427,9 @@ function AnnouncementsPanel({
   userId: AnyUserId;
 }) {
   const announcements = useQuery(api.staff.announcements);
+  const newsPostingStatus = useQuery(api.security.newsPostingStatus);
+  const sendNewsCode = useAction(api.newsVerification.sendCode);
+  const verifyNewsCode = useMutation(api.security.verifyNewsPostingCode);
   const saveAnnouncement = useMutation(api.staff.saveAnnouncement);
   const setStatus = useMutation(api.staff.setAnnouncementStatus);
   const removeAnnouncement = useMutation(api.staff.removeAnnouncement);
@@ -440,6 +447,9 @@ function AnnouncementsPanel({
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [newsCode, setNewsCode] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [codeMessage, setCodeMessage] = useState("");
 
   function resetForm(discardNewUploads = true) {
     if (discardNewUploads) {
@@ -504,6 +514,7 @@ function AnnouncementsPanel({
         if (file.size > 50 * 1024 * 1024) throw new Error("Each media file must be 50 MB or smaller.");
 
         const uploadUrl = await generateUploadUrl();
+        if (!uploadUrl) throw new Error("Verify your news-posting code before uploading media.");
         const response = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": file.type },
@@ -514,6 +525,7 @@ function AnnouncementsPanel({
 
         const result = await response.json() as { storageId: Id<"_storage"> };
         const asset = await finalizeUpload({ storageId: result.storageId, mediaType });
+        if (!asset.url) throw new Error("Verify your news-posting code before uploading media.");
 
         setMedia((current) => [
           ...current,
@@ -524,6 +536,38 @@ function AnnouncementsPanel({
       setError("Could not upload media.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function requestNewsCode() {
+    setCodeBusy(true);
+    setCodeMessage("");
+    try {
+      await sendNewsCode({});
+      setCodeMessage("A verification code was sent to the company mailbox. It expires in 10 minutes.");
+    } catch {
+      setCodeMessage("Could not send a code. Check your eligibility and try again later.");
+    } finally {
+      setCodeBusy(false);
+    }
+  }
+
+  async function confirmNewsCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCodeBusy(true);
+    setCodeMessage("");
+    try {
+      const result = await verifyNewsCode({ code: newsCode });
+      if (result.verified) {
+        setNewsCode("");
+        setCodeMessage("Verified. You can publish news for the next hour.");
+      } else {
+        setCodeMessage(result.banned ? "Too many incorrect attempts. Website access has been restricted; submit an appeal for review." : `That code was not accepted. ${result.remainingAttempts ?? 0} attempts remain.`);
+      }
+    } catch {
+      setCodeMessage("Could not verify the code. Request a new one and try again.");
+    } finally {
+      setCodeBusy(false);
     }
   }
 
@@ -544,7 +588,7 @@ function AnnouncementsPanel({
     setError("");
 
     try {
-      await saveAnnouncement({
+      const result = await saveAnnouncement({
         announcementId: editingId ?? undefined,
         title,
         summary,
@@ -558,6 +602,10 @@ function AnnouncementsPanel({
         })),
       });
 
+      if ("restricted" in result) {
+        setError("Verify your news-posting code before saving.");
+        return;
+      }
       resetForm(false);
     } catch (err) {
       setError("Could not save this announcement.");
@@ -572,7 +620,8 @@ function AnnouncementsPanel({
   ) {
     setError("");
     try {
-      await setStatus({ announcementId: item._id, status });
+      const result = await setStatus({ announcementId: item._id, status });
+      if ("ok" in result && result.ok === false) setError("Verify your news-posting code before publishing.");
     } catch (err) {
       setError("Could not change announcement status.");
     }
@@ -617,6 +666,29 @@ function AnnouncementsPanel({
         <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {error}
         </p>
+      )}
+
+      {newsPostingStatus?.eligible && (
+        <section className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-slate-900">News publishing verification</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Verify your company email before creating, editing, or publishing announcements. Verification stays active for one hour.</p>
+            </div>
+            {newsPostingStatus.verifiedUntil > Date.now() ? (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Verified</span>
+            ) : (
+              <Button type="button" variant="outline" disabled={codeBusy} onClick={() => void requestNewsCode()}>{codeBusy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send verification code</Button>
+            )}
+          </div>
+          {newsPostingStatus.verifiedUntil <= Date.now() && (
+            <form onSubmit={(event) => void confirmNewsCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-1.5"><Label htmlFor="news-verification-code">6-digit code</Label><Input id="news-verification-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={newsCode} onChange={(event) => setNewsCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div>
+              <Button type="submit" variant="outline" disabled={codeBusy || newsCode.length !== 6}>{codeBusy ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />} Verify code</Button>
+            </form>
+          )}
+          {codeMessage && <p role="status" className="mt-3 text-sm text-slate-700">{codeMessage}</p>}
+        </section>
       )}
 
       <section id="game-announcement-form" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
@@ -1210,6 +1282,8 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         ))}
       </div>
 
+      {me?.isStaff && <StaffSecurityPanel />}
+
       {selectedTab === "overview" ? (
         <WorkspaceOverview isAdmin={isAdmin} me={me} onAnnouncements={() => {}} />
       ) : selectedTab === "announcements" ? (
@@ -1222,6 +1296,35 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
     </div>
   );
 };
+
+function StaffSecurityPanel() {
+  const data = useQuery(api.security.listBansAndAppeals);
+  const setBan = useMutation(api.security.setBan);
+  const reviewAppeal = useMutation(api.security.reviewAppeal);
+  const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function perform(id: string, action: () => Promise<unknown>) {
+    setBusyId(id);
+    setError("");
+    try { await action(); }
+    catch { setError("Could not complete moderation action. Please try again."); }
+    finally { setBusyId(null); }
+  }
+
+  if (!data) return null;
+  return (
+    <section className="mb-5 rounded-xl border border-amber-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Review active restrictions and player appeals. Remove a ban or approve an appeal to restore access.</p></div>
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">{data.bans.length} active · {data.appeals.length} appeals</span>
+      </div>
+      {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {data.appeals.length > 0 && <div className="mt-4 space-y-3">{data.appeals.map((appeal) => <article key={appeal._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="rounded-full border border-amber-200 bg-white px-2 py-1 text-xs text-amber-800">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline</Button></div></article>)}</div>}
+      {data.appeals.length === 0 && data.bans.length === 0 ? <p className="mt-4 text-sm text-slate-500">No restrictions or appeals need attention.</p> : data.bans.length > 0 && <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email} · {ban.reason}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void perform(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Unban</Button></li>)}</ul>}
+    </section>
+  );
+}
 
 export function StaffOverview() {
   return (
