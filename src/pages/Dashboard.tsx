@@ -14,7 +14,7 @@ export default function Dashboard() {
   const { user, signOut } = useAuth();
   const updateProfile = useMutation(api.gameData.updateProfile);
   const [displayName, setDisplayName] = useState("");
-
+  const [saveMessage, setSaveMessage] = useState("");
 
   async function savePlayerName(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
