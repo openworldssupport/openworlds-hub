@@ -46,6 +46,10 @@ export default function Landing() {
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
             A community built together.
           </h1>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-black/5 bg-[#f5f7fb] px-4 py-3 sm:px-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7651c9]">Site news</p>
+            <p className="text-sm font-medium text-slate-700">OpenWorlds has released an official build.</p>
+          </div>
           <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
             OpenWorlds is in development. Follow official project updates and find the current status of public resources.
           </p>
