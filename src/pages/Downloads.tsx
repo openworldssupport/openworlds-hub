@@ -1,6 +1,6 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
-import { ArrowDownToLine, ArrowRight, Bell, CalendarDays, Gamepad2, Laptop, Monitor, Terminal } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, CalendarDays, Gamepad2, Laptop, Monitor, Terminal } from "lucide-react";
 
 const platforms = [
   {
@@ -9,8 +9,6 @@ const platforms = [
     icon: Monitor,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
-    status: "Not available",
-    statusClass: "bg-blue-100 text-[#0052a3]",
   },
   {
     name: "macOS",
@@ -18,8 +16,6 @@ const platforms = [
     icon: Laptop,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
-    status: "Not confirmed",
-    statusClass: "bg-violet-100 text-[#55409b]",
   },
   {
     name: "Linux",
@@ -27,8 +23,6 @@ const platforms = [
     icon: Terminal,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
-    status: "Not confirmed",
-    statusClass: "bg-[#f3c64e]/30 text-[#7c5a00]",
   },
 ];
 
@@ -53,19 +47,15 @@ export default function Downloads() {
 
       <section id="builds" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="grid gap-4 sm:grid-cols-3">
-          {platforms.map(({ name, detail, icon: Icon, tone, accent, status, statusClass }) => (
+          {platforms.map(({ name, detail, icon: Icon, tone, accent }) => (
             <article key={name} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent}`}>
               <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
                 <Icon className="size-5" />
               </div>
               <h2 className="mt-4 flex items-center justify-between gap-2 font-semibold">
                 {name}
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusClass}`}>{status}</span>
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
-              <p className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-                <ArrowDownToLine className="size-4" /> Build not published yet
-              </p>
             </article>
           ))}
         </div>
@@ -95,7 +85,7 @@ export default function Downloads() {
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#0066cc]">Open <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/news" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <Bell className="size-6 text-[#7651c9]" />
+              <ArrowDownToLine className="size-6 text-[#7651c9]" />
               <h3 className="mt-3 font-semibold">Release notes</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Published updates will appear on the News page.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#7651c9]">Read news <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
