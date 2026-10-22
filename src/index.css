@@ -51,29 +51,29 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.52 0.19 255);
+  --primary: oklch(0.48 0.13 155);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.035 305);
-  --accent-foreground: oklch(0.38 0.13 305);
+  --accent: oklch(0.95 0.045 25);
+  --accent-foreground: oklch(0.42 0.15 25);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.62 0.16 255);
-  --chart-1: oklch(0.58 0.2 255);
-  --chart-2: oklch(0.56 0.17 305);
-  --chart-3: oklch(0.68 0.15 215);
-  --chart-4: oklch(0.84 0.16 88);
-  --chart-5: oklch(0.66 0.13 285);
+  --ring: oklch(0.55 0.13 155);
+  --chart-1: oklch(0.48 0.13 155);
+  --chart-2: oklch(0.52 0.17 25);
+  --chart-3: oklch(0.68 0.12 215);
+  --chart-4: oklch(0.82 0.13 85);
+  --chart-5: oklch(0.61 0.1 145);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.52 0.19 255);
+  --sidebar-primary: oklch(0.48 0.13 155);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.035 305);
-  --sidebar-accent-foreground: oklch(0.38 0.13 305);
+  --sidebar-accent: oklch(0.95 0.045 25);
+  --sidebar-accent-foreground: oklch(0.42 0.15 25);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
@@ -85,29 +85,29 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.16 255);
+  --primary: oklch(0.7 0.12 155);
   --primary-foreground: oklch(0.16 0.03 255);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.32 0.07 305);
-  --accent-foreground: oklch(0.93 0.03 305);
+  --accent: oklch(0.32 0.09 25);
+  --accent-foreground: oklch(0.93 0.04 25);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.16 255);
-  --chart-1: oklch(0.7 0.16 255);
-  --chart-2: oklch(0.7 0.14 305);
-  --chart-3: oklch(0.8 0.14 88);
+  --ring: oklch(0.7 0.12 155);
+  --chart-1: oklch(0.7 0.12 155);
+  --chart-2: oklch(0.7 0.14 25);
+  --chart-3: oklch(0.8 0.14 85);
   --chart-4: oklch(0.67 0.14 215);
-  --chart-5: oklch(0.68 0.15 285);
+  --chart-5: oklch(0.68 0.1 145);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.7 0.16 255);
-  --sidebar-primary-foreground: oklch(0.16 0.03 255);
-  --sidebar-accent: oklch(0.32 0.07 305);
-  --sidebar-accent-foreground: oklch(0.93 0.03 305);
+  --sidebar-primary: oklch(0.7 0.12 155);
+  --sidebar-primary-foreground: oklch(0.16 0.03 155);
+  --sidebar-accent: oklch(0.32 0.09 25);
+  --sidebar-accent-foreground: oklch(0.93 0.04 25);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
@@ -126,9 +126,9 @@
 }
 
 :root {
-  --ow-blue: #0066cc;
-  --ow-purple: #7651c9;
-  --ow-yellow: #f3c64e;
+  --ow-blue: #176b45;
+  --ow-purple: #b42336;
+  --ow-yellow: #d6a63b;
 }
 
 .site-nav {
@@ -143,7 +143,7 @@
   bottom: -1px;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--ow-blue) 0 72%, var(--ow-purple) 72% 89%, var(--ow-yellow) 89% 100%);
+  background: linear-gradient(90deg, var(--ow-purple) 0 34%, var(--ow-blue) 34% 83%, var(--ow-yellow) 83% 100%);
   content: "";
 }
 
@@ -159,7 +159,18 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: var(--ow-blue);
+  background: linear-gradient(125deg, #104b35 0%, #176b45 58%, #762333 100%);
+}
+
+.ow-page-hero::before {
+  position: absolute;
+  top: 1.5rem;
+  right: clamp(1.25rem, 6vw, 5rem);
+  color: rgb(255 255 255 / 18%);
+  content: "❄  ✦  ❄";
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: 0.35em;
+  pointer-events: none;
 }
 
 
@@ -186,7 +197,7 @@ main > footer {
 }
 
 :where(a, button, input, textarea):focus-visible {
-  outline: 3px solid rgb(118 81 201 / 45%);
+  outline: 3px solid rgb(22 107 69 / 45%);
   outline-offset: 2px;
 }
 
@@ -201,8 +212,8 @@ main > footer {
 
 /* Carry the home page's restrained styling across public and staff screens. */
 main [class*="bg-gradient-to-"] {
-  background-color: #f8fafc !important;
-  background-image: none !important;
+  background-color: #fffdf8 !important;
+  background-image: linear-gradient(135deg, #f4f8f4, #fffdf8 55%, #fbf1f0) !important;
 }
 
 main [class*="rounded-xl"],
@@ -228,6 +239,54 @@ main :is(div, span).inline-flex[class*="size-"]:has(> svg) {
 main .ow-page-hero :is(div, span).flex[class*="size-"]:has(> svg),
 main .ow-page-hero :is(div, span).inline-flex[class*="size-"]:has(> svg) {
   color: #fff !important;
+}
+
+/* Seasonal palette for links, buttons, and common utility-colored accents. */
+main [class*="text-[#0066cc]"],
+main [class*="text-[#0052a3]"],
+main [class*="text-blue-"] {
+  color: #176b45 !important;
+}
+
+main [class*="text-[#7651c9]"],
+main [class*="text-violet-"] {
+  color: #a52234 !important;
+}
+
+main [class*="bg-[#0066cc]"],
+main [class*="bg-blue-500"],
+main [class*="bg-blue-600"],
+main [class*="bg-blue-700"] {
+  background-color: #176b45 !important;
+}
+
+main [class*="bg-blue-50"],
+main [class*="bg-blue-100"] {
+  background-color: #e8f3ec !important;
+}
+
+main .ow-page-hero [class*="text-blue-"] {
+  color: #e6f3e9 !important;
+}
+
+main [class*="hover:bg-[#004a99]"]:hover {
+  background-color: #105337 !important;
+}
+
+main [class*="bg-violet-"] {
+  background-color: #f8e9eb !important;
+}
+
+main [class*="border-t-[#0066cc]"],
+main [class*="border-t-[#7651c9]"] {
+  border-top-color: #176b45 !important;
+}
+
+main [class*="border-[#f3c64e]"],
+main [class*="text-[#987000]"],
+main [class*="text-[#7c5a00]"] {
+  border-color: #d6a63b !important;
+  color: #795600 !important;
 }
 
 main a[class*="hover:-translate-y-"]:hover,
