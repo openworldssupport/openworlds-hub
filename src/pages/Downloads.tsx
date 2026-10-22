@@ -36,7 +36,7 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Download links will be posted here once an official build is ready.
+            Official downloads are coming soon. We’ll post links here when a build is ready.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#builds" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">See platform status</a>
