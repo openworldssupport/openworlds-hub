@@ -12,6 +12,11 @@ export function SiteNav() {
 
   return (
     <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em]">
+        <span aria-hidden="true">✦</span>
+        <span>Merry Christmas from OpenWorlds</span>
+        <span aria-hidden="true">✦</span>
+      </div>
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">
         <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">
           <img src="/logo.svg" alt="" width={36} height={36} className="size-9 rounded-lg" />

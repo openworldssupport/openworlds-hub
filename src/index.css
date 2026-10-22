@@ -126,9 +126,9 @@
 }
 
 :root {
-  --ow-blue: #176b45;
-  --ow-purple: #b42336;
-  --ow-yellow: #d6a63b;
+  --ow-green: #176b45;
+  --ow-red: #a52234;
+  --ow-gold: #d6a63b;
 }
 
 .site-nav {
@@ -143,8 +143,13 @@
   bottom: -1px;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--ow-purple) 0 34%, var(--ow-blue) 34% 83%, var(--ow-yellow) 83% 100%);
+  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
   content: "";
+}
+
+.holiday-greeting {
+  background: #104b35;
+  color: #f7e7bd;
 }
 
 .site-nav a {
@@ -152,7 +157,7 @@
 }
 
 .site-nav nav > div a:hover {
-  color: var(--ow-purple);
+  color: var(--ow-red);
 }
 
 .ow-page-hero {
@@ -164,16 +169,15 @@
 
 .ow-page-hero::before {
   position: absolute;
-  top: 1.5rem;
+  top: 1rem;
   right: clamp(1.25rem, 6vw, 5rem);
-  color: rgb(255 255 255 / 18%);
-  content: "❄  ✦  ❄";
-  font-size: clamp(2rem, 6vw, 4rem);
-  letter-spacing: 0.35em;
+  color: rgb(255 255 255 / 30%);
+  content: "❄";
+  font-size: clamp(6rem, 16vw, 12rem);
+  line-height: 0.9;
   pointer-events: none;
+  transform: rotate(-12deg);
 }
-
-
 
 .ow-page-hero > div {
   position: relative;
@@ -190,7 +194,7 @@ main article:hover {
 }
 
 main > footer {
-  background-image: linear-gradient(90deg, var(--ow-blue) 0 72%, var(--ow-purple) 72% 89%, var(--ow-yellow) 89% 100%);
+  background-image: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
   background-position: top;
   background-repeat: no-repeat;
   background-size: 100% 3px;
@@ -210,10 +214,10 @@ main > footer {
   }
 }
 
-/* Carry the home page's restrained styling across public and staff screens. */
+/* Warm winter neutrals unify the site's existing cards and section backgrounds. */
 main [class*="bg-gradient-to-"] {
-  background-color: #fffdf8 !important;
-  background-image: linear-gradient(135deg, #f4f8f4, #fffdf8 55%, #fbf1f0) !important;
+  background-color: #f8f4e9 !important;
+  background-image: linear-gradient(135deg, #f0f5ee, #fffdf8 55%, #f6e9e6) !important;
 }
 
 main [class*="rounded-xl"],
@@ -232,41 +236,44 @@ main :is(a, button)[class*="rounded-"] {
 
 main :is(div, span).flex[class*="size-"]:has(> svg),
 main :is(div, span).inline-flex[class*="size-"]:has(> svg) {
-  background-color: transparent !important;
-  color: #475569 !important;
+  background-color: #f1f4ef !important;
+  color: var(--ow-green) !important;
 }
 
 main .ow-page-hero :is(div, span).flex[class*="size-"]:has(> svg),
 main .ow-page-hero :is(div, span).inline-flex[class*="size-"]:has(> svg) {
+  background-color: rgb(255 255 255 / 14%) !important;
   color: #fff !important;
 }
 
-/* Seasonal palette for links, buttons, and common utility-colored accents. */
 main [class*="text-[#0066cc]"],
 main [class*="text-[#0052a3]"],
-main [class*="text-blue-"] {
-  color: #176b45 !important;
+main [class*="text-blue-600"],
+main [class*="text-blue-700"],
+main [class*="text-blue-800"] {
+  color: var(--ow-green) !important;
+}
+
+main [class*="text-blue-50"],
+main [class*="text-blue-100"] {
+  color: #e6f3e9 !important;
 }
 
 main [class*="text-[#7651c9]"],
 main [class*="text-violet-"] {
-  color: #a52234 !important;
+  color: var(--ow-red) !important;
 }
 
 main [class*="bg-[#0066cc]"],
 main [class*="bg-blue-500"],
 main [class*="bg-blue-600"],
 main [class*="bg-blue-700"] {
-  background-color: #176b45 !important;
+  background-color: var(--ow-green) !important;
 }
 
 main [class*="bg-blue-50"],
 main [class*="bg-blue-100"] {
   background-color: #e8f3ec !important;
-}
-
-main .ow-page-hero [class*="text-blue-"] {
-  color: #e6f3e9 !important;
 }
 
 main [class*="hover:bg-[#004a99]"]:hover {
@@ -277,15 +284,20 @@ main [class*="bg-violet-"] {
   background-color: #f8e9eb !important;
 }
 
+main [class*="bg-amber-50"] {
+  background-color: #fbf2dc !important;
+}
+
 main [class*="border-t-[#0066cc]"],
-main [class*="border-t-[#7651c9]"] {
-  border-top-color: #176b45 !important;
+main [class*="border-t-[#7651c9]"],
+main [class*="border-t-blue-"] {
+  border-top-color: var(--ow-green) !important;
 }
 
 main [class*="border-[#f3c64e]"],
 main [class*="text-[#987000]"],
 main [class*="text-[#7c5a00]"] {
-  border-color: #d6a63b !important;
+  border-color: var(--ow-gold) !important;
   color: #795600 !important;
 }
 
