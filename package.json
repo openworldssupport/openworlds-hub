@@ -11,7 +11,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@1password/sdk": "^0.5.0",
     "@auth/core": "^0.41.3",
     "@convex-dev/auth": "0.0.96",
     "@hookform/resolvers": "^5.2.2",
@@ -46,6 +45,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "@vly-ai/integrations": "^0.6.14",
     "@zumer/snapdom": "^2.0.1",
+    "agentmail": "^0.5.46",
     "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

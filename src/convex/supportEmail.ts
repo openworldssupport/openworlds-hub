@@ -2,6 +2,7 @@
 
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
+import { AgentMailClient } from "agentmail";
 
 const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
@@ -56,6 +57,25 @@ export const sendSupportNotification = internalAction({
 
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
     const resendKey = process.env.RESEND_API_KEY;
+    const agentMailKey = process.env.AGENTMAIL_API_KEY;
+    const agentMailInboxId = process.env.AGENTMAIL_INBOX_ID;
+
+    if (agentMailKey && agentMailInboxId) {
+      return await sendViaAgentMail({
+        apiKey: agentMailKey,
+        inboxId: agentMailInboxId,
+        to,
+        subject: subjectLine,
+        text,
+        html,
+        replyTo: args.email,
+      });
+    }
+
+    if (agentMailKey || agentMailInboxId) {
+      console.error("[support] AgentMail requires both AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID.");
+      return { sent: false, reason: "missing-agentmail-config" as const };
+    }
 
     if (vlyKey) {
       return await sendViaVly({ vlyKey, to, subject: subjectLine, text, html, replyTo: args.email });
@@ -66,11 +86,44 @@ export const sendSupportNotification = internalAction({
     }
 
     console.warn(
-      "[support] No email provider configured (VLY_INTEGRATION_KEY or RESEND_API_KEY). Ticket was saved without emailing.",
+      "[support] No email provider configured. Ticket was saved without emailing.",
     );
     return { sent: false, reason: "missing-provider" as const };
   },
 });
+
+async function sendViaAgentMail({
+  apiKey,
+  inboxId,
+  to,
+  subject,
+  text,
+  html,
+  replyTo,
+}: {
+  apiKey: string;
+  inboxId: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  replyTo: string;
+}) {
+  try {
+    const client = new AgentMailClient({ apiKey });
+    await client.inboxes.messages.send(inboxId, {
+      to,
+      subject,
+      text,
+      html,
+      replyTo,
+    });
+    return { sent: true };
+  } catch {
+    console.error("[support] Failed to send support notification through AgentMail.");
+    return { sent: false, reason: "provider-error" as const };
+  }
+}
 
 async function sendViaVly({
   vlyKey,
