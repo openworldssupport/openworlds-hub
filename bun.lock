@@ -5,6 +5,7 @@
     "": {
       "name": "vite-template",
       "dependencies": {
+        "@1password/sdk": "^0.5.0",
         "@auth/core": "^0.41.3",
         "@convex-dev/auth": "0.0.96",
         "@hookform/resolvers": "^5.2.2",
@@ -95,6 +96,10 @@
     "postcss": "^8.5.23",
   },
   "packages": {
+    "@1password/sdk": ["@1password/sdk@0.5.0", "", { "dependencies": { "@1password/sdk-core": "0.5.0" } }, "sha512-k6kov3pcA7PRg2tev9CgTfEf/3JSyAp11BPQNCEsqAD32QbqM032OXC1rfjyC8Ba0sfH+NHYZxcifUZToyGyYA=="],
+
+    "@1password/sdk-core": ["@1password/sdk-core@0.5.0", "", {}, "sha512-9g7LWOKRKdePZ85evVgE9xEom3DAg3hRIyQdOwLPvpL/F7KpDXmUHMi72rsqJxKaDbWApXmrYjDExMSPqUg7xw=="],
+
     "@ai-sdk/gateway": ["@ai-sdk/gateway@2.0.108", "", { "dependencies": { "@ai-sdk/provider": "2.0.3", "@ai-sdk/provider-utils": "3.0.28", "@vercel/oidc": "3.1.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-86SG+gvko20aD6aM2Z4Mx8rEJYHpC2E2QrrEQzerXkEtruMWJCKwFfeaOKDLn8axN18Lln+HvYbS6cOiRA1J0g=="],
 
     "@ai-sdk/openai-compatible": ["@ai-sdk/openai-compatible@1.0.42", "", { "dependencies": { "@ai-sdk/provider": "2.0.3", "@ai-sdk/provider-utils": "3.0.28" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-zEvULhRonXDacqpjJGgOhADHsQnPwrx3dWj0wOev5ASUlzVlOO8PhUhXE+tr8v70xc4xmXHEkVSAV/MGVqu69w=="],
