@@ -165,7 +165,7 @@ async function sendViaVly({
 
     const data = (await response.json().catch(() => ({}))) as { id?: string };
     return { sent: true, id: data.id ?? null };
-  } catch (error) {
+  } catch {
     console.error("[support] Failed to send support notification email.");
     return { sent: false, reason: "network-error" as const };
   }
@@ -207,7 +207,7 @@ async function sendViaResend({
     }
 
     return { sent: true };
-  } catch (error) {
+  } catch {
     console.error("[support] Failed to send support notification email.");
     return { sent: false, reason: "network-error" as const };
   }
