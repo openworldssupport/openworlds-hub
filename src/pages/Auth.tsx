@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useAction, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Link, useLocation, useNavigate } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
@@ -43,21 +45,29 @@ function OpenWorldsLogo() {
 function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
   const isSignup = mode === "player-signup";
   const { signIn } = useAuthActions();
+  const requestRecoveryEmailCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
+  const beginPasswordReset = useAction(api.playerRecovery.beginPasswordReset);
+  const resetPassword = useAction(api.playerRecovery.resetPassword);
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const returnTo = params.get("returnTo");
   const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard";
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [name, setName] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetStep, setResetStep] = useState<"closed" | "request" | "verify">("closed");
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setNotice("");
     if (isSignup && password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -66,14 +76,60 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     try {
       const result = await signIn("player-password", {
         flow: isSignup ? "signUp" : "signIn",
-        email: email.trim().toLowerCase(),
-        ...(isSignup ? { name: name.trim() } : {}),
+        email: login.trim().toLowerCase(),
+        ...(isSignup ? { name: name.trim(), ...(recoveryEmail.trim() ? { recoveryEmail: recoveryEmail.trim() } : {}) } : {}),
         password,
       });
       if (!result.signingIn) throw new Error("Player sign-in did not complete.");
+      if (isSignup && recoveryEmail.trim()) {
+        try {
+          await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
+        } catch {
+          setNotice("Account created. You can add or verify a recovery email in your account settings.");
+        }
+      }
       navigate(destination, { replace: true });
     } catch {
-      setError(isSignup ? "Could not create your account. Check your details and try another email if one is already registered." : "Email or password is incorrect.");
+      setError(isSignup ? "Could not create your account. Check your details; this username or email may already be registered." : "Username/email or password is incorrect.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await beginPasswordReset({ login: login.trim().toLowerCase() });
+      setResetStep("verify");
+      setNotice("If the account has a verified recovery email, a code will be sent there.");
+    } catch {
+      setError("Could not request a reset code. Try again later.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await resetPassword({ login: login.trim().toLowerCase(), code: resetCode.trim(), newPassword: password });
+      setResetStep("closed");
+      setPassword("");
+      setConfirmPassword("");
+      setResetCode("");
+      setNotice("Password changed. Sign in with your new password.");
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : "Could not reset password. Check the code and try again.");
     } finally {
       setBusy(false);
     }
@@ -86,17 +142,39 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{isSignup ? "Create your player account" : "Player sign in"}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{isSignup ? "Create an account to keep your player profile and game progress saved securely." : "Sign in to access your saved player profile and game progress."}</p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
-            <div className="space-y-2"><Label htmlFor="player-email">Email</Label><Input id="player-email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
-            {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
-            {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-            <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in"}</Button>
-          </form>
-          <p className="mt-5 text-center text-sm text-slate-600">{isSignup ? "Already have an account? " : "New to OpenWorlds? "}<Link to={isSignup ? "/player-login" : "/player-signup"} className="font-medium text-[#0066cc] hover:underline">{isSignup ? "Sign in" : "Create an account"}</Link></p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username and password. Recovery email is optional." : "Sign in to access your player profile and saved game progress."}</p>
+          {resetStep === "request" ? (
+            <form onSubmit={requestReset} className="mt-6 space-y-4">
+              <div className="space-y-2"><Label htmlFor="reset-login">Username or email</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} /></div>
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Requesting…" : "Send recovery code"}</Button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("closed"); setError(""); }}>Back to sign in</button>
+            </form>
+          ) : resetStep === "verify" ? (
+            <form onSubmit={finishReset} className="mt-6 space-y-4">
+              <div className="space-y-2"><Label htmlFor="reset-code">6-digit recovery code</Label><Input id="reset-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={resetCode} onChange={(event) => setResetCode(event.target.value.replace(/\D/g, "").slice(0, 6))} /></div>
+              <div className="space-y-2"><Label htmlFor="new-password">New password</Label><Input id="new-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="confirm-new-password">Confirm new password</Label><Input id="confirm-new-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
+              {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy || resetCode.length !== 6}>{busy ? "Updating…" : "Set new password"}</Button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); setError(""); }}>Request another code</button>
+            </form>
+          ) : (
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
+              <div className="space-y-2"><Label htmlFor="player-login">Username or email</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={254} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Choose a username" /><p className="text-xs text-slate-500">Username: 3–24 letters, numbers, dots, hyphens or underscores. Email addresses also work.</p></div>
+              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email <span className="font-normal text-slate-500">(optional)</span></Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">You’ll verify it after creating the account to use it for password resets.</p></div>}
+              <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
+              {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
+              {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in"}</Button>
+              {!isSignup && <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); setError(""); setNotice(""); }}>Forgot password?</button>}
+            </form>
+          )}
+          {resetStep === "closed" && <p className="mt-5 text-center text-sm text-slate-600">{isSignup ? "Already have an account? " : "New to OpenWorlds? "}<Link to={isSignup ? "/player-login" : "/player-signup"} className="font-medium text-[#0066cc] hover:underline">{isSignup ? "Sign in" : "Create an account"}</Link></p>}
           <p className="mt-5 border-t border-slate-100 pt-5 text-center text-xs leading-5 text-slate-500">Player accounts are separate from company staff access. <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link></p>
         </div>
       </section>

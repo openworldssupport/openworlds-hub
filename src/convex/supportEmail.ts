@@ -7,6 +7,36 @@ import { AgentMailClient } from "agentmail";
 const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 
+export const sendPlayerRecoveryCode = internalAction({
+  args: { email: v.string(), code: v.string() },
+  handler: async (_ctx, { email, code }) => {
+    const subject = "OpenWorlds account recovery code";
+    const text = `Your OpenWorlds account recovery code is ${code}. It expires in 10 minutes. Do not share it. If you did not request this, you can ignore this message.`;
+    const html = `<p>Your OpenWorlds account recovery code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Do not share it. If you did not request this, you can ignore this message.</p>`;
+    const vlyKey = process.env.VLY_INTEGRATION_KEY;
+    if (vlyKey) {
+      const response = await fetch(VLY_EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${vlyKey}`, "Content-Type": "application/json", "X-Vly-Version": "0.1.0" },
+        body: JSON.stringify({ to: [email], subject, text, html }),
+      });
+      if (!response.ok) throw new Error("Could not send account recovery email.");
+      return { sent: true };
+    }
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: process.env.RESEND_FROM ?? "OpenWorlds <onboarding@resend.dev>", to: [email], subject, text, html }),
+      });
+      if (!response.ok) throw new Error("Could not send account recovery email.");
+      return { sent: true };
+    }
+    throw new Error("Email delivery is not configured.");
+  },
+});
+
 export const sendSupportNotification = internalAction({
   args: {
     reference: v.optional(v.string()),

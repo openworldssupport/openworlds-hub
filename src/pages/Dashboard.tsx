@@ -13,7 +13,15 @@ import { ArrowDownToLine, Megaphone, ShieldCheck } from "lucide-react";
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const updateProfile = useMutation(api.gameData.updateProfile);
+  const recoveryStatus = useQuery(api.playerRecovery.recoveryStatus);
+  const requestRecoveryCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
+  const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
   const [displayName, setDisplayName] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [changingRecoveryEmail, setChangingRecoveryEmail] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
 
   async function savePlayerName(event: FormEvent<HTMLFormElement>) {
@@ -25,6 +33,38 @@ export default function Dashboard() {
       setSaveMessage("Player name updated.");
     } catch (error) {
       setSaveMessage(error instanceof Error ? error.message : "Could not update player name.");
+    }
+  }
+
+  async function sendRecoveryCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecoveryBusy(true);
+    setRecoveryMessage("");
+    try {
+      await requestRecoveryCode({ email: recoveryEmail });
+      setRecoveryMessage("Code sent. Check your inbox and verify this email to enable password resets.");
+    } catch (error) {
+      setRecoveryMessage(error instanceof Error ? error.message : "Could not send a verification code.");
+    } finally {
+      setRecoveryBusy(false);
+    }
+  }
+
+  async function verifyRecoveryEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecoveryBusy(true);
+    setRecoveryMessage("");
+    try {
+      const result = await verifyRecoveryCode({ code: recoveryCode });
+      if (!result.ok) throw new Error(result.message);
+      setRecoveryCode("");
+      setRecoveryEmail("");
+      setChangingRecoveryEmail(false);
+      setRecoveryMessage("Recovery email verified.");
+    } catch (error) {
+      setRecoveryMessage(error instanceof Error ? error.message : "Could not verify the recovery email.");
+    } finally {
+      setRecoveryBusy(false);
     }
   }
 
@@ -66,6 +106,29 @@ export default function Dashboard() {
               </form>
               {saveMessage ? <p role="status" className="mt-2 text-sm text-slate-600">{saveMessage}</p> : null}
             </div>
+          </motion.section>
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
+            <h2 className="font-semibold tracking-tight">Account recovery</h2>
+            <p className="mt-1 text-sm text-slate-500">A verified recovery email lets you reset your password. It’s optional.</p>
+            {recoveryStatus?.isVerified && !changingRecoveryEmail ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <p className="text-sm text-emerald-700">Recovery email verified: {recoveryStatus.recoveryEmail}</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => { setChangingRecoveryEmail(true); setRecoveryMessage(""); }}>Change email</Button>
+              </div>
+            ) : (
+              <form onSubmit={sendRecoveryCode} className="mt-4 flex flex-wrap items-end gap-3">
+                <div className="min-w-0 flex-1 space-y-2"><Label htmlFor="account-recovery-email">Recovery email</Label><Input id="account-recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder={recoveryStatus?.pendingEmail ?? "you@example.com"} /></div>
+                <Button type="submit" variant="outline" disabled={recoveryBusy || !recoveryEmail.trim()}>{recoveryBusy ? "Sending…" : recoveryStatus?.pendingEmail ? "Resend verification code" : "Send verification code"}</Button>
+                {changingRecoveryEmail && <Button type="button" variant="ghost" onClick={() => { setChangingRecoveryEmail(false); setRecoveryEmail(""); setRecoveryCode(""); setRecoveryMessage(""); }}>Cancel</Button>}
+              </form>
+            )}
+            {recoveryStatus?.pendingEmail && recoveryStatus.pendingEmail !== recoveryStatus.recoveryEmail && (
+              <form onSubmit={verifyRecoveryEmail} className="mt-4 flex flex-wrap items-end gap-3">
+                <div className="w-full max-w-xs space-y-2"><Label htmlFor="account-recovery-code">Email code</Label><Input id="account-recovery-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={recoveryCode} onChange={(event) => setRecoveryCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
+                <Button type="submit" disabled={recoveryBusy || recoveryCode.length !== 6}>{recoveryBusy ? "Verifying…" : "Verify email"}</Button>
+              </form>
+            )}
+            {recoveryMessage && <p role="status" className="mt-3 text-sm text-slate-600">{recoveryMessage}</p>}
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8">
             <div className="flex items-center gap-3">

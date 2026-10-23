@@ -28,8 +28,13 @@ const schema = defineSchema(
       email: v.optional(v.string()), // email of the user. do not remove
       emailVerificationTime: v.optional(v.number()), // email verification time. do not remove
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
-
       role: v.optional(roleValidator), // role of the user. do not remove
+      playerLogin: v.optional(v.string()),
+      pendingRecoveryEmail: v.optional(v.string()),
+      recoveryEmail: v.optional(v.string()),
+      recoveryEmailVerifiedAt: v.optional(v.number()),
+      recoveryCodeWindowAt: v.optional(v.number()),
+      recoveryCodeRequestCount: v.optional(v.number()),
 
       // Company org data, assigned from the admin panel. A user with a
       // department and/or position is treated as staff and can use /staff.
@@ -84,6 +89,16 @@ const schema = defineSchema(
     newsPostingCodes: defineTable({
       userId: v.id("users"),
       codeHash: v.string(),
+      createdAt: v.number(),
+      expiresAt: v.number(),
+      attempts: v.number(),
+    }).index("by_user_created", ["userId", "createdAt"]),
+
+    playerRecoveryCodes: defineTable({
+      userId: v.id("users"),
+      email: v.string(),
+      codeHash: v.string(),
+      purpose: v.union(v.literal("verify-email"), v.literal("reset-password")),
       createdAt: v.number(),
       expiresAt: v.number(),
       attempts: v.number(),

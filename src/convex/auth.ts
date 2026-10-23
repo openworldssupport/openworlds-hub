@@ -2,22 +2,54 @@
 
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
+import { query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { emailOtp } from "./auth/emailOtp";
 import { SUPPORT_EMAIL } from "./admin";
+
+
+const PLAYER_LOGIN_DOMAIN = "players.openworlds.invalid";
+
+function normalizePlayerLogin(value: unknown): { accountId: string; login: string } {
+  const input = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (/^[a-z0-9][a-z0-9._-]{2,23}$/.test(input)) {
+    return { accountId: `${input}@${PLAYER_LOGIN_DOMAIN}`, login: input };
+  }
+  if (input.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+    return { accountId: input, login: input };
+  }
+  throw new Error("Enter a username (3–24 letters, numbers, dots, hyphens or underscores) or an email address.");
+}
+
+export const playerRecoveryStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    const user = userId ? await ctx.db.get(userId) : null;
+    if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+    return {
+      recoveryEmail: user.recoveryEmail ?? null,
+      pendingEmail: user.pendingRecoveryEmail ?? null,
+      isVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt),
+    };
+  },
+});
 
 const playerPassword = Password({
   id: "player-password",
   profile: (params) => {
-    const email = typeof params.email === "string" ? params.email.trim().toLowerCase() : "";
-    const [localPart, domainPart, ...extraParts] = email.split("@");
-    if (!localPart || !domainPart || extraParts.length > 0 || !domainPart.includes(".") || email.length > 254) {
-      throw new Error("Enter a valid email address.");
-    }
+    const { accountId, login } = normalizePlayerLogin(params.email);
     const name = typeof params.name === "string" ? params.name.trim() : "";
     if (params.flow === "signUp" && (name.length < 2 || name.length > 32)) {
       throw new Error("Player name must be 2–32 characters.");
     }
-    return { email, ...(name ? { name } : {}) };
+    const recoveryEmail = typeof params.recoveryEmail === "string" && params.recoveryEmail.trim()
+      ? params.recoveryEmail.trim().toLowerCase()
+      : undefined;
+    if (recoveryEmail && (recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail))) {
+      throw new Error("Enter a valid optional recovery email address.");
+    }
+    return { email: accountId, playerLogin: login, ...(recoveryEmail ? { pendingRecoveryEmail: recoveryEmail } : {}), ...(name ? { name } : {}) };
   },
   validatePasswordRequirements(password) {
     if (password.length < 12 || password.length > 128) {
@@ -55,6 +87,11 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
         if (!existingUserId) {
           const normalizedEmail = email.trim().toLowerCase();
+          const playerLogin = typeof profile.playerLogin === "string" ? profile.playerLogin : undefined;
+          if (playerLogin) {
+            const existingLogin = await ctx.db.query("users").filter((q) => q.eq(q.field("playerLogin"), playerLogin)).first();
+            if (existingLogin) throw new Error("That player name is already in use.");
+          }
           if (normalizedEmail === SUPPORT_EMAIL) {
             throw new Error("Company account emails cannot be used for player sign up.");
           }
@@ -67,12 +104,18 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         const existingPlayer = linkedUser;
         const name = typeof profile.name === "string" ? profile.name.trim() : undefined;
         if (existingPlayer) {
-          await ctx.db.patch(existingPlayer._id, { role: "user", ...(name ? { name } : {}) });
+          await ctx.db.patch(existingPlayer._id, {
+            role: "user",
+            ...(name ? { name } : {}),
+            ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
+          });
           return existingPlayer._id;
         }
         return await ctx.db.insert("users", {
           email,
           ...(name ? { name } : {}),
+          ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
+          ...(typeof profile.pendingRecoveryEmail === "string" ? { pendingRecoveryEmail: profile.pendingRecoveryEmail } : {}),
           role: "user",
         });
       }
