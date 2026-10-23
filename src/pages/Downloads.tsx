@@ -17,14 +17,14 @@ const platforms = [
   },
   {
     name: "macOS",
-    detail: "Platform compatibility has not been confirmed.",
+    detail: "No macOS launcher is listed in this release.",
     icon: Laptop,
     tone: "bg-violet-50 text-[#7651c9]",
     accent: "border-t-[#7651c9]",
   },
   {
     name: "Linux",
-    detail: "Platform compatibility has not been confirmed.",
+    detail: "No Linux launcher is listed in this release.",
     icon: Terminal,
     tone: "bg-amber-50 text-[#987000]",
     accent: "border-t-[#f3c64e]",
@@ -41,10 +41,10 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            The OpenWorlds Launcher is available for Windows. The game is still in development.
+            Download the OpenWorlds Launcher for Windows from the official GitHub release. The game is still in development.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a href={launcherUrl} download className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"><ArrowDownToLine className="size-4" /> Download Windows launcher</a>
+            <a href={launcherUrl} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"><ArrowDownToLine className="size-4" /> Download Windows launcher</a>
             <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
@@ -63,8 +63,13 @@ export default function Downloads() {
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
               {downloadUrl ? (
                 <div className="mt-4">
-                  <a href={downloadUrl} download className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]"><ArrowDownToLine className="size-4" /> Download launcher</a>
-                  <p className="mt-3 text-xs text-slate-500">Release: <a href={releaseUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0066cc] underline">v2026.10.22.1946</a></p>
+                  <a href={downloadUrl} className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]"><ArrowDownToLine className="size-4" /> Download OpenWorldsLauncher.exe</a>
+                  <dl className="mt-4 space-y-2 text-xs text-slate-600">
+                    <div className="flex justify-between gap-3"><dt>Release</dt><dd><a href={releaseUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0066cc] underline">v2026.10.22.1946</a></dd></div>
+                    <div className="flex justify-between gap-3"><dt>File size</dt><dd>146.3 MiB</dd></div>
+                    <div className="flex justify-between gap-3"><dt>Platform</dt><dd>Windows (.exe)</dd></div>
+                  </dl>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">The release does not list minimum Windows version or hardware requirements. Check that the launcher is compatible with your PC before installing.</p>
                   <p className="mt-3 text-xs font-medium text-slate-600">SHA-256</p>
                   <code className="mt-1 block break-all text-[11px] leading-5 text-slate-500">{launcherSha256}</code>
                 </div>

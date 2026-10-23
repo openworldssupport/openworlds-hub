@@ -154,7 +154,7 @@ export default function Landing() {
             Get the Windows launcher
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-            The OpenWorlds launcher build is available now. The game itself is still in development; published updates are listed on the News page.
+            The OpenWorlds Windows launcher is available from the official GitHub release. The game itself is still in development; published updates are listed on the News page.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/downloads" className="inline-flex h-11 items-center gap-2 rounded-sm bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">

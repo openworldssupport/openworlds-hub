@@ -72,11 +72,15 @@ export default function Dashboard() {
               <span className="flex size-10 items-center justify-center rounded-xl bg-violet-50 text-[#7651c9]"><ArrowDownToLine className="size-5" /></span>
               <div><h2 className="font-semibold tracking-tight">Downloads</h2><p className="text-xs text-slate-400">Official builds only</p></div>
             </div>
-            <div className="mt-8 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-5 py-8 text-center sm:px-8">
-              <p className="text-sm font-medium text-slate-700">No official links</p>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Download details are not published here yet. Links will be added once an official build is available.</p>
+            <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50/70 px-5 py-6 text-center sm:px-8">
+              <p className="text-sm font-medium text-slate-700">Windows launcher available</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Download the official OpenWorlds Launcher from the Downloads page.</p>
+              <Button asChild className="mt-4">
+                <Link to="/downloads"><ArrowDownToLine className="size-4" /> Windows download</Link>
+              </Button>
+              <p className="mt-3 text-xs text-slate-400">Release v2026.10.22.1946</p>
             </div>
-            <div className="mt-5 flex items-start gap-2 text-xs leading-5 text-slate-400"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> Availability and system requirements will be shown when officially confirmed.</div>
+            <div className="mt-5 flex items-start gap-2 text-xs leading-5 text-slate-400"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> The release does not list Windows system requirements yet.</div>
           </motion.section>
         </div>
       </div>
