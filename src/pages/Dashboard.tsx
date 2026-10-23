@@ -68,15 +68,21 @@ export default function Dashboard() {
     }
   }
 
-  if (!user) return null;
-  if (user.role !== "user") {
+  if (!user || user.role !== "user") {
     return (
       <main className="min-h-screen bg-slate-50 text-slate-950">
         <SiteNav />
         <section className="mx-auto max-w-3xl px-5 py-16 text-center">
           <h1 className="text-3xl font-semibold">Player account required</h1>
-          <p className="mt-3 text-slate-600">This hub is for game player accounts, separate from staff accounts.</p>
-          <Link to="/player-signup" className="mt-6 inline-flex text-sm font-semibold text-[#0066cc] hover:underline">Create a player account</Link>
+          <p className="mt-3 text-slate-600">
+            {user
+              ? "You’re signed in with a different account. Sign in with a player account or create one to open the player hub."
+              : "Sign in to a player account or create one to open the player hub."}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button asChild variant="outline"><Link to="/player-login">Player log in</Link></Button>
+            <Button asChild><Link to="/player-signup">Create player account</Link></Button>
+          </div>
         </section>
       </main>
     );

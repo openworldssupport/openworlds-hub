@@ -37,6 +37,8 @@ export function SiteNav() {
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
           {user?.role === "user" ? (
             <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>
+          ) : user ? (
+            <Link to="/dashboard" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player account</Link>
           ) : (
             <>
               <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in</Link>
