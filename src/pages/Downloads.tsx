@@ -2,10 +2,15 @@ import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
 
+const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.22.1946/OpenWorldsLauncher.exe";
+const releaseUrl = "https://github.com/openworldssupport/openworlds-hub/releases/tag/v2026.10.22.1946";
+const launcherSha256 = "dc126b3f7cd9641ea1a95e2598b7869223a7634baa0cff493974399a5c4769cc";
+
 const platforms = [
   {
     name: "Windows",
-    detail: "Platform compatibility has not been confirmed.",
+    detail: "OpenWorlds Launcher is available for Windows.",
+    downloadUrl: launcherUrl,
     icon: Monitor,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
@@ -36,18 +41,18 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Official downloads are coming soon. We’ll post links here when a build is ready.
+            The OpenWorlds Launcher is available for Windows. The game is still in development.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a href="#builds" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">See platform status</a>
-            <Link to="/roadmap" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Follow the roadmap</Link>
+            <a href={launcherUrl} download className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"><ArrowDownToLine className="size-4" /> Download Windows launcher</a>
+            <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
       </section>
 
       <section id="builds" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="grid gap-4 sm:grid-cols-3">
-          {platforms.map(({ name, detail, icon: Icon, tone, accent }) => (
+          {platforms.map(({ name, detail, downloadUrl, icon: Icon, tone, accent }) => (
             <article key={name} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent}`}>
               <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
                 <Icon className="size-5" />
@@ -56,6 +61,14 @@ export default function Downloads() {
                 {name}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
+              {downloadUrl ? (
+                <div className="mt-4">
+                  <a href={downloadUrl} download className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]"><ArrowDownToLine className="size-4" /> Download launcher</a>
+                  <p className="mt-3 text-xs text-slate-500">Release: <a href={releaseUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-[#0066cc] underline">v2026.10.22.1946</a></p>
+                  <p className="mt-3 text-xs font-medium text-slate-600">SHA-256</p>
+                  <code className="mt-1 block break-all text-[11px] leading-5 text-slate-500">{launcherSha256}</code>
+                </div>
+              ) : null}
             </article>
           ))}
         </div>
@@ -87,7 +100,7 @@ export default function Downloads() {
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026
+        OpenWorlds © 2026 · Windows launcher v2026.10.22.1946
       </footer>
     </main>
   );
