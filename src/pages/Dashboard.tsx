@@ -78,7 +78,6 @@ export default function Dashboard() {
               <Button asChild className="mt-4">
                 <Link to="/downloads"><ArrowDownToLine className="size-4" /> Windows download</Link>
               </Button>
-              <p className="mt-3 text-xs text-slate-400">Release v2026.10.22.1946</p>
             </div>
             <div className="mt-5 flex items-start gap-2 text-xs leading-5 text-slate-400"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> The release does not list Windows system requirements yet.</div>
           </motion.section>
