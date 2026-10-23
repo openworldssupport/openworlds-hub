@@ -2,8 +2,8 @@ import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
 
-const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.22.1946/OpenWorldsLauncher.exe";
-const launcherSha256 = "dc126b3f7cd9641ea1a95e2598b7869223a7634baa0cff493974399a5c4769cc";
+const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.23.1302/OpenWorldsLauncher.exe";
+const launcherSha256 = "1e43be3f096c796a801aa0a78aa6f7cb8160b297e881421bb58d89963e83e485";
 
 const platforms = [
   {
