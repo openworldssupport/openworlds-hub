@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
 
 const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.23.1302/OpenWorldsLauncher.exe";
-const launcherSha256 = "1e43be3f096c796a801aa0a78aa6f7cb8160b297e881421bb58d89963e83e485";
 
 const platforms = [
   {
@@ -68,8 +67,6 @@ export default function Downloads() {
                     <div className="flex justify-between gap-3"><dt>Platform</dt><dd>Windows (.exe)</dd></div>
                   </dl>
                   <p className="mt-3 text-xs leading-5 text-slate-500">The release does not list minimum Windows version or hardware requirements. Check that the launcher is compatible with your PC before installing.</p>
-                  <p className="mt-3 text-xs font-medium text-slate-600">SHA-256</p>
-                  <code className="mt-1 block break-all text-[11px] leading-5 text-slate-500">{launcherSha256}</code>
                 </div>
               ) : null}
             </article>
