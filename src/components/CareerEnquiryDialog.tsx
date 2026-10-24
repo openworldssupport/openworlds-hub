@@ -68,8 +68,8 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
               {sent
                 ? "Your submission has been sent to the Careers email system. Please check your inbox for a confirmation."
                 : mode === "application"
-                  ? "Tell us about your experience and interest in the role. Your application is emailed directly to careers@openworlds.dk and is not stored in the website or staff portal."
-                  : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored in the website or staff portal."}
+                  ? "Tell us about your experience and interest in the role. Your application is emailed directly to careers@openworlds.dk and is not stored in the website database."
+                  : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored in the website database."}
             </DialogDescription>
           </DialogHeader>
           {sent ? (

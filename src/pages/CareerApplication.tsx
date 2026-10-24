@@ -67,7 +67,7 @@ export default function CareerApplication() {
         <section className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-12">
           <div className="mb-7 border-b border-slate-200 pb-6">
             <h2 className="text-2xl font-semibold tracking-tight">Application</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Tell us about your experience and interest in the position. Your application will be emailed to careers@openworlds.dk and not stored in the website or staff portal.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Tell us about your experience and interest in the position. Your application will be emailed to careers@openworlds.dk and not stored in the website database.</p>
           </div>
           {sent ? (
             <div className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 size-5 shrink-0" /><div><h2 className="font-semibold">Application submitted</h2><p className="mt-1 leading-6">Thank you for applying. Please check your inbox for an automated confirmation from OpenWorlds Careers Bot.</p></div></div>

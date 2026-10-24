@@ -48,7 +48,7 @@ export function CareerRole() {
             <div><h2 className="font-semibold">About the role</h2><p className="mt-2 text-sm leading-6 text-slate-600">{role.summary}</p></div>
             <div><h2 className="font-semibold">What you’ll contribute</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.responsibilities.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
             <div><h2 className="font-semibold">What helps you succeed</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.qualifications.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
-            <div><h2 className="font-semibold">How to apply</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use the dedicated application page to share your relevant experience and interest in this role. Applications are emailed directly to the Careers inbox and are not stored on the website or reviewed in the staff portal.</p></div>
+            <div><h2 className="font-semibold">How to apply</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use the dedicated application page to share your relevant experience and interest in this role. Applications are emailed directly to the Careers inbox and are not stored in the website database.</p></div>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
             {roleIsOpen ? (
