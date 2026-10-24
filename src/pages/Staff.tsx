@@ -25,6 +25,8 @@ import {
   Users,
   UserCircle,
   Check,
+  Construction,
+  AlertTriangle,
 } from "lucide-react";
 import { displayNameFor, displayInitials } from "@/lib/staff";
 import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
@@ -1281,6 +1283,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         ))}
       </div>
 
+      {me?.isStaff && <SiteStatusControl />}
       {me?.isStaff && <StaffSecurityPanel />}
 
       {selectedTab === "overview" ? (
@@ -1295,6 +1298,75 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
     </div>
   );
 };
+
+function SiteStatusControl() {
+  const status = useQuery(api.siteStatus.staffStatus);
+  const requestCode = useAction(api.siteStatus.requestChangeCode);
+  const confirmChange = useMutation(api.siteStatus.confirmChange);
+  const [targetStatus, setTargetStatus] = useState<"available" | "under-construction" | "unavailable">("available");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"choose" | "verify">("choose");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function sendCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      await requestCode({ status: targetStatus });
+      setStep("verify");
+      setMessage("A six-digit verification code was sent to the support email. It expires in 10 minutes.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not send the verification code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyStatus(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      const result = await confirmChange({ code });
+      if (!result.ok) throw new Error(result.message);
+      setStep("choose");
+      setCode("");
+      setMessage("Website status updated.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update website status.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const statusLabel = status === "under-construction" ? "Under construction" : status === "unavailable" ? "Unavailable" : status === "available" ? "Available" : "Loading…";
+  return (
+    <section className="mb-5 rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800"><Construction className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold">Website status</h2>
+          <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
+          {step === "choose" ? (
+            <form onSubmit={(event) => void sendCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Available</option><option value="under-construction">Under construction</option><option value="unavailable">Unavailable</option></select></div>
+              <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Sending code…" : "Send verification code"}</Button>
+            </form>
+          ) : (
+            <form onSubmit={(event) => void applyStatus(event)} className="mt-4 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-2"><Label htmlFor="site-status-code">Support email code</Label><Input id="site-status-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
+              <Button type="submit" disabled={busy || code.length !== 6}>{busy ? "Updating…" : "Verify & apply"}</Button>
+              <Button type="button" variant="outline" disabled={busy} onClick={() => { setStep("choose"); setCode(""); setMessage(""); }}>Cancel</Button>
+            </form>
+          )}
+          {message && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600">{step === "verify" && <AlertTriangle className="size-4" />}{message}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function StaffSecurityPanel() {
   const data = useQuery(api.security.listBansAndAppeals);

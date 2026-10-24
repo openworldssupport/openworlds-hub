@@ -104,6 +104,19 @@ const schema = defineSchema(
       attempts: v.number(),
     }).index("by_user_created", ["userId", "createdAt"]),
 
+    siteStatusSettings: defineTable({
+      key: v.literal("main"),
+      status: v.union(v.literal("available"), v.literal("under-construction"), v.literal("unavailable")),
+      pendingStatus: v.optional(v.union(v.literal("available"), v.literal("under-construction"), v.literal("unavailable"))),
+      updatedAt: v.number(),
+      codeHash: v.optional(v.string()),
+      codeRequestedBy: v.optional(v.id("users")),
+      codeExpiresAt: v.optional(v.number()),
+      codeAttempts: v.optional(v.number()),
+      codeWindowAt: v.optional(v.number()),
+      codeRequestCount: v.optional(v.number()),
+    }).index("by_key", ["key"]),
+
     // Private game profile and progress. Every read/write is scoped to the
     // authenticated player by gameData.ts; clients never supply a userId.
     playerGameData: defineTable({

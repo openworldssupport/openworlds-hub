@@ -37,6 +37,49 @@ export const sendPlayerRecoveryCode = internalAction({
   },
 });
 
+export const sendSiteStatusCode = internalAction({
+  args: { code: v.string() },
+  handler: async (_ctx, { code }) => {
+    const to = process.env.SUPPORT_EMAIL ?? DEFAULT_SUPPORT_EMAIL;
+    const subject = "OpenWorlds website status verification code";
+    const text = `Your OpenWorlds website status verification code is ${code}. It expires in 10 minutes. Do not share this code. If you did not request it, you can ignore this email.`;
+    const html = `<p>Your OpenWorlds website status verification code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Do not share this code. If you did not request it, you can ignore this email.</p>`;
+    const vlyKey = process.env.VLY_INTEGRATION_KEY;
+    const resendKey = process.env.RESEND_API_KEY;
+    const agentMailKey = process.env.AGENTMAIL_API_KEY;
+    const agentMailInboxId = process.env.AGENTMAIL_INBOX_ID;
+
+    if (agentMailKey && agentMailInboxId) {
+      try {
+        const client = new AgentMailClient({ apiKey: agentMailKey });
+        await client.inboxes.messages.send(agentMailInboxId, { to, subject, text, html });
+        return { sent: true };
+      } catch {
+        throw new Error("Could not send the website status verification code.");
+      }
+    }
+    if (vlyKey) {
+      const response = await fetch(VLY_EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${vlyKey}`, "Content-Type": "application/json", "X-Vly-Version": "0.1.0" },
+        body: JSON.stringify({ to: [to], subject, text, html }),
+      });
+      if (!response.ok) throw new Error("Could not send the website status verification code.");
+      return { sent: true };
+    }
+    if (resendKey) {
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: process.env.RESEND_FROM ?? "OpenWorlds <onboarding@resend.dev>", to: [to], subject, text, html }),
+      });
+      if (!response.ok) throw new Error("Could not send the website status verification code.");
+      return { sent: true };
+    }
+    throw new Error("Email delivery is not configured.");
+  },
+});
+
 export const sendSupportNotification = internalAction({
   args: {
     reference: v.optional(v.string()),

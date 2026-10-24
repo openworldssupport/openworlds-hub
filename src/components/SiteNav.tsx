@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { badgeForUser, displayInitials, displayNameFor } from "@/lib/staff";
 import { RoleBadge } from "@/components/RoleBadge";
+import { SiteStatusNotice } from "@/components/SiteStatusNotice";
 
 export function SiteNav() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export function SiteNav() {
 
   return (
     <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <SiteStatusNotice />
       <div className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em]">
         <span aria-hidden="true">✦</span>
         <span>Merry Christmas from OpenWorlds</span>
