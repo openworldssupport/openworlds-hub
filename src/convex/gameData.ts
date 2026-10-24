@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { requireSiteAvailable } from "./siteStatus";
 
 const MAX_SAVE_BYTES = 64 * 1024;
 const saveState = v.object({ version: v.number(), data: v.any() });
@@ -17,6 +18,7 @@ async function requirePlayer(ctx: QueryCtx | MutationCtx) {
 export const myGameData = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const { userId, user } = await requirePlayer(ctx);
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
     return {
@@ -31,6 +33,7 @@ export const myGameData = query({
 export const updateProfile = mutation({
   args: { displayName: v.string() },
   handler: async (ctx, { displayName }) => {
+    await requireSiteAvailable(ctx);
     const { userId } = await requirePlayer(ctx);
     const name = displayName.trim();
     if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
@@ -45,6 +48,7 @@ export const updateProfile = mutation({
 export const saveGame = mutation({
   args: { state: saveState },
   handler: async (ctx, { state }) => {
+    await requireSiteAvailable(ctx);
     const { userId, user } = await requirePlayer(ctx);
     const serialized = JSON.stringify(state);
     if (new TextEncoder().encode(serialized).byteLength > MAX_SAVE_BYTES) {

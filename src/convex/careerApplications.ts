@@ -3,11 +3,13 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { careerPositionAliases, careerRoles, normalizeCareerPosition } from "../lib/careers";
 import { requireAdmin } from "./admin";
+import { requireSiteAvailable } from "./siteStatus";
 
 /** Public role availability only; no applicant or account details are returned. */
 export const roleAvailability = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const overrides = await ctx.db.query("careerRoleAvailability").collect();
     const bySlug = new Map(overrides.map((item) => [item.roleSlug, item.isOpen]));
     const users = await ctx.db.query("users").collect();
@@ -53,6 +55,7 @@ export const submitEnquiry = mutation({
     privacyAccepted: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     if (args.honeypot?.trim()) return { accepted: true };
 
     const name = args.name?.trim() ?? "";

@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
 import { isAdmin, requireAdmin } from "./admin";
 import { recordSecurityViolation } from "./security";
+import { requireSiteAvailable } from "./siteStatus";
 
 /** Rejection message when the sender has not accepted the policies. */
 export const SUPPORT_TERMS_CONSENT_MESSAGE =
@@ -49,6 +50,7 @@ export const create = mutation({
     privacyAndTermsAccepted: v.boolean(),
   },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     // Silently accept and discard bot submissions so automated scripts get no signal.
     if (args.honeypot && args.honeypot.trim() !== "") {
       return { reference: null };
@@ -148,6 +150,7 @@ export const lookup = query({
     email: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     const reference = args.reference.trim().toUpperCase();
     const email = args.email.trim().toLowerCase();
     if (!reference || !email) return null;

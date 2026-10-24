@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -21,10 +21,23 @@ function createCode() {
   return String(random[0]! % 1_000_000).padStart(6, "0");
 }
 
-function isAuthorizedStaff(user: { email?: string; emailVerificationTime?: number; role?: string; staffAccess?: boolean; department?: string; position?: string; isSiteBanned?: boolean }) {
+function isAuthorizedAdmin(user: { email?: string; emailVerificationTime?: number; role?: string; isSiteBanned?: boolean }) {
   const bootstrapAdmin = user.email?.trim().toLowerCase() === "support@openworlds.dk";
+  return Boolean(user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.role === "admin" || bootstrapAdmin));
+}
+
+function isAuthorizedStaff(user: { email?: string; emailVerificationTime?: number; role?: string; staffAccess?: boolean; department?: string; position?: string; isSiteBanned?: boolean }) {
   return Boolean(user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-    (user.role === "admin" || bootstrapAdmin || user.staffAccess || user.department?.trim() || user.position?.trim()));
+    (isAuthorizedAdmin(user) || user.staffAccess || user.department?.trim() || user.position?.trim()));
+}
+
+/** Reject public requests while the site is offline; only a verified admin can continue. */
+export async function requireSiteAvailable(ctx: QueryCtx | MutationCtx) {
+  const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
+  if (!setting || setting.status === "available") return;
+  const userId = await getAuthUserId(ctx);
+  const user = userId ? await ctx.db.get(userId) : null;
+  if (!user || !isAuthorizedAdmin(user)) throw new Error("The website is temporarily offline. Please try again later.");
 }
 
 export const publicStatus = query({
@@ -54,6 +67,7 @@ export const requestChangeCode = action({
     const allowed = await ctx.runQuery(internal.siteStatus.canRequestCode, { userId });
     if (!allowed.allowed) throw new Error(allowed.reason);
     if (!allowed.isStaff) throw new Error("Only authorized staff can request a site-status code.");
+    if (status === "available" && !allowed.isAdmin) throw new Error("Only an administrator can bring the website back online.");
     const code = createCode();
     await ctx.runMutation(internal.siteStatus.storeRequestCode, {
       userId,
@@ -80,6 +94,9 @@ export const confirmChange = mutation({
     const code = rawCode.trim();
     const user = await ctx.db.get(userId);
     if (!user || !isAuthorizedStaff(user)) throw new Error("Only authorized staff can change the website status.");
+    if (setting?.status !== "available" && setting?.pendingStatus === "available" && !isAuthorizedAdmin(user)) {
+      throw new Error("Only an administrator can bring the website back online.");
+    }
     if (!setting || setting.codeRequestedBy !== userId || !setting.codeHash || !setting.codeExpiresAt || setting.codeExpiresAt < Date.now()) {
       throw new Error("That verification code expired. Request another code.");
     }
@@ -104,13 +121,13 @@ export const canRequestCode = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
-    if (!user || !isAuthorizedStaff(user)) return { allowed: false, isStaff: false, reason: "Only authorized staff can request a site-status code." };
+    if (!user || !isAuthorizedStaff(user)) return { allowed: false, isStaff: false, isAdmin: false, reason: "Only authorized staff can request a site-status code." };
     const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
     const now = Date.now();
     const windowAt = setting?.codeWindowAt ?? 0;
     const requests = windowAt > now - REQUEST_WINDOW_MS ? setting?.codeRequestCount ?? 0 : 0;
-    if (requests >= MAX_REQUESTS) return { allowed: false, reason: "Too many code requests. Try again later." };
-    return { allowed: true, isStaff: true, reason: "" };
+    if (requests >= MAX_REQUESTS) return { allowed: false, isStaff: true, isAdmin: isAuthorizedAdmin(user), reason: "Too many code requests. Try again later." };
+    return { allowed: true, isStaff: true, isAdmin: isAuthorizedAdmin(user), reason: "" };
   },
 });
 
