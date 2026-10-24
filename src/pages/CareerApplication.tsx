@@ -75,14 +75,14 @@ export default function CareerApplication() {
             <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
               <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden"><label htmlFor="application-website">Website</label><input id="application-website" name="website" tabIndex={-1} autoComplete="off" /></div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="application-name">Name</Label><Input id="application-name" name="name" required maxLength={100} autoComplete="name" /></div>
+                <div className="space-y-2"><Label htmlFor="application-name">Name <span className="font-normal text-slate-500">(optional)</span></Label><Input id="application-name" name="name" maxLength={100} autoComplete="name" /></div>
                 <div className="space-y-2"><Label htmlFor="application-email">Email</Label><Input id="application-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
               </div>
               <div className="space-y-2"><Label htmlFor="application-experience">Relevant experience</Label><Textarea id="application-experience" name="experience" required minLength={10} maxLength={2500} rows={5} placeholder="Share relevant experience, projects, or skills." /></div>
               <div className="space-y-2"><Label htmlFor="application-motivation">Why are you interested in this role?</Label><Textarea id="application-motivation" name="motivation" required minLength={10} maxLength={2500} rows={5} placeholder="Tell us what interests you and what you would bring to the team." /></div>
               <div className="space-y-2"><Label htmlFor="application-portfolio">Portfolio or relevant link <span className="font-normal text-slate-500">(optional)</span></Label><Input id="application-portfolio" name="portfolio" type="url" maxLength={500} placeholder="https://" /></div>
               <p className="text-xs leading-5 text-slate-500">Please don’t include passwords or sensitive account information.</p>
-              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my name, email, application details, and optional portfolio link will be emailed to the Careers team. The website does not save this application.</span></label>
+              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my email, application details, and optional portfolio link will be emailed to the Careers team. My name is optional. The website does not save this application.</span></label>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" disabled={busy}><Mail className="size-4" />{busy ? "Submitting application…" : "Submit application"}</Button>
             </form>

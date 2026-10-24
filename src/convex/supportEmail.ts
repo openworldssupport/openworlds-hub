@@ -141,7 +141,7 @@ export const sendCareerEnquiry = internalAction({
   args: {
     type: v.union(v.literal("application"), v.literal("question")),
     roleTitle: v.optional(v.string()),
-    name: v.string(),
+    name: v.optional(v.string()),
     email: v.string(),
     portfolio: v.optional(v.string()),
     message: v.string(),
@@ -156,7 +156,7 @@ export const sendCareerEnquiry = internalAction({
     const applicationText = [
       isApplication ? "New career application" : "New careers question",
       "",
-      `Name: ${args.name}`,
+      `Name: ${args.name || "(not provided)"}`,
       `Email: ${args.email}`,
       ...(args.roleTitle ? [`Position: ${args.roleTitle}`] : []),
       ...(args.portfolio ? [`Portfolio: ${args.portfolio}`] : []),
@@ -170,7 +170,7 @@ export const sendCareerEnquiry = internalAction({
       greeting: "Careers team,",
       paragraphs: ["A new message was sent through the OpenWorlds Careers page."],
       details: [
-        ["Name", args.name],
+        ["Name", args.name || "(not provided)"],
         ["Email", args.email],
         ...(args.roleTitle ? [["Position", args.roleTitle] as [string, string]] : []),
         ...(args.portfolio ? [["Portfolio", args.portfolio] as [string, string]] : []),
@@ -192,7 +192,7 @@ export const sendCareerEnquiry = internalAction({
       return { forwarded: false, confirmationSent: false };
     }
 
-    const greeting = `Hello ${args.name},`;
+    const greeting = args.name ? `Hello ${args.name},` : "Hello,";
     const confirmationSubject = isApplication
       ? "We received your OpenWorlds Careers application"
       : "We received your OpenWorlds Careers message";
@@ -200,7 +200,7 @@ export const sendCareerEnquiry = internalAction({
       greeting,
       "",
       isApplication
-        ? `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your message and contact you by email if they need anything further.`
+        ?      `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
         : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
       "",
       "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
@@ -213,7 +213,7 @@ export const sendCareerEnquiry = internalAction({
       greeting,
       paragraphs: [
         isApplication
-          ? `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your message and contact you by email if they need anything further.`
+          ?      `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
           : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
         "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
       ],

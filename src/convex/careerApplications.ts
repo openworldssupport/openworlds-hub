@@ -49,7 +49,7 @@ export const submitEnquiry = mutation({
   args: {
     type: v.union(v.literal("application"), v.literal("question")),
     roleSlug: v.optional(v.string()),
-    name: v.string(),
+    name: v.optional(v.string()),
     email: v.string(),
     portfolio: v.optional(v.string()),
     message: v.string(),
@@ -59,13 +59,13 @@ export const submitEnquiry = mutation({
   handler: async (ctx, args) => {
     if (args.honeypot?.trim()) return { accepted: true };
 
-    const name = args.name.trim();
+    const name = args.name?.trim() ?? "";
     const email = args.email.trim().toLowerCase();
     const emailHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email))), (byte) => byte.toString(16).padStart(2, "0")).join("");
     const message = args.message.trim();
     const portfolio = args.portfolio?.trim() ?? "";
     if (!args.privacyAccepted) throw new Error("Consent is required to email your enquiry to Careers.");
-    if (name.length < 2 || name.length > 100) throw new Error("Enter a name between 2 and 100 characters.");
+    if (name.length > 100) throw new Error("Keep your name under 100 characters.");
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
     if (message.length < 20 || message.length > 5000) throw new Error("Keep your message between 20 and 5,000 characters.");
     if (portfolio.length > 500 || (portfolio && !/^https:\/\//i.test(portfolio))) throw new Error("Use an HTTPS portfolio link under 500 characters.");
@@ -96,7 +96,7 @@ export const submitEnquiry = mutation({
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendCareerEnquiry, {
       type: args.type,
       roleTitle,
-      name,
+      name: name || undefined,
       email,
       portfolio: portfolio || undefined,
       message,

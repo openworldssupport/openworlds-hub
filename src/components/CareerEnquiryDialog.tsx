@@ -94,7 +94,7 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
                 </div>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="career-name">Name</Label><Input id="career-name" name="name" required maxLength={100} autoComplete="name" /></div>
+                <div className="space-y-2"><Label htmlFor="career-name">Name <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-name" name="name" maxLength={100} autoComplete="name" /></div>
                 <div className="space-y-2"><Label htmlFor="career-email">Email</Label><Input id="career-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
               </div>
               {mode === "application" && <div className="space-y-2"><Label htmlFor="career-portfolio">Portfolio or relevant link <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-portfolio" name="portfolio" type="url" maxLength={500} placeholder="https://" /></div>}
@@ -118,7 +118,7 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
               <p className="text-xs text-muted-foreground">Please don’t include passwords or sensitive account information.</p>
               <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700">
                 <input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" />
-                <span>I agree that my name, email, and {mode === "application" ? "application details" : "question"} will be emailed to the Careers team. The website does not save this submission.</span>
+                <span>I agree that my email and {mode === "application" ? "application details" : "question"} will be emailed to the Careers team. My name is optional. The website does not save this submission.</span>
               </label>
               {error && <p role="alert" className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" />{error}</p>}
               <div className="flex justify-end"><Button type="submit" disabled={busy}>{busy ? (mode === "application" ? "Submitting application…" : "Sending…") : mode === "application" ? "Submit application" : "Send question"}</Button></div>
