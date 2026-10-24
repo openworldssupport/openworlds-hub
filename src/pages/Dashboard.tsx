@@ -13,7 +13,10 @@ import { ArrowDownToLine, Megaphone, ShieldCheck } from "lucide-react";
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const updateProfile = useMutation(api.gameData.updateProfile);
-  const recoveryStatus = useQuery(api.playerRecovery.recoveryStatus);
+  const recoveryStatus = useQuery(
+    api.playerRecovery.recoveryStatus,
+    user?.role === "user" ? {} : "skip",
+  );
   const requestRecoveryCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
   const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
   const [displayName, setDisplayName] = useState("");
