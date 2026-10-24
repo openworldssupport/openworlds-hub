@@ -210,6 +210,9 @@ export const setMemberStatus = mutation({
     if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "support@openworlds.dk") {
       throw new Error("This control is only for admin accounts.");
     }
+    if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      throw new Error("The bootstrap administrator cannot be changed here.");
+    }
     await ctx.db.patch(args.userId, { memberStatus: args.memberStatus === "none" ? undefined : args.memberStatus });
     return { ok: true };
   },
@@ -239,6 +242,9 @@ export const setAssignment = mutation({
     const currentTarget = await ctx.db.get(args.userId);
     if (!currentTarget) throw new Error("Account not found.");
     const nextLevel = args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
+    if (currentTarget.role === "admin" && args.accessLevel === "staff" && !department && !position) {
+      throw new Error("Add a department and position before changing this account to staff.");
+    }
     if (!department && !position && nextLevel === "admin") throw new Error("An administrator must have a department and position.");
     if (!department && !position) {
       const target = await ctx.db.get(args.userId);
@@ -319,6 +325,7 @@ export const setAssignment = mutation({
         });
       }
       if (accessLevel === "admin" && target.role !== "admin") await ctx.db.patch(target._id, { role: "admin" });
+      if (accessLevel === "staff" && target.role === "admin") await ctx.db.patch(target._id, { role: "member" });
     }
     return { ok: true, isStaff: target.emailVerificationTime !== undefined, accessLevel: nextLevel };
   },

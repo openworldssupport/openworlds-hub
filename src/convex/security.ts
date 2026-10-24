@@ -5,12 +5,12 @@ import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 
-async function requireSecurityStaff(ctx: QueryCtx | MutationCtx) {
+async function requireSecurityStaff(ctx: QueryCtx | MutationCtx, verifyAdminPermission = true) {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const isVerifiedStaff = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.staffAccess || user.department?.trim() || user.position?.trim()));
   if (!user || (!isVerifiedStaff && !(await isAdmin(ctx)))) throw new Error("Not authorized.");
-  if (await isAdmin(ctx)) await requirePermissionVerification(ctx);
+  if (verifyAdminPermission && await isAdmin(ctx)) await requirePermissionVerification(ctx);
 }
 
 export async function recordSecurityViolation(ctx: MutationCtx) {
@@ -153,7 +153,7 @@ export const submitAppeal = mutation({
 export const listBansAndAppeals = query({
   args: {},
   handler: async (ctx) => {
-    await requireSecurityStaff(ctx);
+    await requireSecurityStaff(ctx, false);
     const users = await ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(500);
     const appeals = await ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(100);
     return {

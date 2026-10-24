@@ -148,7 +148,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // Convex Auth upserts an email user before it sends the code. Do not grant
       // staff/admin role or publish a badge until the user proves mailbox access.
       const verified = type === "verification" && profile.emailVerified === true;
-      // Privileges always follow the current invite, never a stale user role.
+      // The bootstrap account keeps its admin role; other privileges follow a current invite or assigned account.
       const isAdmin = isBootstrapAdmin || (invitation ? invitation.accessLevel === "admin" : assignedUser?.role === "admin");
       const department = invitation?.department ?? assignedUser?.department;
       const position = invitation?.position ?? assignedUser?.position;
@@ -157,7 +157,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         ? {
             email,
             emailVerificationTime: Date.now(),
-            role: isAdmin ? "admin" as const : "member" as const,
+            role: isBootstrapAdmin ? "admin" as const : isAdmin ? "admin" as const : "member" as const,
             ...(!isBootstrapAdmin
               ? {
                   department: department || undefined,

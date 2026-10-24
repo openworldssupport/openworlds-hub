@@ -111,6 +111,7 @@ function TeamPanel() {
   const isPermissionVerified = Boolean(rosterStatus?.isAdmin && (rosterStatus.permissionVerifiedUntil ?? 0) > permissionClock);
   const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, isRosterVerified ? {} : "skip", { initialNumItems: 50 });
   const setAssignment = useMutation(api.staff.setAssignment);
+  const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -129,6 +130,11 @@ function TeamPanel() {
     setSavedId(null);
     setBusyId(member.userId);
     try {
+      if (member.isAdmin) {
+        await setMemberStatus({ userId: member.userId, memberStatus });
+        setSavedId(member.userId);
+        return;
+      }
       await setAssignment({ userId: member.userId, department, position, badge, accessLevel, memberStatus });
       if (banned !== member.isBanned) {
         await setBan({ userId: member.userId, banned, reason: "Staff access changed by an administrator" });
@@ -262,12 +268,14 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
   const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
   const [accessLevel, setAccessLevel] = useState<"staff" | "admin">(member.isAdmin ? "admin" : "staff");
   const [banned, setBanned] = useState(member.isBanned);
-  const isDirty = department !== (member.department ?? "") ||
-    position !== (member.position ?? "") ||
-    badge !== defaultBadge ||
-    memberStatus !== (member.memberStatus ?? "none") ||
-    accessLevel !== (member.isAdmin ? "admin" : "staff") ||
-    banned !== member.isBanned;
+  const isDirty = member.isAdmin
+    ? memberStatus !== (member.memberStatus ?? "none")
+    : department !== (member.department ?? "") ||
+      position !== (member.position ?? "") ||
+      badge !== defaultBadge ||
+      memberStatus !== (member.memberStatus ?? "none") ||
+      accessLevel !== "staff" ||
+      banned !== member.isBanned;
   const active = Boolean(department.trim() || position.trim());
   const canSave = member.isAdmin ? canChangeAccess && isDirty : isDirty && canChangeAccess && (active || member.isStaff || banned !== member.isBanned);
 
@@ -341,15 +349,7 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
             </div>
           </>
         )}
-        {member.isAdmin && (
-          <div className="space-y-1">
-            <Label htmlFor={`admin-access-level-${member.userId}`}>Permission</Label>
-            <select id={`admin-access-level-${member.userId}`} value={accessLevel} onChange={(event) => setAccessLevel(event.target.value as "staff" | "admin")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
-              <option value="staff">Staff</option>
-              <option value="admin" disabled={!canChangeAccess}>Admin</option>
-            </select>
-          </div>
-        )}
+
         {!member.isAdmin && (
           <>
             <div className="space-y-1">
@@ -412,7 +412,7 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
           onClick={() => void onSave(member, department, position, badge, memberStatus, banned, accessLevel)}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          {accessLevel === "admin" && !member.isAdmin ? "Give admin access" : member.isAdmin && accessLevel === "staff" ? "Change to staff" : member.isStaff ? "Save" : "Give staff access"}
+          {member.isAdmin ? "Save" : accessLevel === "admin" ? "Give admin access" : member.isStaff ? "Save" : "Give staff access"}
         </Button>
         {saved && <span className="text-xs text-emerald-700">Saved</span>}
       </div>

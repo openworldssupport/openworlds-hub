@@ -73,7 +73,7 @@ export default function Careers() {
                 <p className="mt-1 text-sm leading-6 text-slate-600">{branch.summary}</p>
               </header>
               <ul className="divide-y divide-slate-100">{branch.roles.map((role) => {
-                const isOpen = availability?.find((item) => item.slug === role.slug)?.isOpen === true;
+                const isOpen = (availability?.find((item) => item.slug === role.slug)?.isOpen ?? role.status !== "Filled") === true;
                 return <PositionRow key={role.slug} role={role} isOpen={isOpen} />;
               })}</ul>
             </section>

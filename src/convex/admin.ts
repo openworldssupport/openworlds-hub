@@ -99,7 +99,7 @@ export const inviteCompanyAccount = mutation({
       throw new Error("The bootstrap admin is managed separately and cannot be changed here.");
     }
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
-    if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts cannot be demoted here.");
+    if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
     const department = args.department.trim();
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
