@@ -40,6 +40,18 @@ export const sendPlayerRecoveryCode = internalAction({
   },
 });
 
+export const sendAdminPermissionCode = internalAction({
+  args: { code: v.string() },
+  handler: async (_ctx, { code }) => {
+    const subject = "OpenWorlds staff-access verification code";
+    const text = `Your OpenWorlds staff-access verification code is ${code}. It expires in 10 minutes. Enter it in the admin console only if you requested to grant or change staff access. Do not share it. If you did not request this code, ignore this email.`;
+    const html = `<p>Your OpenWorlds staff-access verification code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Enter it in the admin console only if you requested to grant or change staff access. Do not share it. If you did not request this code, ignore this email.</p>`;
+    const result = await sendBotEmail({ channel: "support", to: DEFAULT_SUPPORT_EMAIL, replyTo: DEFAULT_SUPPORT_EMAIL, subject, text, html });
+    if (!result.sent) throw new Error("Could not deliver the staff-access verification code.");
+    return { sent: true };
+  },
+});
+
 export const sendCareersRosterCode = internalAction({
   args: { code: v.string() },
   handler: async (_ctx, { code }) => {

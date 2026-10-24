@@ -3,12 +3,14 @@ import { internalMutation, internalQuery, mutation, query } from "./_generated/s
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
+import { requirePermissionVerification } from "./adminRoster";
 
 async function requireSecurityStaff(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const isVerifiedStaff = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.staffAccess || user.department?.trim() || user.position?.trim()));
   if (!user || (!isVerifiedStaff && !(await isAdmin(ctx)))) throw new Error("Not authorized.");
+  if (await isAdmin(ctx)) await requirePermissionVerification(ctx);
 }
 
 export async function recordSecurityViolation(ctx: MutationCtx) {

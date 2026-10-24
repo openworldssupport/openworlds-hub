@@ -133,7 +133,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         .filter((q) => q.eq(q.field("email"), email))
         .first();
       const assignedUser = existingUser ?? userByEmail;
-      if (assignedUser?.role === "user") {
+      if (assignedUser?.role === "user" && !invitation) {
         throw new Error("This email is already used by a player account. Use a different email for company access.");
       }
       const assignedStaff = Boolean(
@@ -149,7 +149,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // staff/admin role or publish a badge until the user proves mailbox access.
       const verified = type === "verification" && profile.emailVerified === true;
       // Privileges always follow the current invite, never a stale user role.
-      const isAdmin = isBootstrapAdmin || invitation?.accessLevel === "admin";
+      const isAdmin = isBootstrapAdmin || (invitation ? invitation.accessLevel === "admin" : assignedUser?.role === "admin");
       const department = invitation?.department ?? assignedUser?.department;
       const position = invitation?.position ?? assignedUser?.position;
       const publicBadge = invitation?.publicBadge ?? assignedUser?.publicBadge;

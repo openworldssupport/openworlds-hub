@@ -112,6 +112,10 @@ const schema = defineSchema(
       requestWindowAt: v.optional(v.number()),
       requestCount: v.optional(v.number()),
       verifiedUntil: v.optional(v.number()),
+      permissionCodeHash: v.optional(v.string()),
+      permissionCodeExpiresAt: v.optional(v.number()),
+      permissionCodeAttempts: v.optional(v.number()),
+      permissionVerifiedUntil: v.optional(v.number()),
     }).index("by_user", ["userId"]),
 
     siteStatusSettings: defineTable({

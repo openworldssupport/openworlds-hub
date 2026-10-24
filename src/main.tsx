@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LegalPolicyGate } from "@/components/LegalPolicyGate";
+import { OfflinePage } from "@/components/OfflinePage";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -152,7 +153,8 @@ createRoot(document.getElementById("root")!).render(
           <LegalPolicyGate>
             <RouteSyncer />
             <Suspense fallback={<RouteLoading />}>
-              <Routes>
+              <OfflinePage>
+                <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
               <Route path="/downloads" element={<Downloads />} />
@@ -192,8 +194,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/overview" element={<StaffOverview />} />
               <Route path="/staff/announcements" element={<StaffAnnouncements />} />
               <Route path="/staff/messages" element={<StaffMessages />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+              <Route path="*" element={<NotFound />} />                </Routes>
+              </OfflinePage>
             </Suspense>
           </LegalPolicyGate>
         </BrowserRouter>

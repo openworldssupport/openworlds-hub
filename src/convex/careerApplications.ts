@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { careerRoles } from "../lib/careers";
+import { careerPositionAliases, careerRoles, normalizeCareerPosition } from "../lib/careers";
 import { requireAdmin } from "./admin";
 
 /** Public role availability only; no applicant or account details are returned. */
@@ -10,12 +10,14 @@ export const roleAvailability = query({
   handler: async (ctx) => {
     const overrides = await ctx.db.query("careerRoleAvailability").collect();
     const bySlug = new Map(overrides.map((item) => [item.roleSlug, item.isOpen]));
-    return careerRoles.map((role) => ({
-      slug: role.slug,
-      title: role.title,
-      department: role.department,
-      isOpen: bySlug.get(role.slug) ?? role.status !== "Filled",
-    }));
+    const users = await ctx.db.query("users").collect();
+    return careerRoles.map((role) => {
+      const aliases = new Set(careerPositionAliases(role));
+      const assignedCount = users.filter((user) => user.emailVerificationTime !== undefined && !user.isSiteBanned &&
+        user.position && aliases.has(normalizeCareerPosition(user.position))).length;
+      const isOpen = role.status !== "Filled" && assignedCount < role.capacity && (bySlug.get(role.slug) ?? true);
+      return { slug: role.slug, title: role.title, department: role.department, isOpen, assignedCount, capacity: role.capacity };
+    });
   },
 });
 
@@ -31,16 +33,10 @@ export const setRoleAvailability = mutation({
       .query("careerRoleAvailability")
       .withIndex("by_role_slug", (q) => q.eq("roleSlug", role.slug))
       .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, { isOpen: args.isOpen, updatedAt: Date.now() });
-    } else {
-      await ctx.db.insert("careerRoleAvailability", {
-        roleSlug: role.slug,
-        isOpen: args.isOpen,
-        updatedAt: Date.now(),
-      });
-    }
+    if (existing) await ctx.db.patch(existing._id, { isOpen: args.isOpen, updatedAt: Date.now() });
+    else await ctx.db.insert("careerRoleAvailability", { roleSlug: role.slug, isOpen: args.isOpen, updatedAt: Date.now() });
     return { ok: true, isOpen: args.isOpen };
+
   },
 });
 
@@ -74,10 +70,15 @@ export const submitEnquiry = mutation({
     if (args.type === "application") {
       const role = careerRoles.find((item) => item.slug === args.roleSlug);
       if (!role || role.status === "Filled") throw new Error("Choose a current open position.");
+      const currentStatus = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
+      if (currentStatus && currentStatus.status !== "available") throw new Error("The website is temporarily unavailable for submissions.");
       const override = await ctx.db.query("careerRoleAvailability")
         .withIndex("by_role_slug", (q) => q.eq("roleSlug", role.slug))
         .first();
-      if (override && !override.isOpen) throw new Error("This position is currently closed.");
+      const users = await ctx.db.query("users").collect();
+      const aliases = new Set(careerPositionAliases(role));
+      const assignedCount = users.filter((user) => user.emailVerificationTime !== undefined && !user.isSiteBanned && user.position && aliases.has(normalizeCareerPosition(user.position))).length;
+      if ((override && !override.isOpen) || assignedCount >= role.capacity) throw new Error("This position is currently closed because it is filled or has reached capacity.");
       roleTitle = role.title;
     } else if (args.roleSlug) {
       throw new Error("Questions should not include a position selection.");

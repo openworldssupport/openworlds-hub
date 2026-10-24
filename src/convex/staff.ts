@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
-import { requireRosterVerification } from "./adminRoster";
+import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -188,6 +188,7 @@ export const listMembers = query({
         isBanned: user.isSiteBanned === true,
       };
       });
+    page.sort((a, b) => Number(a.isAdmin) - Number(b.isAdmin));
     return { ...result, page };
   },
 });
@@ -203,6 +204,7 @@ export const setMemberStatus = mutation({
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const target = await ctx.db.get(args.userId);
     if (!target) throw new Error("Account not found.");
     if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "support@openworlds.dk") {
@@ -219,11 +221,13 @@ export const setAssignment = mutation({
     department: v.string(),
     position: v.string(),
     badge: v.union(v.literal("staff"), v.literal("dev")),
+    accessLevel: v.optional(v.union(v.literal("staff"), v.literal("admin"))),
     memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
     isBanned: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const department = args.department.trim();
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
@@ -232,13 +236,16 @@ export const setAssignment = mutation({
       throw new Error("Enter both a department and position, or clear both to remove access.");
     }
 
+    const currentTarget = await ctx.db.get(args.userId);
+    if (!currentTarget) throw new Error("Account not found.");
+    const nextLevel = args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
+    if (!department && !position && nextLevel === "admin") throw new Error("An administrator must have a department and position.");
     if (!department && !position) {
       const target = await ctx.db.get(args.userId);
       if (!target) throw new Error("Account not found.");
-      if (target.role === "admin" || target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
         throw new Error("The bootstrap admin cannot be removed from staff access.");
       }
-      const clearedStatus = args.memberStatus === "none" ? undefined : (args.memberStatus ?? target.memberStatus);
       const keepBan = args.isBanned ?? (target.isSiteBanned === true);
       const clearedMemberStatus = args.memberStatus === "none" ? undefined : (args.memberStatus ?? target.memberStatus);
       await ctx.db.patch(args.userId, {
@@ -266,9 +273,10 @@ export const setAssignment = mutation({
 
     const target = await ctx.db.get(args.userId);
     if (!target) throw new Error("Account not found.");
-    if (target.role === "admin" || target.email?.trim().toLowerCase() === "support@openworlds.dk") {
-      throw new Error("Admin accounts cannot be changed from the team assignment panel.");
+    if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      throw new Error("The bootstrap admin cannot be changed from the team assignment panel.");
     }
+    const accessLevel = nextLevel;
     const finalStatus = args.memberStatus ?? (target.memberStatus ? "volunteer-thank-you" : "none");
     const isBanned = args.isBanned ?? (target.isSiteBanned === true);
     if (target.emailVerificationTime !== undefined) {
@@ -277,7 +285,7 @@ export const setAssignment = mutation({
         position: position || undefined,
         publicBadge: args.badge,
         staffAccess: true,
-        role: "member",
+        role: nextLevel === "admin" ? "admin" : "member",
         memberStatus: finalStatus === "none" ? undefined : finalStatus,
         isSiteBanned: isBanned ? true : undefined,
         siteBanReason: isBanned ? (target.siteBanReason ?? "Staff moderation") : undefined,
@@ -296,8 +304,8 @@ export const setAssignment = mutation({
           department,
           position,
           publicBadge: args.badge,
-        accessLevel: "staff",
-        memberStatus: finalStatus === "none" ? undefined : finalStatus,
+          accessLevel: nextLevel,
+          memberStatus: finalStatus === "none" ? undefined : finalStatus,
           invitedAt: Date.now(),
           invitedBy: (await getAuthUserId(ctx))!,
         });
@@ -306,12 +314,13 @@ export const setAssignment = mutation({
           department,
           position,
           publicBadge: args.badge,
-        accessLevel: "staff",
-        memberStatus: finalStatus === "none" ? undefined : finalStatus,
+          accessLevel: nextLevel,
+          memberStatus: finalStatus === "none" ? undefined : finalStatus,
         });
       }
+      if (accessLevel === "admin" && target.role !== "admin") await ctx.db.patch(target._id, { role: "admin" });
     }
-    return { ok: true, isStaff: target.emailVerificationTime !== undefined };
+    return { ok: true, isStaff: target.emailVerificationTime !== undefined, accessLevel: nextLevel };
   },
 });
 

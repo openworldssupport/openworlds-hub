@@ -8,6 +8,7 @@ export interface CareerRole {
   summary: string;
   responsibilities: string[];
   qualifications: string[];
+  capacity: number;
 }
 
 export interface CareerBranch {
@@ -25,7 +26,8 @@ const role = (
   responsibilities: string[],
   qualifications: string[],
   status: RoleStatus = "Open",
-): CareerRole => ({ slug, title, department, status, summary, responsibilities, qualifications });
+  capacity = 3,
+): CareerRole => ({ slug, title, department, status, summary, responsibilities, qualifications, capacity });
 
 export const careerBranches: CareerBranch[] = [
   {
@@ -34,10 +36,10 @@ export const careerBranches: CareerBranch[] = [
     summary: "Strategic governance, senior operational guidance, and long-term platform direction.",
     roles: [
       role("executive-advisory-board", "Executive Strategic & Advisory Board", "Executive Leadership", "Advise leadership on strategy, direction, and the risks worth weighing.", ["Review strategic proposals and give candid, constructive feedback.", "Advise on risks, opportunities, and long-term direction.", "Join periodic advisory reviews with leadership."], ["Experience advising projects, teams, or organizations.", "Willingness to challenge plans constructively.", "Comfortable reviewing written materials before meetings."]),
-      role("chief-technical-officer", "Chief Technical Officer (CTO)", "Executive Leadership", "Own the technical direction and long-term health of the platform.", ["Set technical direction and review architecture decisions.", "Keep engineering standards, security, and tooling in good shape.", "Guide and support technical contributors across the project."], ["Experience leading technical work or technical people.", "Sound judgement about trade-offs, risk, and long-term maintenance.", "Can explain technical decisions to non-technical colleagues."]),
-      role("chief-operating-officer", "Chief Operating Officer (COO)", "Executive Leadership", "Keep day-to-day work across departments coordinated, supported, and moving.", ["Set and track operating priorities across departments.", "Clear cross-team blockers and keep hand-offs between teams clear.", "Report progress, risks, and open decisions to leadership."], ["Comfortable running several workstreams at once.", "Calm, clear communication when priorities compete.", "Sound judgement about when to escalate a decision."]),
-      role("chief-financial-officer", "Chief Financial Officer (CFO)", "Executive Leadership", "Own the project's budgeting, reporting, and financial planning.", ["Build and maintain simple budgets, forecasts, and cost records.", "Track spend, tooling costs, and funding commitments.", "Prepare clear financial summaries for leadership."], ["Comfortable with budgeting and basic accounting.", "Careful, accurate, and clear in writing.", "Can explain financial trade-offs to non-specialists."]),
-      role("chief-marketing-officer", "Chief Marketing Officer (CMO)", "Executive Leadership", "Own the project's positioning, messaging, and growth direction.", ["Set marketing direction and messaging across channels.", "Coordinate campaigns with community and content contributors.", "Review what works and adjust plans based on results."], ["Experience with marketing, branding, or audience growth.", "Clear writing and good judgement about tone.", "Comfortable reviewing results and changing course."]),
+      role("chief-technical-officer", "Chief Technical Officer (CTO)", "Executive Leadership", "Own the technical direction and long-term health of the platform.", ["Set technical direction and review architecture decisions.", "Keep engineering standards, security, and tooling in good shape.", "Guide and support technical contributors across the project."], ["Experience leading technical work or technical people.", "Sound judgement about trade-offs, risk, and long-term maintenance.", "Can explain technical decisions to non-technical colleagues."], "Open", 1),
+      role("chief-operating-officer", "Chief Operating Officer (COO)", "Executive Leadership", "Keep day-to-day work across departments coordinated, supported, and moving.", ["Set and track operating priorities across departments.", "Clear cross-team blockers and keep hand-offs between teams clear.", "Report progress, risks, and open decisions to leadership."], ["Comfortable running several workstreams at once.", "Calm, clear communication when priorities compete.", "Sound judgement about when to escalate a decision."], "Open", 1),
+      role("chief-financial-officer", "Chief Financial Officer (CFO)", "Executive Leadership", "Own the project's budgeting, reporting, and financial planning.", ["Build and maintain simple budgets, forecasts, and cost records.", "Track spend, tooling costs, and funding commitments.", "Prepare clear financial summaries for leadership."], ["Comfortable with budgeting and basic accounting.", "Careful, accurate, and clear in writing.", "Can explain financial trade-offs to non-specialists."], "Open", 1),
+      role("chief-marketing-officer", "Chief Marketing Officer (CMO)", "Executive Leadership", "Own the project's positioning, messaging, and growth direction.", ["Set marketing direction and messaging across channels.", "Coordinate campaigns with community and content contributors.", "Review what works and adjust plans based on results."], ["Experience with marketing, branding, or audience growth.", "Clear writing and good judgement about tone.", "Comfortable reviewing results and changing course."], "Open", 1),
     ],
   },
   {
@@ -118,7 +120,7 @@ export const careerBranches: CareerBranch[] = [
     title: "Business Development & Strategy",
     summary: "Partnership thinking, platform positioning, business opportunity analysis, and deals.",
     roles: [
-      { slug: "business-strategy-associate", title: "Business Strategy Associate", department: "Business Development & Strategy", status: "Filled", summary: "This contributor position has been filled.", responsibilities: ["Support project planning and prioritization.", "Research audiences, opportunities, and operational needs.", "Help turn strategic goals into practical next steps."], qualifications: ["Clear analysis and structured communication.", "An interest in games, technology, or creator platforms.", "Thoughtful, collaborative decision-making."] },
+      { slug: "business-strategy-associate", title: "Business Strategy Associate", department: "Business Development & Strategy", status: "Filled", capacity: 3, summary: "This contributor position has been filled.", responsibilities: ["Support project planning and prioritization.", "Research audiences, opportunities, and operational needs.", "Help turn strategic goals into practical next steps."], qualifications: ["Clear analysis and structured communication.", "An interest in games, technology, or creator platforms.", "Thoughtful, collaborative decision-making."] },
     ],
   },
 ];
@@ -129,6 +131,21 @@ export const careerRoles: (CareerRole & { branch: CareerBranch })[] =
       .filter((item) => item.status !== "Pending")
       .map((item) => ({ ...item, branch })),
   );
+
+export function normalizeCareerPosition(position: string) {
+  return position.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+export function careerPositionAliases(role: CareerRole) {
+  const aliases: Record<string, string[]> = {
+    "executive-advisory-board": ["executive advisory board", "advisory board"],
+    "chief-technical-officer": ["chief technical officer", "chief technology officer", "cto"],
+    "chief-operating-officer": ["chief operating officer", "coo"],
+    "chief-financial-officer": ["chief financial officer", "chief finance officer", "cfo"],
+    "chief-marketing-officer": ["chief marketing officer", "cmo"],
+  };
+  return [...new Set([role.title, ...(aliases[role.slug] ?? [])].map(normalizeCareerPosition))];
+}
 
 // Restored to the original position list from the project's first careers page
 // (11 original departments, 16 original positions, no legal roles). Statuses keep

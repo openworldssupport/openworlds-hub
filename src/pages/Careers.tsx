@@ -3,8 +3,10 @@ import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { careerBranches, type CareerRole } from "@/lib/careers";
 import { ArrowRight, HeartHandshake } from "lucide-react";
 import { Link } from "react-router";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
-function PositionRow({ role }: { role: CareerRole }) {
+function PositionRow({ role, isOpen }: { role: CareerRole; isOpen: boolean }) {
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
@@ -19,7 +21,7 @@ function PositionRow({ role }: { role: CareerRole }) {
         >
           View role <ArrowRight className="size-4" />
         </Link>
-        {role.status !== "Filled" && (
+        {isOpen && (
           <Link
             to={`/careers/apply/${role.slug}`}
             className="inline-flex h-9 items-center justify-center rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -34,6 +36,7 @@ function PositionRow({ role }: { role: CareerRole }) {
 }
 
 export default function Careers() {
+  const availability = useQuery(api.careerApplications.roleAvailability);
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
@@ -69,7 +72,10 @@ export default function Careers() {
                 <h3 id={`department-${branch.slug}`} className="font-semibold">{branch.title}</h3>
                 <p className="mt-1 text-sm leading-6 text-slate-600">{branch.summary}</p>
               </header>
-              <ul className="divide-y divide-slate-100">{branch.roles.map((role) => <PositionRow key={role.slug} role={role} />)}</ul>
+              <ul className="divide-y divide-slate-100">{branch.roles.map((role) => {
+                const isOpen = availability?.find((item) => item.slug === role.slug)?.isOpen === true;
+                return <PositionRow key={role.slug} role={role} isOpen={isOpen} />;
+              })}</ul>
             </section>
           ))}
         </div>

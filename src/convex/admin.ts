@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { requireRosterVerification } from "./adminRoster";
+import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -50,7 +50,7 @@ export const isCompanyEmailAllowed = internalQuery({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
-    if (invitation) return true;
+    if (invitation && invitation.accessLevel !== "admin") return true;
     const assignedStaff = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", normalized))
@@ -85,11 +85,12 @@ export const inviteCompanyAccount = mutation({
     department: v.string(),
     position: v.string(),
     publicBadge: v.union(v.literal("staff"), v.literal("dev")),
-    accessLevel: v.literal("staff"),
+    accessLevel: v.union(v.literal("staff"), v.literal("admin")),
     memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const email = args.email.trim().toLowerCase();
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Enter a valid company email address.");
@@ -98,7 +99,7 @@ export const inviteCompanyAccount = mutation({
       throw new Error("The bootstrap admin is managed separately and cannot be changed here.");
     }
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
-    if (existingUser?.role === "admin") throw new Error("Existing admin accounts cannot be changed through staff invitations.");
+    if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts cannot be demoted here.");
     const department = args.department.trim();
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
@@ -113,7 +114,7 @@ export const inviteCompanyAccount = mutation({
       department: string;
       position: string;
       publicBadge: "staff" | "dev";
-      accessLevel: "staff";
+      accessLevel: "staff" | "admin";
       memberStatus?: "volunteer-thank-you";
       invitedAt: number;
       invitedBy: NonNullable<Awaited<ReturnType<typeof getAuthUserId>>>;
@@ -139,7 +140,7 @@ export const inviteCompanyAccount = mutation({
         department,
         position,
         publicBadge: args.publicBadge,
-        role: "member",
+        role: args.accessLevel === "admin" ? "admin" : "member",
         staffAccess: true,
         memberStatus: args.memberStatus === "volunteer-thank-you" ? "volunteer-thank-you" : undefined,
         isSiteBanned: undefined,
@@ -158,12 +159,13 @@ export const revokeCompanyAccount = mutation({
   args: { accountId: v.id("companyAccess") },
   handler: async (ctx, { accountId }) => {
     await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const invitation = await ctx.db.get(accountId);
     if (!invitation) return { ok: true };
     const normalized = invitation.email.trim().toLowerCase();
     if (normalized === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be revoked here.");
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalized)).first();
-    if (existingUser?.role === "admin") throw new Error("Existing admin accounts cannot be revoked through staff invitations.");
+    if (existingUser?.role === "admin") throw new Error("Admin accounts cannot be revoked through staff invitations.");
     await ctx.db.delete(accountId);
     const user = await ctx.db
       .query("users")
