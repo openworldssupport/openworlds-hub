@@ -27,6 +27,7 @@ const Events = lazy(() => import("./pages/Events.tsx"));
 const Rules = lazy(() => import("./pages/Rules.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
+const CareerApplicationPage = lazy(() => import("./pages/CareerApplication.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
@@ -173,7 +174,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/create-account" element={<Auth mode="player-signup" />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
-              <Route path="/careers/apply/:roleSlug" element={<NotFound />} />
+              <Route path="/careers/apply/:roleSlug" element={<CareerApplicationPage />} />
               <Route path="/applications" element={<NotFound />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route

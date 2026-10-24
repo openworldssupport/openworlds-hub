@@ -11,13 +11,24 @@ function PositionRow({ role }: { role: CareerRole }) {
         <h3 className="font-semibold text-slate-900">{role.title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-600">{role.summary}</p>
       </div>
-      <Link
-        to={`/careers/role/${role.slug}`}
-        className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[#0066cc] hover:underline"
-        aria-label={`View position: ${role.title}`}
-      >
-        View role <ArrowRight className="size-4" />
-      </Link>
+      <div className="flex shrink-0 items-center gap-4">
+        <Link
+          to={`/careers/role/${role.slug}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0066cc] hover:underline"
+          aria-label={`View position: ${role.title}`}
+        >
+          View role <ArrowRight className="size-4" />
+        </Link>
+        {role.status !== "Filled" && (
+          <Link
+            to={`/careers/apply/${role.slug}`}
+            className="inline-flex h-9 items-center justify-center rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            aria-label={`Apply for ${role.title}`}
+          >
+            Apply
+          </Link>
+        )}
+      </div>
     </li>
   );
 }

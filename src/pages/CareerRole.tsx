@@ -1,7 +1,6 @@
 import { SiteNav } from "@/components/SiteNav";
 import { careerRoles } from "@/lib/careers";
 import { ArrowLeft, ArrowRight, BriefcaseBusiness } from "lucide-react";
-import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { Link, useParams } from "react-router";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
@@ -49,11 +48,11 @@ export function CareerRole() {
             <div><h2 className="font-semibold">About the role</h2><p className="mt-2 text-sm leading-6 text-slate-600">{role.summary}</p></div>
             <div><h2 className="font-semibold">What you’ll contribute</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.responsibilities.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
             <div><h2 className="font-semibold">What helps you succeed</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.qualifications.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
-            <div><h2 className="font-semibold">How to get in touch</h2><p className="mt-2 text-sm leading-6 text-slate-600">Apply using the application form below. It asks for your relevant experience and why you’re interested in the role, then emails your application directly to the Careers inbox. Applications are not saved on the website or reviewed in the staff portal.</p></div>
+            <div><h2 className="font-semibold">How to apply</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use the dedicated application page to share your relevant experience and interest in this role. Applications are emailed directly to the Careers inbox and are not stored on the website or reviewed in the staff portal.</p></div>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
             {roleIsOpen ? (
-              <CareerEnquiryDialog label="Apply for this position" initialRoleSlug={role.slug} mode="application" />
+              <Link to={`/careers/apply/${role.slug}`} className="inline-flex h-10 items-center justify-center rounded-sm bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90">Apply for this position</Link>
             ) : (
               <p className="text-sm font-medium text-slate-600">This position is filled and is not accepting enquiries.</p>
             )}
