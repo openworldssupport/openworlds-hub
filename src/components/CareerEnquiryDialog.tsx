@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-type Props = { initialRoleSlug?: string; label: string; variant?: "default" | "outline" };
+type Props = { initialRoleSlug?: string; label: string; variant?: "default" | "outline"; questionsOnly?: boolean };
 
-export function CareerEnquiryDialog({ initialRoleSlug, label, variant = "default" }: Props) {
+export function CareerEnquiryDialog({ initialRoleSlug, label, variant = "default", questionsOnly = false }: Props) {
   const submitEnquiry = useMutation(api.careerApplications.submitEnquiry);
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<"application" | "question">(initialRoleSlug ? "application" : "question");
+  const [type, setType] = useState<"application" | "question">(questionsOnly ? "question" : initialRoleSlug ? "application" : "question");
   const [roleSlug, setRoleSlug] = useState(initialRoleSlug ?? "");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -81,11 +81,20 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, variant = "default
                 <input id="career-website" name="website" tabIndex={-1} autoComplete="off" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="career-type">I want to</Label>
-                <select id="career-type" value={type} onChange={(event) => setType(event.target.value as typeof type)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="application">Apply for a position</option>
-                  <option value="question">Ask a question</option>
-                </select>
+                {questionsOnly ? (
+                  <>
+                    <Label htmlFor="career-type">Enquiry type</Label>
+                    <Input id="career-type" value="Careers question" readOnly />
+                  </>
+                ) : (
+                  <>
+                    <Label htmlFor="career-type">I want to</Label>
+                    <select id="career-type" value={type} onChange={(event) => setType(event.target.value as typeof type)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                      <option value="application">Apply for a position</option>
+                      <option value="question">Ask a question</option>
+                    </select>
+                  </>
+                )}
               </div>
               {type === "application" && (
                 <div className="space-y-2">
