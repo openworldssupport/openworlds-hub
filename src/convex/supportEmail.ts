@@ -148,6 +148,7 @@ export const sendCareerEnquiry = internalAction({
     submittedAt: v.number(),
   },
   handler: async (_ctx, args) => {
+    if (args.message.length > 16000) throw new Error("Careers submission exceeds the email size limit.");
     const isApplication = args.type === "application";
     const subject = isApplication
       ? `Career application: ${args.roleTitle ?? "Contributor position"}`

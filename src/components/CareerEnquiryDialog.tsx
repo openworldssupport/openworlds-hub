@@ -40,7 +40,12 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
         email: String(values.get("email") ?? ""),
         portfolio: String(values.get("portfolio") ?? ""),
         message: mode === "application"
-          ? `Relevant experience:\n${String(values.get("experience") ?? "").trim()}\n\nWhy I’m interested and what I’d contribute:\n${String(values.get("motivation") ?? "").trim()}`
+          ? [
+              ["Relevant experience", "experience"],
+              ["Why I’m interested and what I’d contribute", "motivation"],
+              ["Relevant project or achievement", "project"],
+              ["Availability", "availability"],
+            ].map(([fieldLabel, field]) => `${fieldLabel}:\n${String(values.get(field) ?? "").trim() || "(not provided)"}`).join("\n\n")
           : String(values.get("message") ?? ""),
         honeypot: String(values.get("website") ?? ""),
         privacyAccepted: values.get("careerConsent") === "on",

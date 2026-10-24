@@ -67,7 +67,7 @@ export const submitEnquiry = mutation({
     if (!args.privacyAccepted) throw new Error("Consent is required to email your enquiry to Careers.");
     if (name.length > 100) throw new Error("Keep your name under 100 characters.");
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
-    if (message.length < 20 || message.length > 5000) throw new Error("Keep your message between 20 and 5,000 characters.");
+    if (message.length < 20 || message.length > 16000) throw new Error("Keep your message between 20 and 16,000 characters.");
     if (portfolio.length > 500 || (portfolio && !/^https:\/\//i.test(portfolio))) throw new Error("Use an HTTPS portfolio link under 500 characters.");
 
     let roleTitle: string | undefined;
