@@ -1,6 +1,6 @@
 import { SiteNav } from "@/components/SiteNav";
 import { careerBranches, type CareerRole } from "@/lib/careers";
-import { ArrowRight, HeartHandshake } from "lucide-react";
+import { ArrowRight, HeartHandshake, Mail } from "lucide-react";
 import { Link } from "react-router";
 
 function PositionRow({ role }: { role: CareerRole }) {
@@ -26,28 +26,28 @@ export default function Careers() {
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
 
-      <section className="ow-page-hero px-5 py-12 text-white sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-medium text-blue-100">OpenWorlds · Careers</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Join the team</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Browse positions by department. Roles are remote, flexible, and voluntary.
-          </p>
-          <a
-            href="#positions"
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
-          >
-            Browse positions <ArrowRight className="size-4" />
-          </a>
+      <section className="border-b border-slate-200 bg-[#f5f4ee] px-5 py-12 text-slate-900 sm:px-8 sm:py-16">
+        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#53665c]">OpenWorlds · Careers</p>
+            <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">Help build a world people can make their own.</h1>
+            <p className="mt-5 max-w-2xl leading-7 text-slate-600">We’re a small project team working on a social world-building game. See the roles we’re looking for and contact the team directly about an opening.</p>
+          </div>
+          <a href="#positions" className="inline-flex h-11 items-center gap-2 border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Current openings <ArrowRight className="size-4" /></a>
         </div>
       </section>
+      <div className="border-b border-slate-200 bg-white px-5 py-3 text-center text-sm text-slate-600">
+        All listed contributor roles are voluntary and unpaid. To enquire, email <a className="font-semibold text-[#173c33] underline" href="mailto:careers@openworlds.dk">careers@openworlds.dk</a>.
+      </div>
 
       <section id="positions" className="mx-auto max-w-5xl scroll-mt-24 px-5 py-10 sm:px-8 sm:py-12">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-[#7651c9]">Careers</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Positions by department</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#53665c]">The team</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Current positions</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Each position explains its focus and department. For any role, send your enquiry straight to our careers inbox.</p>
           </div>
+          <a href="mailto:careers@openworlds.dk" className="inline-flex items-center gap-2 text-sm font-semibold text-[#173c33] hover:underline"><Mail className="size-4" /> Contact Careers</a>
         </div>
 
         <div className="space-y-5">
@@ -55,9 +55,9 @@ export default function Careers() {
             <section
               key={branch.slug}
               aria-labelledby={`department-${branch.slug}`}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+              className="overflow-hidden border-y border-slate-200 bg-white"
             >
-              <header className="border-b border-slate-100 bg-slate-50 px-5 py-4">
+              <header className="border-b border-slate-200 bg-[#f8f8f5] px-5 py-4">
                 <h3 id={`department-${branch.slug}`} className="font-semibold">
                   {branch.title}
                 </h3>
@@ -72,7 +72,7 @@ export default function Careers() {
           ))}
         </div>
 
-        <aside className="mt-7 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-5">
+        <aside className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-slate-200 bg-[#f8f8f5] p-5">
           <div className="flex items-start gap-3">
             <HeartHandshake className="mt-0.5 size-5 shrink-0 text-slate-600" />
             <div>
@@ -82,12 +82,7 @@ export default function Careers() {
               </p>
             </div>
           </div>
-          <Link
-            to="/support"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 underline"
-          >
-            Ask a question
-          </Link>
+          <a href="mailto:careers@openworlds.dk" className="inline-flex items-center gap-2 text-sm font-semibold text-[#173c33] underline"><Mail className="size-4" /> Email Careers</a>
         </aside>
 
       </section>

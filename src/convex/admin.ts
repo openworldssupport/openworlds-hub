@@ -1,10 +1,10 @@
-/** The verified careers inbox that receives new applications. */
-export const CAREERS_EMAIL = "careers@openworlds.dk";
-
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+
+/** The careers inbox for direct, email-only enquiries. */
+export const CAREERS_EMAIL = "careers@openworlds.dk";
 
 /** The verified support address that is allowed to administer the site. */
 export const SUPPORT_EMAIL = "support@openworlds.dk";
@@ -38,7 +38,7 @@ async function isCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 
 /**
  * Allowlisted check used by the OTP delivery action. It returns no account
- * details; only the bootstrap admin or an invited, approved, or assigned staff address passes.
+ * details; only the bootstrap admin, an invited address, or assigned staff passes.
  */
 export const isCompanyEmailAllowed = internalQuery({
   args: { email: v.string() },
@@ -50,11 +50,6 @@ export const isCompanyEmailAllowed = internalQuery({
       .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
     if (invitation) return true;
-    const application = await ctx.db
-      .query("careerApplications")
-      .withIndex("by_email_status", (q) => q.eq("email", normalized).eq("status", "accepted"))
-      .first();
-    if (application) return true;
     const assignedStaff = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", normalized))
@@ -183,11 +178,6 @@ export const revokeCompanyAccount = mutation({
         memberStatus: undefined,
       });
     }
-    const acceptedApplications = await ctx.db
-      .query("careerApplications")
-      .withIndex("by_email_status", (q) => q.eq("email", normalized).eq("status", "accepted"))
-      .collect();
-    await Promise.all(acceptedApplications.map((application) => ctx.db.patch(application._id, { status: "archived" })));
     return { ok: true };
   },
 });

@@ -4,6 +4,7 @@ import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
 
 /** Longest staff message the board accepts. */
@@ -158,27 +159,38 @@ export const removeMessage = mutation({
  * so the admin panel can hand out positions.
  */
 export const listMembers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
     await requireCompanyAdmin(ctx);
-    const users = await ctx.db.query("users").filter((q) => q.neq(q.field("isAnonymous"), true)).take(500);
-    return users.map((user) => {
+    const result = await ctx.db
+      .query("users")
+      .order("desc")
+      .paginate(paginationOpts);
+    const page = result.page
+      .filter((user) => {
+        const isAdminAccount = user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk";
+        return user.isAnonymous !== true && (isAdminAccount || user.staffAccess === true || Boolean(user.department?.trim() || user.position?.trim()));
+      })
+      .map((user) => {
       const department = user.department?.trim() || null;
       const position = user.position?.trim() || null;
       const assigned = Boolean(department || position);
       return {
         userId: user._id,
         name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
+        nickname: user.nickname ?? null,
+        email: user.email ?? null,
         role: user.role ?? null,
         department,
         position,
-        isStaff: (assigned || user.staffAccess === true || user.role === "admin") && !user.isSiteBanned,
+        isStaff: assigned || user.staffAccess === true || user.role === "admin",
         isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk",
         badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
         memberStatus: user.memberStatus ?? null,
         isBanned: user.isSiteBanned === true,
       };
-    });
+      });
+    return { ...result, page };
   },
 });
 

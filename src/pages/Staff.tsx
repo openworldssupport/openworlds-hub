@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Bell,
-  Briefcase,
   Building2,
   FileText,
   ImagePlus,
@@ -32,15 +31,6 @@ import { displayNameFor, displayInitials } from "@/lib/staff";
 import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
 
 const MAX_MESSAGE_LENGTH = 2000;
-const applicationStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined", "archived"];
-const applicationStatusStyles: Record<string, string> = {
-  new: "border-blue-200 bg-blue-50 text-[#0052a3]",
-  reviewing: "border-violet-200 bg-violet-50 text-[#7651c9]",
-  shortlisted: "border-amber-200 bg-amber-50 text-amber-800",
-  accepted: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  declined: "border-red-200 bg-red-50 text-red-800",
-  archived: "border-slate-200 bg-slate-100 text-slate-600",
-};
 type AnnouncementCategory = "announcement" | "development" | "release" | "event";
 type AnnouncementStatus = "draft" | "published";
 
@@ -69,26 +59,7 @@ function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-type StaffSection = "overview" | "announcements" | "applications" | "messages";
-
-function sectionsFor(path: string): StaffSection {
-  if (path.endsWith("/announcements")) return "announcements";
-  if (path.endsWith("/applications")) return "applications";
-  if (path.endsWith("/messages")) return "messages";
-  return "overview";
-}
-
-function ApplicationStatusBadge({ status }: { status: string }) {
-  return (
-    <span
-      className={`rounded-md border px-2 py-1 text-xs font-medium capitalize ${
-        applicationStatusStyles[status] ?? "border-slate-200 bg-slate-50 text-slate-600"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
+type StaffSection = "overview" | "announcements" | "messages";
 
 function WorkspaceOverview({
   isAdmin,
@@ -100,7 +71,6 @@ function WorkspaceOverview({
   onAnnouncements: () => void;
 }) {
   const announcements = useQuery(api.staff.announcements);
-  const applications = useQuery(api.careerApplications.listForAdmin);
   const recent = (announcements ?? []).slice(0, 3);
 
   return (
@@ -150,7 +120,6 @@ function WorkspaceOverview({
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Announcements" value={announcements?.length ?? "—"} detail="Drafts and published updates" />
         <Stat label="Published" value={announcements?.filter((item) => item.status === "published").length ?? "—"} detail="Live on public News" />
-        {(isAdmin || applications !== null) && <Stat label="Applications" value={applications?.length ?? "—"} detail="Contributor review queue" />}
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -187,9 +156,7 @@ function WorkspaceOverview({
           <p className="mt-1 text-xs text-slate-500">Common workspace destinations</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <QuickLink to="/admin" title="Admin console" detail="Tickets, company access & teams" />
-            <QuickLink to="/staff/applications" title="Applications" detail="Review contributor applications" />
             <QuickLink to="/news" title="Public news" detail="View published announcements" />
-            <QuickLink to="/careers" title="Careers" detail="View contributor opportunities" />
           </div>
         </section>
       </div>
@@ -1061,194 +1028,6 @@ function StaffBoard({
   );
 }
 
-function ApplicationsPanel() {
-  const applications = useQuery(api.careerApplications.listForAdmin);
-  const setApplicationStatus = useMutation(api.careerApplications.setStatus);
-  const removeApplication = useMutation(api.careerApplications.remove);
-
-  const [filter, setFilter] = useState<string>("all");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function changeStatus(
-    applicationId: Id<"careerApplications">,
-    status: string,
-  ) {
-    setBusy(true);
-    setError("");
-    try {
-      await setApplicationStatus({ applicationId, status });
-    } catch (err) {
-      setError("Could not update the application status.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function removeApplicationEntry(
-    applicationId: Id<"careerApplications">,
-    roleTitle: string,
-  ) {
-    if (!window.confirm(`Delete the application for “${roleTitle}”? This cannot be undone.`)) return;
-
-    setBusy(true);
-    setError("");
-    try {
-      await removeApplication({ applicationId });
-    } catch (err) {
-      setError("Could not delete the application.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const all = applications ?? [];
-  const visible = filter === "all" ? all : all.filter((item) => item.status === filter);
-  const counts = new Map<string, number>();
-  for (const item of all) counts.set(item.status, (counts.get(item.status) ?? 0) + 1);
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#7651c9]">Contributors</p>
-          <h2 className="mt-1 text-xl font-semibold">Application review</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Detailed applications are private to the company team and never shown publicly.
-          </p>
-        </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/applications">
-            <FileText className="size-4" />
-            Open review page
-          </Link>
-        </Button>
-      </div>
-
-      {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          {error}
-        </p>
-      )}
-
-      {applications === undefined ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="size-5 animate-spin text-slate-400" />
-        </div>
-      ) : applications === null ? (
-        <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
-          Administrator access is required to review applications.
-        </p>
-      ) : (
-        <>
-          <div className="flex flex-wrap gap-2">
-            {["all", ...applicationStatuses].map((status) => {
-              const count = status === "all" ? all.length : (counts.get(status) ?? 0);
-              const active = filter === status;
-              return (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => setFilter(status)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium capitalize transition ${
-                    active
-                      ? "border-[#0066cc] bg-blue-50 text-[#0052a3]"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  {status} · {count}
-                </button>
-              );
-            })}
-          </div>
-
-          {visible.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-              {all.length === 0
-                ? "No applications have been submitted yet."
-                : `No applications with the “${filter}” status.`}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {visible.map((application) => (
-                <article key={application._id} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-semibold">{application.roleTitle}</h3>
-                        <ApplicationStatusBadge status={application.status} />
-                      </div>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {application.fullName}
-                      </p>
-                    </div>
-                    <time className="text-xs text-slate-500">
-                      {formatTime(application.submittedAt)}
-                    </time>
-                  </div>
-
-                  <div className="mt-4 space-y-2 text-sm leading-6 text-slate-700">
-                    <p className="whitespace-pre-wrap"><strong>Experience:</strong> {application.experience}</p>
-                    <p className="whitespace-pre-wrap"><strong>Why this role:</strong> {application.motivation}</p>
-                    <p className="whitespace-pre-wrap"><strong>First weeks:</strong> {application.roleApproach}</p>
-                    <p className="whitespace-pre-wrap"><strong>Collaboration:</strong> {application.collaboration}</p>
-                    <p className="whitespace-pre-wrap"><strong>Availability:</strong> {application.availability}</p>
-                    {application.strategyScenario && <p className="whitespace-pre-wrap"><strong>Scenario:</strong> {application.strategyScenario}</p>}
-                    {application.successMeasures && <p className="whitespace-pre-wrap"><strong>Success measures:</strong> {application.successMeasures}</p>}
-                    {application.decisionMaking && <p className="whitespace-pre-wrap"><strong>Decision-making:</strong> {application.decisionMaking}</p>}
-                    {application.stakeholderCommunication && <p className="whitespace-pre-wrap"><strong>Stakeholder communication:</strong> {application.stakeholderCommunication}</p>}
-                    {application.toolsAndStrengths && <p className="whitespace-pre-wrap"><strong>Tools &amp; strengths:</strong> {application.toolsAndStrengths}</p>}
-                    <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                      {application.weeklyHours && <span>Weekly hours: {application.weeklyHours}</span>}
-                      {application.timeZone && <span>Time zone: {application.timeZone}</span>}
-                      {application.availabilityStart && <span>Start: {application.availabilityStart}</span>}
-                      {application.portfolio && <span>Work samples: {application.portfolio}</span>}
-                      {application.linkedin && (
-                        <a href={application.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#0066cc] underline">
-                          LinkedIn profile
-                        </a>
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-                    <label htmlFor={`application-status-${application._id}`} className="text-sm">
-                      Status
-                    </label>
-                    <select
-                      id={`application-status-${application._id}`}
-                      value={application.status}
-                      disabled={busy}
-                      onChange={(event) => void changeStatus(application._id, event.target.value)}
-                      className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
-                    >
-                      {applicationStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-slate-500 hover:text-red-700"
-                      onClick={() => void removeApplicationEntry(application._id, application.roleTitle)}
-                    >
-                      <Trash2 className="size-3.5" />
-                      Delete
-                    </Button>
-                    <span className="ml-auto text-xs text-slate-400">Voluntary · unpaid</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 type SafeStaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId | undefined };
 
 const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId }) => {
@@ -1257,7 +1036,6 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const tabs = [
     { id: "overview" as const, label: "Workspace", icon: Building2 },
     { id: "announcements" as const, label: "Announcements", icon: Megaphone },
-    { id: "applications" as const, label: "Applications", icon: Briefcase },
     { id: "messages" as const, label: "Team board", icon: Users },
   ];
 
@@ -1290,8 +1068,6 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         <WorkspaceOverview isAdmin={isAdmin} me={me} onAnnouncements={() => {}} />
       ) : selectedTab === "announcements" ? (
         <AnnouncementsPanel isAdmin={isAdmin} userId={userId ?? (me?.userId ?? "")} />
-      ) : selectedTab === "applications" ? (
-        <ApplicationsPanel />
       ) : (
         <StaffBoard canDeleteAny={isAdmin} userId={userId ?? (me?.userId ?? "")} />
       )}
@@ -1416,15 +1192,6 @@ export function StaffAnnouncements() {
 }
 
 export function StaffMessages() {
-  return (
-    <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
-      <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
-    </div>
-  );
-}
-
-export function StaffApplications() {
   return (
     <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
       <SiteNav />

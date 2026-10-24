@@ -43,7 +43,7 @@ const schema = defineSchema(
       // What the public website shows for this person: "Staff" or "Dev".
       // When unset, the badge is derived from department/position.
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
-      // Granted after a verified OTP for an invited, approved, or assigned staff account.
+      // Granted after a verified OTP for an invited or assigned staff account.
       staffAccess: v.optional(v.boolean()),
       // Staff-chosen public name used across /staff and public team pages.
       // Preferred over name; emails are never shown as display names.
@@ -146,36 +146,6 @@ const schema = defineSchema(
       isOpen: v.boolean(),
       updatedAt: v.number(),
     }).index("by_role_slug", ["roleSlug"]),
-
-    careerApplications: defineTable({
-      roleSlug: v.string(),
-      roleTitle: v.string(),
-      fullName: v.string(),
-      email: v.string(),
-      experience: v.string(),
-      motivation: v.string(),
-      roleApproach: v.string(),
-      collaboration: v.string(),
-      availability: v.string(),
-      portfolio: v.string(),
-      strategyScenario: v.optional(v.string()),
-      successMeasures: v.optional(v.string()),
-      decisionMaking: v.optional(v.string()),
-      stakeholderCommunication: v.optional(v.string()),
-      toolsAndStrengths: v.optional(v.string()),
-      weeklyHours: v.optional(v.string()),
-      timeZone: v.optional(v.string()),
-      availabilityStart: v.optional(v.string()),
-      linkedin: v.optional(v.string()),
-      voluntaryConsent: v.boolean(),
-      status: v.string(),
-      submittedAt: v.number(),
-    })
-      .index("by_submitted_at", ["submittedAt"])
-      .index("by_role_slug", ["roleSlug"])
-      .index("by_role_email_submitted_at", ["roleSlug", "email", "submittedAt"])
-      .index("by_email", ["email"])
-      .index("by_email_status", ["email", "status"]),
 
     supportTickets: defineTable({
       reference: v.optional(v.string()),

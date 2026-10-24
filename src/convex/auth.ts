@@ -96,8 +96,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
             throw new Error("Company account emails cannot be used for player sign up.");
           }
           const invitation = await ctx.db.query("companyAccess").filter((q) => q.eq(q.field("email"), normalizedEmail)).first();
-          const acceptedApplication = await ctx.db.query("careerApplications").filter((q) => q.and(q.eq(q.field("email"), normalizedEmail), q.eq(q.field("status"), "accepted"))).first();
-          if (invitation || acceptedApplication) {
+          if (invitation) {
             throw new Error("Company account emails cannot be used for player sign up.");
           }
         }
@@ -128,10 +127,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         .query("companyAccess")
         .filter((q) => q.eq(q.field("email"), email))
         .first();
-      const approvedApplication = await ctx.db
-        .query("careerApplications")
-        .filter((q) => q.and(q.eq(q.field("email"), email), q.eq(q.field("status"), "accepted")))
-        .first();
       const existingUser = existingUserId ? await ctx.db.get(existingUserId) : null;
       const userByEmail = await ctx.db
         .query("users")
@@ -145,7 +140,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         assignedUser?.emailVerificationTime !== undefined &&
         (assignedUser.staffAccess || assignedUser.department?.trim() || assignedUser.position?.trim()),
       );
-      const mayAccessStaff = Boolean(isBootstrapAdmin || invitation || approvedApplication || assignedStaff);
+      const mayAccessStaff = Boolean(isBootstrapAdmin || invitation || assignedStaff);
       if (!mayAccessStaff) {
         throw new Error("Staff sign-in is available only to invited or approved staff accounts.");
       }
@@ -155,9 +150,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const verified = type === "verification" && profile.emailVerified === true;
       // Privileges always follow the current invite, never a stale user role.
       const isAdmin = isBootstrapAdmin || invitation?.accessLevel === "admin";
-      const department = invitation?.department ?? assignedUser?.department ?? (approvedApplication ? "Company" : undefined);
-      const position = invitation?.position ?? assignedUser?.position ?? (approvedApplication ? "Approved staff" : undefined);
-      const publicBadge = invitation?.publicBadge ?? assignedUser?.publicBadge ?? (approvedApplication ? "staff" as const : undefined);
+      const department = invitation?.department ?? assignedUser?.department;
+      const position = invitation?.position ?? assignedUser?.position;
+      const publicBadge = invitation?.publicBadge ?? assignedUser?.publicBadge;
       const userData = verified
         ? {
             email,
@@ -168,7 +163,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
                   department: department || undefined,
                   position: position || undefined,
                   publicBadge,
-                  staffAccess: Boolean(department?.trim() || position?.trim() || invitation || approvedApplication || assignedUser?.staffAccess),
+                  staffAccess: Boolean(department?.trim() || position?.trim() || invitation || assignedUser?.staffAccess),
                   memberStatus: invitation?.memberStatus ?? assignedUser?.memberStatus,
                 }
               : { staffAccess: true }),

@@ -27,14 +27,6 @@ const Events = lazy(() => import("./pages/Events.tsx"));
 const Rules = lazy(() => import("./pages/Rules.tsx"));
 const Careers = lazy(() => import("./pages/Careers.tsx"));
 const CareerRolePage = lazy(() => import("./pages/CareerRole.tsx"));
-const CareerApplicationGateway = lazy(
-  () =>
-    import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationGateway })),
-);
-const CareerApplicationsPage = lazy(
-  () =>
-    import("./pages/CareerRole.tsx").then((module) => ({ default: module.CareerApplicationsPage })),
-);
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
@@ -56,10 +48,6 @@ const StaffAnnouncements = lazy(
 const StaffMessages = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })),
-);
-const StaffApplications = lazy(
-  () =>
-    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffApplications })),
 );
 
 // Simple loading fallback for route transitions
@@ -185,8 +173,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/create-account" element={<Auth mode="player-signup" />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/careers/role/:roleSlug" element={<CareerRolePage />} />
-              <Route path="/careers/apply/:roleSlug" element={<CareerApplicationGateway />} />
-              <Route path="/applications" element={<CareerApplicationsPage />} />              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/careers/apply/:roleSlug" element={<NotFound />} />
+              <Route path="/applications" element={<NotFound />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route
                 path="/staff"
                 element={
@@ -201,7 +190,6 @@ createRoot(document.getElementById("root")!).render(
               />
               <Route path="/staff/overview" element={<StaffOverview />} />
               <Route path="/staff/announcements" element={<StaffAnnouncements />} />
-              <Route path="/staff/applications" element={<StaffApplications />} />
               <Route path="/staff/messages" element={<StaffMessages />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

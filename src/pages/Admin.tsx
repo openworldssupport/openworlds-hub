@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { useAuth } from "@/hooks/use-auth";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,8 @@ import { SiteNav } from "@/components/SiteNav";
 type TeamMember = {
   userId: Id<"users">;
   name: string | null;
+  nickname: string | null;
+  email: string | null;
   department: string | null;
   position: string | null;
   isStaff: boolean;
@@ -21,7 +22,6 @@ type TeamMember = {
   badge: PublicBadge | null;
   memberStatus: "volunteer-thank-you" | null;
   isBanned: boolean;
-  assignedBy: Id<"users"> | null;
 };
 
 type TeamRowProps = {
@@ -36,7 +36,6 @@ type TeamRowProps = {
     memberStatus: "none" | "volunteer-thank-you",
     banned: boolean
   ) => Promise<void>;
-  assignedBy?: Id<"users"> | null;
 };
 
 const DEPARTMENTS = [
@@ -78,16 +77,15 @@ const POSITIONS = [
   "Technical Writer",
 ];
 
-function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
-  const { user } = useAuth();
+function TeamPanel() {
+  const me = useQuery(api.staff.me);
+  const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, me?.isAdmin ? {} : "skip", { initialNumItems: 50 });
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [assignedBy, setAssignedBy] = useState<Id<"users"> | null>(user?.userId ?? null);
-  const [banReason, setBanReason] = useState<string>(user?.userId ?? "");
 
   async function save(
     member: TeamMember,
@@ -103,11 +101,12 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
     try {
       if (member.isAdmin) {
         await setMemberStatus({ userId: member.userId, memberStatus });
+        setSavedId(member.userId);
         return;
       }
       await setAssignment({ userId: member.userId, department, position, badge, memberStatus });
       if (banned !== member.isBanned) {
-        await setBan({ userId: member.userId, banned, reason: banReason || "Staff moderation" });
+        await setBan({ userId: member.userId, banned, reason: "Staff access changed by an administrator" });
       }
       setSavedId(member.userId);
     } catch {
@@ -117,15 +116,16 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
     }
   }
 
-  if (members === undefined) {
+  if (me === undefined || (me?.isAdmin && status === "LoadingFirstPage")) {
     return <div className="flex justify-center py-12"><Loader2 className="size-5 animate-spin text-slate-400" /></div>;
   }
-  if (members === null) {
-    return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Admin access required.</p>;
+  if (!me?.isAdmin) {
+    return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Verified administrator access is required to view the company directory.</p>;
   }
   return (
     <div className="mt-6 space-y-3">
-      <p className="text-sm text-slate-600">Assign a department and position to grant staff portal access. Clear both fields to remove it.</p>
+      <p className="text-sm text-slate-600">Private directory of every staff and admin account, including volunteers. Only verified administrators can view this roster or make access changes.</p>
+      <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " · all accounts shown" : " · load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
@@ -139,31 +139,29 @@ function TeamPanel({ members }: { members: TeamMember[] | null | undefined }) {
             busy={busyId === member.userId}
             saved={savedId === member.userId}
             onSave={save}
-            assignedBy={assignedBy ?? member.assignedBy ?? null}
           />
         ))
       )}
+      {status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(50)}>Load more accounts</Button>}
+      {status === "LoadingMore" && <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-slate-400" /></div>}
     </div>
   );
 }
 
-function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
+function TeamRow({ member, busy, saved, onSave }: TeamRowProps) {
   const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
   const [department, setDepartment] = useState(member.department ?? "");
   const [position, setPosition] = useState(member.position ?? "");
   const [badge, setBadge] = useState<"staff" | "dev">(defaultBadge);
   const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
-  const [assignedById, setAssignedById] = useState<string | null>(member.assignedBy ?? null);
-  const [banReasonField, setBanReasonField] = useState<string>(member.isBanned ? (member.assignedBy ?? "") : "");
   const [banned, setBanned] = useState(member.isBanned);
   const isDirty = member.isAdmin
-    ? memberStatus !== (member.memberStatus ?? "none") || assignedById !== (member.assignedBy ?? null)
+    ? memberStatus !== (member.memberStatus ?? "none")
     : department !== (member.department ?? "") ||
       position !== (member.position ?? "") ||
       badge !== defaultBadge ||
       memberStatus !== (member.memberStatus ?? "none") ||
-      banned !== member.isBanned ||
-      banReasonField !== "";
+      banned !== member.isBanned;
   const active = Boolean(department.trim() || position.trim());
 
   return (
@@ -171,7 +169,7 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold">
-            {member.name || "Company account"}
+            {member.nickname || member.name || "Unnamed account"}
             {member.isAdmin ? (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">
                 Admin
@@ -180,8 +178,13 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
               <RoleBadge badge={member.badge ?? defaultBadge} />
             )}
           </p>
-          <p className="text-xs text-slate-500">
-            {member.isAdmin ? "Admin access protected" : member.isStaff ? "Staff access on" : "Staff access off"}
+          <p className="text-xs text-slate-500">{member.email || "Email unavailable"}</p>
+          <p className="mt-1 text-xs text-slate-600">
+            {member.isAdmin ? "Administrator" : member.isStaff ? "Staff member" : "Player account"}
+            {member.department ? ` · ${member.department}` : ""}
+            {member.position ? ` · ${member.position}` : ""}
+            {member.isBanned ? " · access restricted" : ""}
+            {member.memberStatus === "volunteer-thank-you" ? " · volunteer · thank-you" : ""}
           </p>
         </div>
       </div>
@@ -243,8 +246,9 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
                 <Label htmlFor={`member-ban-reason-${member.userId}`}>Ban reason</Label>
                 <Input
                   id={`member-ban-reason-${member.userId}`}
-                  value={banReasonField}
-                  onChange={(e) => setBanReasonField(e.target.value)}
+                  maxLength={500}
+                  value="Staff access updated by an administrator"
+                  readOnly
                   placeholder="Why was this person restricted?"
                 />
               </div>
@@ -278,17 +282,6 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
               <option value="volunteer-thank-you">Volunteer</option>
             </select>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor={`assignee-${member.userId}`}>Assigned by</Label>
-            <Input
-              id={`assignee-${member.userId}`}
-              value={assignedById ?? ""}
-              readOnly
-              aria-readonly="true"
-              placeholder="See the admin log"
-              className="bg-slate-50"
-            />
-          </div>
         </>
       )}
       <div className="mt-3 flex items-center gap-3">
@@ -307,14 +300,14 @@ function TeamRow({ member, busy, saved, onSave, assignedBy }: TeamRowProps) {
 }
 
 export default function AdminPage() {
-  const members = useQuery(api.staff.listMembers);
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-        <p className="text-sm font-medium text-[#7651c9]">OpenWorlds</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Team access</h1>
-        <TeamPanel members={members as TeamMember[] | null | undefined} />
+        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds · Company operations</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">People directory</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private roster for managing staff access, departments, roles, and volunteer recognition. Email addresses are only returned to verified administrators.</p>
+        <TeamPanel />
       </section>
     </main>
   );
