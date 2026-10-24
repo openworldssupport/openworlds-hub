@@ -8,12 +8,12 @@ export function OfflinePage({ children }: { children: ReactNode }) {
   const status = useQuery(api.siteStatus.publicStatus);
   const me = useQuery(api.staff.me);
   const location = useLocation();
-  const canManage = Boolean(me?.isStaff);
+  const isAdmin = Boolean(me?.isAdmin);
 
   if (status === undefined) {
     return <main className="flex min-h-screen items-center justify-center bg-slate-50"><Loader2 className="size-6 animate-spin text-slate-500" aria-label="Checking site status" /></main>;
   }
-  if (status === "available" || canManage || location.pathname === "/auth") return <>{children}</>;
+  if (status === "available" || isAdmin || location.pathname === "/auth") return <>{children}</>;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -22,7 +22,7 @@ export function OfflinePage({ children }: { children: ReactNode }) {
         <p className="mt-6 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">OpenWorlds · Service notice</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">We’ll be back soon.</h1>
         <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">The website is temporarily offline while we work on it or address a service issue. Please check back later. Thanks for your patience.</p>
-        <p className="mt-6 text-sm text-slate-500">If you’re a team member, <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] underline underline-offset-4">sign in to the staff portal</Link>.</p>
+        <p className="mt-6 text-sm text-slate-500">Only administrators can use the site while it is offline. <Link to="/auth?returnTo=%2Fadmin" className="font-medium text-[#0066cc] underline underline-offset-4">Administrator sign in</Link>.</p>
       </section>
     </main>
   );
