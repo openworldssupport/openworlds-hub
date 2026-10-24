@@ -1079,7 +1079,7 @@ function SiteStatusControl() {
   const status = useQuery(api.siteStatus.staffStatus);
   const requestCode = useAction(api.siteStatus.requestChangeCode);
   const confirmChange = useMutation(api.siteStatus.confirmChange);
-  const [targetStatus, setTargetStatus] = useState<"available" | "under-construction" | "unavailable">("available");
+  const [targetStatus, setTargetStatus] = useState<"available" | "unavailable">("available");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"choose" | "verify">("choose");
   const [message, setMessage] = useState("");
@@ -1117,7 +1117,7 @@ function SiteStatusControl() {
     }
   }
 
-  const statusLabel = status === "under-construction" ? "Under construction" : status === "unavailable" ? "Unavailable" : status === "available" ? "Available" : "Loading…";
+  const statusLabel = status === "unavailable" ? "Unavailable" : status === "available" ? "Available" : "Loading…";
   return (
     <section className="mb-5 rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-start gap-3">
@@ -1127,7 +1127,7 @@ function SiteStatusControl() {
           <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
           {step === "choose" ? (
             <form onSubmit={(event) => void sendCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
-              <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Available</option><option value="under-construction">Under construction</option><option value="unavailable">Unavailable</option></select></div>
+              <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Available</option><option value="unavailable">Unavailable — under construction or temporarily offline</option></select></div>
               <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Sending code…" : "Send verification code"}</Button>
             </form>
           ) : (

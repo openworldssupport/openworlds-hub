@@ -40,6 +40,25 @@ export const sendPlayerRecoveryCode = internalAction({
   },
 });
 
+export const sendCareersRosterCode = internalAction({
+  args: { code: v.string() },
+  handler: async (_ctx, { code }) => {
+    const subject = "OpenWorlds administrator account-directory verification code";
+    const text = `Your OpenWorlds administrator verification code is ${code}. It expires in 10 minutes. Enter it in the admin console only if you requested access to the account directory. Do not share it. If you did not request this code, you can ignore this email.`;
+    const html = `<p>Your OpenWorlds administrator verification code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Enter it in the admin console only if you requested access to the account directory. Do not share it. If you did not request this code, you can ignore this email.</p>`;
+    const result = await sendBotEmail({
+      channel: "careers",
+      to: CAREERS_EMAIL,
+      replyTo: CAREERS_EMAIL,
+      subject,
+      text,
+      html,
+    });
+    if (!result.sent) throw new Error("Could not deliver the administrator verification code.");
+    return { sent: true };
+  },
+});
+
 export const sendSiteStatusCode = internalAction({
   args: { code: v.string() },
   handler: async (_ctx, { code }) => {

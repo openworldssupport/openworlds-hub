@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { requireRosterVerification } from "./adminRoster";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -63,6 +64,7 @@ export const listCompanyAccess = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isCompanyAdmin(ctx))) return null;
+    await requireRosterVerification(ctx);
     const accounts = await ctx.db.query("companyAccess").withIndex("by_email").collect();
     return accounts.map(({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => ({
       _id,

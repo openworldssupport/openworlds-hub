@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { deriveBadge, type PublicBadge } from "@/lib/staff";
-import { Loader2, Save } from "lucide-react";
+import { AlertCircle, Loader2, Mail, Save, ShieldCheck } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 
 type TeamMember = {
@@ -79,7 +79,22 @@ const POSITIONS = [
 
 function TeamPanel() {
   const me = useQuery(api.staff.me);
-  const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, me?.isAdmin ? {} : "skip", { initialNumItems: 50 });
+  const rosterStatus = useQuery(api.adminRoster.rosterStatus);
+  const requestCode = useAction(api.adminRoster.requestCode);
+  const verifyCode = useMutation(api.adminRoster.verifyCode);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [verificationClock, setVerificationClock] = useState(Date.now());
+  useEffect(() => {
+    const verifiedUntil = rosterStatus?.verifiedUntil ?? 0;
+    if (!verifiedUntil || verifiedUntil <= Date.now()) return;
+    const timer = window.setTimeout(() => setVerificationClock(Date.now()), verifiedUntil - Date.now());
+    return () => window.clearTimeout(timer);
+  }, [rosterStatus?.verifiedUntil]);
+  const isRosterVerified = Boolean(rosterStatus?.isAdmin && rosterStatus.verifiedUntil > verificationClock);
+  const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, isRosterVerified ? {} : "skip", { initialNumItems: 50 });
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
@@ -116,15 +131,57 @@ function TeamPanel() {
     }
   }
 
-  if (me === undefined || (me?.isAdmin && status === "LoadingFirstPage")) {
+  async function sendRosterCode() {
+    setVerificationBusy(true);
+    setVerificationError("");
+    setVerificationMessage("");
+    try {
+      await requestCode({});
+      setVerificationMessage("A six-digit verification code was sent to careers@openworlds.dk. It expires in 10 minutes.");
+    } catch (error) {
+      setVerificationError(error instanceof Error ? error.message : "Could not send the verification code.");
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
+
+  async function verifyRosterCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setVerificationBusy(true);
+    setVerificationError("");
+    setVerificationMessage("");
+    try {
+      const result = await verifyCode({ code: verificationCode });
+      if (!result.ok) throw new Error(result.message);
+      setVerificationCode("");
+      setVerificationMessage("Verified. The account directory will remain available for 15 minutes.");
+    } catch (error) {
+      setVerificationError(error instanceof Error ? error.message : "Could not verify the code.");
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
+
+  if (me === undefined || (isRosterVerified && status === "LoadingFirstPage")) {
     return <div className="flex justify-center py-12"><Loader2 className="size-5 animate-spin text-slate-400" /></div>;
   }
   if (!me?.isAdmin) {
     return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Verified administrator access is required to view the company directory.</p>;
   }
+  if (!isRosterVerified) {
+    return (
+      <section className="mt-6 max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify access to the account directory</h2><p className="mt-1 text-sm leading-6 text-slate-600">For additional protection, enter a one-time code sent to the Careers email before viewing account details. Verification lasts 15 minutes.</p></div></div>
+        <Button className="mt-5" variant="outline" onClick={() => void sendRosterCode()} disabled={verificationBusy}><Mail className="size-4" />{verificationBusy ? "Sending code…" : "Send code to Careers"}</Button>
+        <form onSubmit={(event) => void verifyRosterCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-roster-code">6-digit verification code</Label><Input id="admin-roster-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={verificationBusy || verificationCode.length !== 6}><ShieldCheck className="size-4" />{verificationBusy ? "Verifying…" : "Verify"}</Button></form>
+        {verificationMessage && <p role="status" className="mt-3 text-sm text-slate-600">{verificationMessage}</p>}
+        {verificationError && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{verificationError}</p>}
+      </section>
+    );
+  }
   return (
     <div className="mt-6 space-y-3">
-      <p className="text-sm text-slate-600">Private directory of every staff and admin account, including volunteers. Only verified administrators can view this roster or make access changes.</p>
+      <p className="text-sm text-slate-600">Private directory of all non-anonymous accounts, including players, staff, admins, and volunteers. Only administrators who have verified a one-time Careers email code can view or change account access.</p>
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " · all accounts shown" : " · load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
@@ -306,7 +363,7 @@ export default function AdminPage() {
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds · Company operations</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">People directory</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private roster for managing staff access, departments, roles, and volunteer recognition. Email addresses are only returned to verified administrators.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private account directory for managing staff access, departments, roles, and volunteer recognition. Viewing accounts requires an administrator sign-in and a fresh code sent to the Careers inbox.</p>
         <TeamPanel />
       </section>
     </main>

@@ -104,8 +104,19 @@ const schema = defineSchema(
       attempts: v.number(),
     }).index("by_user_created", ["userId", "createdAt"]),
 
+    adminRosterVerifications: defineTable({
+      userId: v.id("users"),
+      codeHash: v.optional(v.string()),
+      codeExpiresAt: v.optional(v.number()),
+      codeAttempts: v.optional(v.number()),
+      requestWindowAt: v.optional(v.number()),
+      requestCount: v.optional(v.number()),
+      verifiedUntil: v.optional(v.number()),
+    }).index("by_user", ["userId"]),
+
     siteStatusSettings: defineTable({
       key: v.literal("main"),
+      // Keep the legacy value readable for existing records; the control now exposes a single unavailable mode.
       status: v.union(v.literal("available"), v.literal("under-construction"), v.literal("unavailable")),
       pendingStatus: v.optional(v.union(v.literal("available"), v.literal("under-construction"), v.literal("unavailable"))),
       updatedAt: v.number(),

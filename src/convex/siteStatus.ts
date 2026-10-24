@@ -7,7 +7,7 @@ const CODE_TTL_MS = 10 * 60 * 1000;
 const REQUEST_WINDOW_MS = 60 * 60 * 1000;
 const MAX_REQUESTS = 5;
 const MAX_ATTEMPTS = 5;
-const statusValidator = v.union(v.literal("available"), v.literal("under-construction"), v.literal("unavailable"));
+const statusValidator = v.union(v.literal("available"), v.literal("unavailable"));
 
 function digestCode(code: string) {
   return crypto.subtle.digest("SHA-256", new TextEncoder().encode(code)).then((digest) =>
@@ -31,7 +31,7 @@ export const publicStatus = query({
   args: {},
   handler: async (ctx) => {
     const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
-    return setting?.status ?? "available";
+    return !setting || setting.status === "available" ? "available" : "unavailable";
   },
 });
 
@@ -42,7 +42,7 @@ export const staffStatus = query({
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || !isAuthorizedStaff(user)) return null;
     const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
-    return setting?.status ?? "available";
+    return !setting || setting.status === "available" ? "available" : "unavailable";
   },
 });
 
@@ -94,7 +94,7 @@ export const confirmChange = mutation({
           : `Incorrect code. ${MAX_ATTEMPTS - attempts} attempts remain.`,
       };
     }
-    const status = setting.pendingStatus ?? setting.status;
+    const status = setting.pendingStatus === "available" ? "available" : "unavailable";
     await ctx.db.patch(setting._id, { status, pendingStatus: undefined, updatedAt: Date.now(), codeHash: undefined, codeRequestedBy: undefined, codeExpiresAt: undefined, codeAttempts: undefined });
     return { ok: true as const, status };
   },

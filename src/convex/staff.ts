@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
+import { requireRosterVerification } from "./adminRoster";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -161,16 +162,13 @@ export const removeMessage = mutation({
 export const listMembers = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, { paginationOpts }) => {
-    await requireCompanyAdmin(ctx);
+    await requireRosterVerification(ctx);
     const result = await ctx.db
       .query("users")
       .order("desc")
       .paginate(paginationOpts);
     const page = result.page
-      .filter((user) => {
-        const isAdminAccount = user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk";
-        return user.isAnonymous !== true && (isAdminAccount || user.staffAccess === true || Boolean(user.department?.trim() || user.position?.trim()));
-      })
+      .filter((user) => user.isAnonymous !== true)
       .map((user) => {
       const department = user.department?.trim() || null;
       const position = user.position?.trim() || null;
