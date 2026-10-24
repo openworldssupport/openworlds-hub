@@ -9,8 +9,8 @@ export function SiteStatusNotice() {
   const isUnavailable = status === "unavailable";
   const Icon = isUnavailable ? AlertTriangle : Construction;
   const message = isUnavailable
-    ? "OpenWorlds is temporarily unavailable. Please check back later."
-    : "OpenWorlds is under construction. Some parts of the site may be unavailable.";
+    ? "The site is currently unavailable. Please check back later."
+    : "The site is currently under construction. Please check back later.";
 
   return (
     <div role="status" className={`flex items-center justify-center gap-2 px-4 py-2 text-center text-sm font-medium ${isUnavailable ? "bg-amber-100 text-amber-950" : "bg-sky-100 text-sky-950"}`}>
