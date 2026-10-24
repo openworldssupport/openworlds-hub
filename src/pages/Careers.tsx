@@ -39,7 +39,7 @@ export default function Careers() {
       <section className="border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <p className="text-sm leading-6 text-slate-600">All listed contributor roles are remote, voluntary, and unpaid. Applications and questions are emailed directly to careers@openworlds.dk and aren’t stored in the website.</p>
-          <CareerEnquiryDialog label="Ask Careers a question" variant="outline" questionsOnly />
+          <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </div>
       </section>
       <section id="positions" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
@@ -47,9 +47,9 @@ export default function Careers() {
           <div>
             <p className="text-sm font-medium text-[#7651c9]">Open positions</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Current positions</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Select a role to see the responsibilities and experience that may be useful.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Select a role to read its details and submit a role-specific application by email.</p>
           </div>
-          <CareerEnquiryDialog label="Apply or ask a question" />
+          <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </div>
         <div className="space-y-5">
           {careerBranches.map((branch) => (
@@ -67,7 +67,7 @@ export default function Careers() {
             <HeartHandshake className="mt-0.5 size-5 shrink-0 text-[#0066cc]" />
             <div><h3 className="font-semibold">Volunteer positions</h3><p className="mt-1 text-sm leading-6 text-slate-600">These roles are remote and unpaid, with flexible hours.</p></div>
           </div>
-          <CareerEnquiryDialog label="Ask Careers a question" variant="outline" questionsOnly />
+          <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </aside>
       </section>
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · All contributor roles are voluntary and unpaid.</footer>
