@@ -108,15 +108,37 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
             ...(name ? { name } : {}),
             ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
           });
+          const savedProfile = await ctx.db.query("playerGameData")
+            .filter((q) => q.eq(q.field("userId"), existingPlayer._id))
+            .first();
+          if (!savedProfile) {
+            const now = Date.now();
+            await ctx.db.insert("playerGameData", {
+              userId: existingPlayer._id,
+              displayName: name ?? existingPlayer.name ?? "Player",
+              state: { version: 1, data: {} },
+              createdAt: now,
+              updatedAt: now,
+            });
+          }
           return existingPlayer._id;
         }
-        return await ctx.db.insert("users", {
+        const userId = await ctx.db.insert("users", {
           email,
           ...(name ? { name } : {}),
           ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
           ...(typeof profile.pendingRecoveryEmail === "string" ? { pendingRecoveryEmail: profile.pendingRecoveryEmail } : {}),
           role: "user",
         });
+        const now = Date.now();
+        await ctx.db.insert("playerGameData", {
+          userId,
+          displayName: name ?? "Player",
+          state: { version: 1, data: {} },
+          createdAt: now,
+          updatedAt: now,
+        });
+        return userId;
       }
       if (provider.type !== "email" || provider.id !== "email-otp") throw new Error("This sign-in method is not available.");
 
