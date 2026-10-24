@@ -15,14 +15,26 @@ export function OfflinePage({ children }: { children: ReactNode }) {
   }
   if (status === "available" || isAdmin || location.pathname === "/auth") return <>{children}</>;
 
+  const isConstruction = status === "under-construction" as string;
+
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="mx-auto flex min-h-[75vh] max-w-3xl flex-col items-center justify-center px-5 py-16 text-center sm:px-8">
-        <span className="flex size-14 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-800"><Wrench className="size-6" /></span>
-        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">OpenWorlds · Service notice</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">We’ll be back soon.</h1>
-        <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">The website is temporarily offline while we work on it or address a service issue. Please check back later. Thanks for your patience.</p>
-        <p className="mt-6 text-sm text-slate-500">Only administrators can use the site while it is offline. <Link to="/auth?returnTo=%2Fadmin" className="font-medium text-[#0066cc] underline underline-offset-4">Administrator sign in</Link>.</p>
+    <main className="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center overflow-auto bg-[#f7f8fa] px-5 py-12 text-slate-900">
+      <section className="w-full max-w-xl text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm">
+          <Wrench className="size-5" aria-hidden="true" />
+        </span>
+        <p className="mt-7 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">OpenWorlds service notice</p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          The site is {isConstruction ? "under construction" : "currently unavailable"}.
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-base leading-7 text-slate-600">
+          {isConstruction
+            ? "We’re making updates to the website. Please check back later."
+            : "The website is offline right now. Please try again later."}
+        </p>
+        <p className="mt-7 text-sm text-slate-500">
+          Administrator? <Link to="/auth?returnTo=%2Fadmin" className="font-medium text-slate-800 underline underline-offset-4 hover:text-slate-600">Sign in</Link>
+        </p>
       </section>
     </main>
   );

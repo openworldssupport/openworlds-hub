@@ -150,10 +150,10 @@ createRoot(document.getElementById("root")!).render(
       </ToolbarErrorBoundary>
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
-          <LegalPolicyGate>
-            <RouteSyncer />
-            <Suspense fallback={<RouteLoading />}>
-              <OfflinePage>
+          <RouteSyncer />
+          <OfflinePage>
+            <LegalPolicyGate>
+              <Suspense fallback={<RouteLoading />}>
                 <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/news" element={<News />} />
@@ -195,9 +195,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/announcements" element={<StaffAnnouncements />} />
               <Route path="/staff/messages" element={<StaffMessages />} />
               <Route path="*" element={<NotFound />} />                </Routes>
-              </OfflinePage>
-            </Suspense>
-          </LegalPolicyGate>
+              </Suspense>
+            </LegalPolicyGate>
+          </OfflinePage>
         </BrowserRouter>
         <Toaster />
       </ConvexAuthProvider>
