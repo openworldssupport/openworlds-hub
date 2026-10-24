@@ -22,7 +22,12 @@ export const privacySections: Section[] = [
       "Staff features: staff messages and announcements store the author account, displayed staff details, message or announcement content, timestamps, and any uploaded image/video and its metadata. Uploaded media is stored using the site's configured file storage.",
       "Policy acceptance: when you agree to an updated policy while signed in, we store your account ID, the Privacy Policy and Terms versions accepted, and the acceptance timestamp. If you are signed out, your browser stores a version-specific acceptance marker in local storage; it is not linked to a named account by this site.",
       "Website services: providers that host the website, provide sign-in, store files, or deliver emails may process technical connection, account, and delivery information needed to provide those services. The website does not use analytics.",
-      "In-game information: when you use voice chat, your voice is transmitted to other players so you can communicate.",
+      "In-game account and activity information: when you sign in and play online, the game client is designed to send your account identifier and display name, world/session activity (including the world instance, platform, and join/leave times), and player position and rotation updates while in a world. The client is designed to fetch the world’s player list periodically. The complete deployed backend’s receipt, storage, and retention of these events have not been independently verified.",
+      "In-game voice and connection information: when voice chat is enabled, backend membership checks are used to issue short-lived Vivox access tokens; the Vivox signing key is kept on the backend. Your voice is transmitted to other players so you can communicate. This describes the client/backend design, not independently verified live processing or retention.",
+      "Game-device settings: the game may store settings locally, including its backend URL, display name, and music volume. In optional anonymous-auth mode, it may also store a refresh token on that device. These local settings are distinct from information sent to the website database.",
+      "Anti-cheat signals: the game client contains local hooks or checks for movement, aim, and combat values and may produce anomaly flags. The code reviewed did not show these signals being submitted to the backend; this does not establish what a deployed build or backend may collect.",
+      "Discord activity: the game’s Discord integration can publish your game activity to Discord. The code reviewed does not indicate that Discord friend or profile data is sent to OpenWorlds.",
+      "Backend verification limit: the available project does not include the complete deployed game backend. We cannot confirm from this code how deployed services store, retain, or log all game events, or whether additional server-side data is collected. This notice should be checked against the live backend before being treated as a complete account of game data practices.",
     ],
   },
   {
@@ -32,6 +37,7 @@ export const privacySections: Section[] = [
       "To publish contributor roles, send application and question messages to the Careers inbox, and send automated receipt confirmations.",
       "To manage company accounts and respond to website requests.",
       "To operate and secure the website and game, provide account and multiplayer features, enable voice chat, respond to support requests and careers enquiries, and manage staff communications and announcements.",
+      "The game client is designed to use account, session, and player-presence information to support online multiplayer. We have not verified the complete deployed backend’s collection and retention practices for those events.",
     ],
   },
   {
@@ -43,13 +49,13 @@ export const privacySections: Section[] = [
   {
     title: "5. Sharing",
     body: [
-      "Website information may be processed by service providers that host the site, provide sign-in, store files, or deliver emails. Authorized OpenWorlds staff can access support requests and staff content as needed for their work. Careers form messages are sent through the configured email provider to the careers inbox and are not stored in the website database. The email provider sends a receipt confirmation to the address you provide. In-game information, including voice chat, is shared as needed to provide multiplayer features and let other players communicate with you. Do not submit passwords or payment details through website forms.",
+      "Website information may be processed by service providers that host the site, provide sign-in, store files, or deliver emails. Authorized OpenWorlds staff can access support requests and staff content as needed for their work. Careers form messages are sent through the configured email provider to the careers inbox and are not stored in the website database. The email provider sends a receipt confirmation to the address you provide. In-game account, session, and presence information may be processed by game services to provide multiplayer features; voice is transmitted to other players, and Vivox connection tokens are issued by the backend as designed. The complete deployed backend’s actual processing and retention have not been verified. Do not submit passwords or payment details through website forms.",
     ],
   },
   {
     title: "6. Retention",
     body: [
-      "We keep website records for as long as needed to provide the service, respond to requests, and maintain security. Authorized staff can remove tickets and announcement uploads through the site tools. Careers messages are handled and retained in the email provider and careers inbox under their applicable retention practices; they are not saved to the website database. In-game information is kept as long as needed to operate the game and its multiplayer features. Contact Support to ask about access or deletion.",
+      "We keep website records for as long as needed to provide the service, respond to requests, and maintain security. Authorized staff can remove tickets and announcement uploads through the site tools. Careers messages are handled and retained in the email provider and careers inbox under their applicable retention practices; they are not saved to the website database. The deployed game backend’s retention periods for account, session, presence, voice-connection, and diagnostic data have not been confirmed, so no specific game-data retention period can be stated here. Contact Support to ask about access or deletion.",
     ],
   },
   {

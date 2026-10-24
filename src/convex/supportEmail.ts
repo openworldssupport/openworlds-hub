@@ -21,7 +21,7 @@ export const sendPlayerRecoveryCode = internalAction({
       const response = await fetch(VLY_EMAIL_ENDPOINT, {
         method: "POST",
         headers: { Authorization: `Bearer ${vlyKey}`, "Content-Type": "application/json", "X-Vly-Version": "0.1.0" },
-        body: JSON.stringify({ to: [email], subject, text, html }),
+        body: JSON.stringify({ to: [email], from: SUPPORT_BOT_FROM, subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send account recovery email.");
       return { sent: true };
@@ -31,7 +31,7 @@ export const sendPlayerRecoveryCode = internalAction({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM ?? SUPPORT_BOT_FROM, to: [email], subject, text, html }),
+        body: JSON.stringify({ from: SUPPORT_BOT_FROM, to: [email], subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send account recovery email.");
       return { sent: true };
@@ -55,6 +55,7 @@ export const sendSiteStatusCode = internalAction({
     if (agentMailKey && agentMailInboxId) {
       try {
         const client = new AgentMailClient({ apiKey: agentMailKey });
+        await setAgentMailDisplayName(client, agentMailInboxId, "OpenWorlds Support Bot");
         await client.inboxes.messages.send(agentMailInboxId, { to, subject, text, html });
         return { sent: true };
       } catch {
@@ -74,7 +75,7 @@ export const sendSiteStatusCode = internalAction({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM ?? SUPPORT_BOT_FROM, to: [to], subject, text, html }),
+        body: JSON.stringify({ from: SUPPORT_BOT_FROM, to: [to], subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send the website status verification code.");
       return { sent: true };
@@ -186,6 +187,10 @@ export const sendCareerEnquiry = internalAction({
       text: applicationText,
       html: applicationHtml,
     });
+    if (!forwarded.sent) {
+      console.error("[careers] Could not deliver the enquiry to the Careers inbox; confirmation was not sent.");
+      return { forwarded: false, confirmationSent: false };
+    }
 
     const greeting = `Hello ${args.name},`;
     const confirmationSubject = isApplication
@@ -284,6 +289,7 @@ export const sendSupportNotification = internalAction({
       return await sendViaAgentMail({
         apiKey: agentMailKey,
         inboxId: agentMailInboxId,
+        fromName: "OpenWorlds Support Bot",
         to,
         subject: subjectLine,
         text,
@@ -315,6 +321,7 @@ export const sendSupportNotification = internalAction({
 async function sendViaAgentMail({
   apiKey,
   inboxId,
+  fromName,
   to,
   subject,
   text,
@@ -323,6 +330,7 @@ async function sendViaAgentMail({
 }: {
   apiKey: string;
   inboxId: string;
+  fromName: string;
   to: string;
   subject: string;
   text: string;
@@ -331,6 +339,7 @@ async function sendViaAgentMail({
 }) {
   try {
     const client = new AgentMailClient({ apiKey });
+    await setAgentMailDisplayName(client, inboxId, fromName);
     await client.inboxes.messages.send(inboxId, {
       to,
       subject,
@@ -474,12 +483,30 @@ async function sendBotEmail({
     ? process.env.AGENTMAIL_SUPPORT_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID
     : process.env.AGENTMAIL_CAREERS_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID;
   if (agentMailKey && inboxId) {
-    const result = await sendViaAgentMail({ apiKey: agentMailKey, inboxId, to, subject, text, html, replyTo });
+    const supportInboxId = process.env.AGENTMAIL_SUPPORT_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID;
+    const careersInboxId = process.env.AGENTMAIL_CAREERS_INBOX_ID;
+    const otherChannelInboxId = channel === "support" ? careersInboxId : supportInboxId;
+    if (otherChannelInboxId && otherChannelInboxId === inboxId) {
+      console.error(`[email] ${channel} and the other channel must use separate AgentMail inboxes for distinct sender names.`);
+      return { sent: false, reason: "shared-agentmail-inbox" as const };
+    }
+    if (channel === "careers" && !careersInboxId) {
+      console.error("[email] AGENTMAIL_CAREERS_INBOX_ID is required for Careers messages.");
+      return { sent: false, reason: "missing-careers-inbox" as const };
+    }
+    const result = await sendViaAgentMail({ apiKey: agentMailKey, inboxId, fromName: channel === "support" ? "OpenWorlds Support Bot" : "OpenWorlds Careers Bot", to, subject, text, html, replyTo });
     if (result.sent) return result;
   }
 
   console.warn(`[email] Could not deliver ${channel} bot email; no configured provider accepted it.`);
   return { sent: false, reason: "provider-unavailable" as const };
+}
+
+async function setAgentMailDisplayName(client: AgentMailClient, inboxId: string, displayName: string) {
+  const inbox = await client.inboxes.get(inboxId);
+  if (inbox.displayName !== displayName) {
+    await client.inboxes.update(inboxId, { displayName });
+  }
 }
 
 function emailTemplate({
