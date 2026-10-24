@@ -16,8 +16,8 @@ export const privacySections: Section[] = [
   {
     title: "2. Information we collect",
     body: [
-      "Support tickets: the email address, selected reason, and message are required. Name, OpenWorlds username, and subject are optional. Ticket records include a reference, status, and submission/response/closure timestamps; ticket details can be read by authorized company staff and may be sent to the configured support email provider.",
-      "Careers enquiries: the website lists contributor roles but does not collect applications or store applicant details. If you email careers@openworlds.dk, your email provider and the careers team handle the message outside this website.",
+      "Support tickets: the email address, selected reason, and message are required. Name, OpenWorlds username, and subject are optional. Ticket records include a reference, status, and submission/response/closure timestamps; ticket details can be read by authorized company staff and sent to the configured email provider. The email provider also sends an automated acknowledgement to the address supplied.",
+      "Careers applications and questions: the website form asks for your name, email, message, selected position for applications, and an optional portfolio link. The site sends the details directly to careers@openworlds.dk through the configured email provider and does not store the application or question in the website database. The provider also sends an automated confirmation to the address supplied.",
       "Company accounts: invited or approved staff accounts store email, verification time, role/access assignment, and optional staff profile fields such as name, nickname, department, position, badge, and image when provided. One-time sign-in codes are sent to the account email address; session/authentication records are handled by the authentication service.",
       "Staff features: staff messages and announcements store the author account, displayed staff details, message or announcement content, timestamps, and any uploaded image/video and its metadata. Uploaded media is stored using the site's configured file storage.",
       "Policy acceptance: when you agree to an updated policy while signed in, we store your account ID, the Privacy Policy and Terms versions accepted, and the acceptance timestamp. If you are signed out, your browser stores a version-specific acceptance marker in local storage; it is not linked to a named account by this site.",
@@ -29,7 +29,7 @@ export const privacySections: Section[] = [
     title: "3. How we use your information",
     body: [
       "To reply to your support request and resolve the issue you reported.",
-      "To publish contributor roles and respond to careers enquiries sent to the careers inbox.",
+      "To publish contributor roles, send application and question messages to the Careers inbox, and send automated receipt confirmations.",
       "To manage company accounts and respond to website requests.",
       "To operate and secure the website and game, provide account and multiplayer features, enable voice chat, respond to support requests and careers enquiries, and manage staff communications and announcements.",
     ],
@@ -43,19 +43,19 @@ export const privacySections: Section[] = [
   {
     title: "5. Sharing",
     body: [
-      "Website information may be processed by service providers that host the site, provide sign-in, store files, or deliver emails. Authorized OpenWorlds staff can access support requests and staff content as needed for their work. Careers messages are sent by you directly through your email provider and are handled in the careers inbox, not stored in the website database. In-game information, including voice chat, is shared as needed to provide multiplayer features and let other players communicate with you. Do not submit passwords or payment details through website forms.",
+      "Website information may be processed by service providers that host the site, provide sign-in, store files, or deliver emails. Authorized OpenWorlds staff can access support requests and staff content as needed for their work. Careers form messages are sent through the configured email provider to the careers inbox and are not stored in the website database. The email provider sends a receipt confirmation to the address you provide. In-game information, including voice chat, is shared as needed to provide multiplayer features and let other players communicate with you. Do not submit passwords or payment details through website forms.",
     ],
   },
   {
     title: "6. Retention",
     body: [
-      "We keep website records for as long as needed to provide the service, respond to requests, and maintain security. Authorized staff can remove tickets and announcement uploads through the site tools. Careers email is retained and deleted according to the email provider and careers team's practices. In-game information is kept as long as needed to operate the game and its multiplayer features. Contact Support to ask about access or deletion.",
+      "We keep website records for as long as needed to provide the service, respond to requests, and maintain security. Authorized staff can remove tickets and announcement uploads through the site tools. Careers messages are handled and retained in the email provider and careers inbox under their applicable retention practices; they are not saved to the website database. In-game information is kept as long as needed to operate the game and its multiplayer features. Contact Support to ask about access or deletion.",
     ],
   },
   {
     title: "7. Security",
     body: [
-      "Access to support tickets and company tools is restricted by server-side company-account authorization checks. Careers enquiries are sent to the careers inbox and are not stored in the website database. No independent security review or comprehensive security controls are described here.",
+      "Access to support tickets and company tools is restricted by server-side company-account authorization checks. Careers form messages are sent through the configured email provider to the careers inbox and are not stored in the website database. No independent security review or comprehensive security controls are described here.",
       "No method of transmission or storage is fully secure, so we cannot guarantee absolute security.",
     ],
   },

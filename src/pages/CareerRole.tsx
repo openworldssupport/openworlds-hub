@@ -1,11 +1,10 @@
 import { SiteNav } from "@/components/SiteNav";
 import { careerRoles } from "@/lib/careers";
-import { ArrowLeft, ArrowRight, BriefcaseBusiness, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness } from "lucide-react";
+import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { Link, useParams } from "react-router";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-
-const CAREERS_EMAIL = "careers@openworlds.dk";
 
 export function CareerRole() {
   const { roleSlug } = useParams();
@@ -26,9 +25,6 @@ export function CareerRole() {
       </main>
     );
   }
-
-  const subject = encodeURIComponent(`Careers question: ${role.title}`);
-  const body = encodeURIComponent(`Hello OpenWorlds team,\n\nI’m interested in the ${role.title} position.\n\n`);
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -53,11 +49,11 @@ export function CareerRole() {
             <div><h2 className="font-semibold">About the role</h2><p className="mt-2 text-sm leading-6 text-slate-600">{role.summary}</p></div>
             <div><h2 className="font-semibold">What you’ll contribute</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.responsibilities.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
             <div><h2 className="font-semibold">What helps you succeed</h2><ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">{role.qualifications.map((item) => <li key={item} className="flex gap-2"><span className="text-[#0066cc]">·</span>{item}</li>)}</ul></div>
-            <div><h2 className="font-semibold">How to get in touch</h2><p className="mt-2 text-sm leading-6 text-slate-600">We handle interest in this position by email. No application form or website account is needed.</p></div>
+            <div><h2 className="font-semibold">How to get in touch</h2><p className="mt-2 text-sm leading-6 text-slate-600">Use the Careers form to send an application or ask a question. It goes directly to the Careers inbox and is not saved on the website.</p></div>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-6">
             {roleIsOpen ? (
-              <a href={`mailto:${CAREERS_EMAIL}?subject=${subject}&body=${body}`} className="inline-flex h-11 items-center gap-2 rounded-md bg-[#173c33] px-5 text-sm font-medium text-white hover:bg-[#102e27]"><Mail className="size-4" /> Email Careers</a>
+              <CareerEnquiryDialog label="Apply for this position" initialRoleSlug={role.slug} />
             ) : (
               <p className="text-sm font-medium text-slate-600">This position is filled and is not accepting enquiries.</p>
             )}

@@ -147,6 +147,12 @@ const schema = defineSchema(
       updatedAt: v.number(),
     }).index("by_role_slug", ["roleSlug"]),
 
+    // Short-lived, hashed-email throttling only; application content is never stored here.
+    careerEnquiryLimits: defineTable({
+      emailHash: v.string(),
+      lastSubmittedAt: v.number(),
+    }).index("by_email_hash", ["emailHash"]),
+
     supportTickets: defineTable({
       reference: v.optional(v.string()),
       name: v.optional(v.string()),

@@ -5,7 +5,10 @@ import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
 
 const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
+const CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
+const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <support@openworlds.dk>";
+const CAREERS_BOT_FROM = "OpenWorlds Careers Bot <careers@openworlds.dk>";
 
 export const sendPlayerRecoveryCode = internalAction({
   args: { email: v.string(), code: v.string() },
@@ -28,7 +31,7 @@ export const sendPlayerRecoveryCode = internalAction({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM ?? "OpenWorlds <onboarding@resend.dev>", to: [email], subject, text, html }),
+        body: JSON.stringify({ from: process.env.RESEND_FROM ?? SUPPORT_BOT_FROM, to: [email], subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send account recovery email.");
       return { sent: true };
@@ -47,7 +50,7 @@ export const sendSiteStatusCode = internalAction({
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
     const resendKey = process.env.RESEND_API_KEY;
     const agentMailKey = process.env.AGENTMAIL_API_KEY;
-    const agentMailInboxId = process.env.AGENTMAIL_INBOX_ID;
+    const agentMailInboxId = process.env.AGENTMAIL_SUPPORT_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID;
 
     if (agentMailKey && agentMailInboxId) {
       try {
@@ -71,12 +74,156 @@ export const sendSiteStatusCode = internalAction({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM ?? "OpenWorlds <onboarding@resend.dev>", to: [to], subject, text, html }),
+        body: JSON.stringify({ from: process.env.RESEND_FROM ?? SUPPORT_BOT_FROM, to: [to], subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send the website status verification code.");
       return { sent: true };
     }
     throw new Error("Email delivery is not configured.");
+  },
+});
+
+export const sendSupportAcknowledgement = internalAction({
+  args: {
+    reference: v.string(),
+    name: v.optional(v.string()),
+    email: v.string(),
+    reasonLabel: v.string(),
+    subject: v.optional(v.string()),
+    submittedAt: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const greeting = args.name ? `Hello ${args.name},` : "Hello,";
+    const subject = `We received your OpenWorlds support request (${args.reference})`;
+    const text = [
+      greeting,
+      "",
+      "Thank you for contacting OpenWorlds Support. Your request has been received and is in our support queue. A member of our team will contact you by email as soon as possible.",
+      "",
+      `Reference: ${args.reference}`,
+      `Topic: ${args.reasonLabel}`,
+      ...(args.subject ? [`Subject: ${args.subject}`] : []),
+      `Received: ${new Date(args.submittedAt).toISOString()}`,
+      "",
+      "Please keep your reference if you contact us again. This is an automated confirmation; replies to this address may not be monitored.",
+      "",
+      "Regards,",
+      "OpenWorlds Support Bot",
+    ].join("\n");
+    const html = emailTemplate({
+      title: "Support request received",
+      greeting,
+      paragraphs: [
+        "Thank you for contacting OpenWorlds Support. Your request has been received and is in our support queue. A member of our team will contact you by email as soon as possible.",
+      ],
+      details: [
+        ["Reference", args.reference],
+        ["Topic", args.reasonLabel],
+        ...(args.subject ? [["Subject", args.subject] as [string, string]] : []),
+        ["Received", new Date(args.submittedAt).toLocaleString("en-GB", { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" }) + " UTC"],
+      ],
+      signature: "OpenWorlds Support Bot",
+      footer: "This is an automated confirmation. Please keep your reference when contacting us again.",
+    });
+    return await sendBotEmail({
+      channel: "support",
+      to: args.email,
+      replyTo: DEFAULT_SUPPORT_EMAIL,
+      subject,
+      text,
+      html,
+    });
+  },
+});
+
+export const sendCareerEnquiry = internalAction({
+  args: {
+    type: v.union(v.literal("application"), v.literal("question")),
+    roleTitle: v.optional(v.string()),
+    name: v.string(),
+    email: v.string(),
+    portfolio: v.optional(v.string()),
+    message: v.string(),
+    submittedAt: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const isApplication = args.type === "application";
+    const subject = isApplication
+      ? `Career application: ${args.roleTitle ?? "Contributor position"}`
+      : "Careers question from the OpenWorlds website";
+    const submitted = new Date(args.submittedAt).toISOString();
+    const applicationText = [
+      isApplication ? "New career application" : "New careers question",
+      "",
+      `Name: ${args.name}`,
+      `Email: ${args.email}`,
+      ...(args.roleTitle ? [`Position: ${args.roleTitle}`] : []),
+      ...(args.portfolio ? [`Portfolio: ${args.portfolio}`] : []),
+      `Received: ${submitted}`,
+      "",
+      "Message:",
+      args.message,
+    ].join("\n");
+    const applicationHtml = emailTemplate({
+      title: isApplication ? "New career application" : "New careers question",
+      greeting: "Careers team,",
+      paragraphs: ["A new message was sent through the OpenWorlds Careers page."],
+      details: [
+        ["Name", args.name],
+        ["Email", args.email],
+        ...(args.roleTitle ? [["Position", args.roleTitle] as [string, string]] : []),
+        ...(args.portfolio ? [["Portfolio", args.portfolio] as [string, string]] : []),
+        ["Received", submitted],
+      ],
+      message: args.message,
+      signature: "OpenWorlds Careers Bot",
+    });
+    const forwarded = await sendBotEmail({
+      channel: "careers",
+      to: CAREERS_EMAIL,
+      replyTo: args.email,
+      subject,
+      text: applicationText,
+      html: applicationHtml,
+    });
+
+    const greeting = `Hello ${args.name},`;
+    const confirmationSubject = isApplication
+      ? "We received your OpenWorlds Careers application"
+      : "We received your OpenWorlds Careers message";
+    const confirmationText = [
+      greeting,
+      "",
+      isApplication
+        ? `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your message and contact you by email if they need anything further.`
+        : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
+      "",
+      "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
+      "",
+      "Regards,",
+      "OpenWorlds Careers Bot",
+    ].join("\n");
+    const confirmationHtml = emailTemplate({
+      title: isApplication ? "Application received" : "Careers message received",
+      greeting,
+      paragraphs: [
+        isApplication
+          ? `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your message and contact you by email if they need anything further.`
+          : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
+        "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
+      ],
+      details: args.roleTitle ? [["Position", args.roleTitle] as [string, string]] : [],
+      signature: "OpenWorlds Careers Bot",
+    });
+    const confirmation = await sendBotEmail({
+      channel: "careers",
+      to: args.email,
+      replyTo: CAREERS_EMAIL,
+      subject: confirmationSubject,
+      text: confirmationText,
+      html: confirmationHtml,
+    });
+    return { forwarded: forwarded.sent, confirmationSent: confirmation.sent };
   },
 });
 
@@ -131,7 +278,7 @@ export const sendSupportNotification = internalAction({
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
     const resendKey = process.env.RESEND_API_KEY;
     const agentMailKey = process.env.AGENTMAIL_API_KEY;
-    const agentMailInboxId = process.env.AGENTMAIL_INBOX_ID;
+    const agentMailInboxId = process.env.AGENTMAIL_SUPPORT_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID;
 
     if (agentMailKey && agentMailInboxId) {
       return await sendViaAgentMail({
@@ -145,17 +292,17 @@ export const sendSupportNotification = internalAction({
       });
     }
 
-    if (agentMailKey || agentMailInboxId) {
-      console.error("[support] AgentMail requires both AGENTMAIL_API_KEY and AGENTMAIL_INBOX_ID.");
+    if (agentMailKey || process.env.AGENTMAIL_INBOX_ID || process.env.AGENTMAIL_SUPPORT_INBOX_ID) {
+      console.error("[support] AgentMail requires both AGENTMAIL_API_KEY and a support inbox ID.");
       return { sent: false, reason: "missing-agentmail-config" as const };
     }
 
     if (vlyKey) {
-      return await sendViaVly({ vlyKey, to, subject: subjectLine, text, html, replyTo: args.email });
+      return await sendViaVly({ vlyKey, to, subject: subjectLine, text, html, replyTo: args.email, from: SUPPORT_BOT_FROM });
     }
 
     if (resendKey) {
-      return await sendViaResend({ resendKey, to, subject: subjectLine, text, replyTo: args.email });
+      return await sendViaResend({ resendKey, to, subject: subjectLine, text, replyTo: args.email, from: SUPPORT_BOT_FROM });
     }
 
     console.warn(
@@ -205,6 +352,7 @@ async function sendViaVly({
   text,
   html,
   replyTo,
+  from,
 }: {
   vlyKey: string;
   to: string;
@@ -212,6 +360,7 @@ async function sendViaVly({
   text: string;
   html: string;
   replyTo: string;
+  from?: string;
 }) {
   try {
     const response = await fetch(VLY_EMAIL_ENDPOINT, {
@@ -223,6 +372,7 @@ async function sendViaVly({
       },
       body: JSON.stringify({
         to: [to],
+        from,
         subject,
         text,
         html,
@@ -249,13 +399,17 @@ async function sendViaResend({
   to,
   subject,
   text,
+  html,
   replyTo,
+  from,
 }: {
   resendKey: string;
   to: string;
   subject: string;
   text: string;
+  html?: string;
   replyTo: string;
+  from?: string;
 }) {
   try {
     const response = await fetch("https://api.resend.com/emails", {
@@ -265,11 +419,12 @@ async function sendViaResend({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM ?? "OpenWorlds Support <onboarding@resend.dev>",
+        from: from ?? process.env.RESEND_FROM ?? SUPPORT_BOT_FROM,
         to: [to],
         reply_to: replyTo,
         subject,
         text,
+        html,
       }),
     });
 
@@ -284,6 +439,72 @@ async function sendViaResend({
     console.error("[support] Failed to send support notification email.");
     return { sent: false, reason: "network-error" as const };
   }
+}
+
+async function sendBotEmail({
+  channel,
+  to,
+  replyTo,
+  subject,
+  text,
+  html,
+}: {
+  channel: "support" | "careers";
+  to: string;
+  replyTo: string;
+  subject: string;
+  text: string;
+  html: string;
+}) {
+  const from = channel === "support" ? SUPPORT_BOT_FROM : CAREERS_BOT_FROM;
+  const vlyKey = process.env.VLY_INTEGRATION_KEY;
+  if (vlyKey) {
+    const result = await sendViaVly({ vlyKey, to, subject, text, html, replyTo, from });
+    if (result.sent) return result;
+  }
+
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    const result = await sendViaResend({ resendKey, to, subject, text, replyTo, from });
+    if (result.sent) return result;
+  }
+
+  const agentMailKey = process.env.AGENTMAIL_API_KEY;
+  const inboxId = channel === "support"
+    ? process.env.AGENTMAIL_SUPPORT_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID
+    : process.env.AGENTMAIL_CAREERS_INBOX_ID ?? process.env.AGENTMAIL_INBOX_ID;
+  if (agentMailKey && inboxId) {
+    const result = await sendViaAgentMail({ apiKey: agentMailKey, inboxId, to, subject, text, html, replyTo });
+    if (result.sent) return result;
+  }
+
+  console.warn(`[email] Could not deliver ${channel} bot email; no configured provider accepted it.`);
+  return { sent: false, reason: "provider-unavailable" as const };
+}
+
+function emailTemplate({
+  title,
+  greeting,
+  paragraphs,
+  details,
+  message,
+  signature,
+  footer,
+}: {
+  title: string;
+  greeting: string;
+  paragraphs: string[];
+  details?: ReadonlyArray<readonly [string, string]>;
+  message?: string;
+  signature: string;
+  footer?: string;
+}) {
+  const detailsHtml = details?.length
+    ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:20px 0">${details.map(([label, value]) => `<tr><td style="padding:9px 12px;border-bottom:1px solid #e2e8f0;color:#475569;font-size:14px;width:130px">${escapeHtml(label)}</td><td style="padding:9px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:14px">${escapeHtml(value)}</td></tr>`).join("")}</table>`
+    : "";
+  const paragraphsHtml = paragraphs.map((paragraph) => `<p style="margin:0 0 14px;line-height:1.65;color:#334155">${escapeHtml(paragraph)}</p>`).join("");
+  const messageHtml = message ? `<div style="margin:18px 0;padding:16px;border-left:3px solid #0066cc;background:#f8fafc;white-space:pre-wrap;line-height:1.6;color:#334155">${escapeHtml(message)}</div>` : "";
+  return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:620px;margin:28px auto;background:#ffffff;border:1px solid #e2e8f0"><div style="padding:22px 28px;background:#073b70;color:#ffffff;font-size:18px;font-weight:700">OpenWorlds</div><div style="padding:28px"><p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${escapeHtml(title)}</p><p style="margin:0 0 18px;font-size:16px;font-weight:600">${escapeHtml(greeting)}</p>${paragraphsHtml}${detailsHtml}${messageHtml}<p style="margin:24px 0 0;line-height:1.6;color:#334155">Regards,<br><strong>${escapeHtml(signature)}</strong></p>${footer ? `<p style="margin:20px 0 0;border-top:1px solid #e2e8f0;padding-top:14px;color:#64748b;font-size:12px;line-height:1.5">${escapeHtml(footer)}</p>` : ""}</div></div></body></html>`;
 }
 
 function escapeHtml(value: string): string {

@@ -38,7 +38,7 @@ export const termsSections: Section[] = [
     title: "5. Support and careers enquiries",
     body: [
       "When you open a support ticket, you confirm the information you provide is accurate. Do not include passwords or payment details in forms or email messages.",
-      "Careers enquiries are sent directly to the careers inbox by email; the website does not accept or store applications. Any contributor role terms will be stated with the specific opening. An enquiry does not by itself create an employment relationship.",
+      "Applications and careers questions are submitted through the Careers page and sent by email to the careers inbox. The website does not store their content. The email provider sends an automated receipt confirmation. Any contributor role terms will be stated with the specific opening. An enquiry does not by itself create an employment relationship.",
       "We may decline or close a support request or careers enquiry at our discretion.",
     ],
   },

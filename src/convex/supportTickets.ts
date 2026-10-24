@@ -124,6 +124,14 @@ export const create = mutation({
       message,
       submittedAt,
     });
+    await ctx.scheduler.runAfter(0, internal.supportEmail.sendSupportAcknowledgement, {
+      reference,
+      name: name || undefined,
+      email,
+      reasonLabel: supportReasonLabel(reason),
+      subject: subject || undefined,
+      submittedAt,
+    });
 
     return { reference };
   },

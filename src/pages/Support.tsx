@@ -37,7 +37,7 @@ export default function Support() {
           <p className="text-sm font-medium text-blue-100">OpenWorlds Support</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">How can we help?</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Open a ticket and we’ll usually reply by email.
+            Open a ticket and our team will contact you by email as soon as possible. You’ll receive an automated confirmation.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#ticket" className="rounded-sm bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">

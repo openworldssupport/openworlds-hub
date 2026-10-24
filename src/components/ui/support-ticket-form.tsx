@@ -53,7 +53,7 @@ export function SupportTicketForm() {
         <div>
           <p className="font-medium">Ticket received</p>
           <p className="mt-1 leading-6">
-            Your ticket has been saved. We usually reply by email.
+            Your ticket has been saved. An automated confirmation will be sent to your email, and our support team will contact you as soon as possible.
           </p>
           {reference && (
             <p className="mt-3 rounded-lg border border-emerald-300 bg-white p-3">
