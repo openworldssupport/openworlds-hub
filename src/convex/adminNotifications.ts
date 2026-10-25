@@ -100,8 +100,10 @@ export const fanOutAdminNotification = internalAction({
       return false;
     });
 
+    console.warn(`[adminNotifications:fanOut] channel=${channel} expectedKind=${expectedKind} recipientCount=${eligible.length}`);
     for (const recipient of eligible) {
       if (!recipient.email) continue;
+      console.warn(`[adminNotifications:fanOut] attempt to=${recipient.email} kind=${recipient.kind}`);
       try {
         await sendBotEmail({
           channel: from as "support" | "careers",
@@ -111,7 +113,9 @@ export const fanOutAdminNotification = internalAction({
           text,
           html,
         });
-      } catch {
+        console.warn(`[adminNotifications:fanOut] sent ok to=${recipient.email}`);
+      } catch (err) {
+        console.error(`[adminNotifications:fanOut] failed to=${recipient.email}`, err);
         // One failing recipient should not suppress the rest.
       }
     }
@@ -141,8 +145,10 @@ export const sendAdminReadyForReviewAlert = internalAction({
       return false;
     });
 
+    console.warn(`[adminNotifications:readyForReview] channel=${channel} expectedKind=${expectedKind} recipientCount=${eligible.length} subject=${subject}`);
     for (const recipient of eligible) {
       if (!recipient.email) continue;
+      console.warn(`[adminNotifications:readyForReview] attempt to=${recipient.email} kind=${recipient.kind}`);
       try {
         await sendBotEmail({
           channel: from as "support" | "careers",
@@ -152,7 +158,9 @@ export const sendAdminReadyForReviewAlert = internalAction({
           text: body,
           html: readyForReviewHtml(body),
         });
-      } catch {
+        console.warn(`[adminNotifications:readyForReview] sent ok to=${recipient.email}`);
+      } catch (err) {
+        console.error(`[adminNotifications:readyForReview] failed to=${recipient.email}`, err);
         // One failing recipient should not suppress the rest.
       }
     }
