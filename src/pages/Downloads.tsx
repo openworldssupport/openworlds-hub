@@ -39,7 +39,8 @@ export default function Downloads() {
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">            Download the OpenWorlds Launcher for Windows from the official GitHub release. The game is still in development.
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">
+            Download the OpenWorlds Launcher for Windows from the official GitHub release. The game is still in development.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href={launcherUrl} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50" aria-label="Download the OpenWorlds Windows launcher executable"><ArrowDownToLine className="size-4" /> Download Windows launcher (.exe)</a>
