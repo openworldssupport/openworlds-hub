@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
@@ -43,7 +44,7 @@ export default function Downloads() {
             Download the OpenWorlds Launcher for Windows. The game is still in development.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a href={launcherUrl} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50" aria-label="Download the OpenWorlds Windows launcher executable"><ArrowDownToLine className="size-4" /> Download Windows launcher (.exe)</a>
+            <DownloadButton launcherUrl={launcherUrl} />
             <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
@@ -62,7 +63,7 @@ export default function Downloads() {
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
               {downloadUrl ? (
                 <div className="mt-4">
-                  <a href={downloadUrl} className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]" aria-label="Download OpenWorldsLauncher.exe"><ArrowDownToLine className="size-4" /> Download OpenWorldsLauncher.exe</a>
+                  <DownloadButton launcherUrl={downloadUrl} />
                   <p className="mt-3 text-xs leading-5 text-slate-500">The release does not list minimum Windows version or hardware requirements. Check that the launcher is compatible with your PC before installing.</p>
                 </div>
               ) : null}
@@ -94,11 +95,52 @@ export default function Downloads() {
             </Link>
           </div>
         </div>
-      </section>
-
-      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
+      </section>      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
         OpenWorlds © 2026 · Windows launcher download
       </footer>
     </main>
+  );
+}
+
+function DownloadButton({ launcherUrl }: { launcherUrl: string }) {
+  const [busy, setBusy] = useState(false);
+
+  async function startDownload() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch(launcherUrl, { method: "HEAD" });
+    } catch {
+      /* direct download link */
+    }
+    setBusy(false);
+
+    const anchor = document.createElement("a");
+    anchor.href = launcherUrl;
+    anchor.download = "OpenWorldsLauncher.exe";
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    anchor.style.display = "inline-block";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  return (
+    <span
+      onClick={startDownload}
+      className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] cursor-pointer hover:bg-blue-50"
+      aria-label="Download the OpenWorlds Windows launcher executable"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          startDownload();
+        }
+      }}
+    >
+      <ArrowDownToLine className="size-4" /> Download Windows launcher (.exe)
+    </span>
   );
 }
