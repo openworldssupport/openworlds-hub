@@ -63,11 +63,6 @@ export default function Downloads() {
               {downloadUrl ? (
                 <div className="mt-4">
                   <a href={downloadUrl} className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]" aria-label="Download OpenWorldsLauncher.exe"><ArrowDownToLine className="size-4" /> Download OpenWorldsLauncher.exe</a>
-                  <dl className="mt-4 space-y-2 text-xs text-slate-600">
-                    <div className="flex justify-between gap-3"><dt>Release</dt><dd><a className="text-[#0066cc] underline" href="https://github.com/openworldssupport/openworlds-hub/releases/tag/v2026.10.25.1620">GitHub release</a></dd></div>
-                    <div className="flex justify-between gap-3"><dt>Platform</dt><dd>Windows (.exe)</dd></div>
-                  </dl>
-                  <p className="mt-3 break-all text-xs leading-5 text-slate-600"><span className="font-medium">SHA-256:</span> <code>{launcherSha256}</code></p>
                   <p className="mt-3 text-xs leading-5 text-slate-500">The release does not list minimum Windows version or hardware requirements. Check that the launcher is compatible with your PC before installing.</p>
                 </div>
               ) : null}
