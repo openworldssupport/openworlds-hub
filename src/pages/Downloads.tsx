@@ -45,7 +45,7 @@ export default function Downloads() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <DownloadButton launcherUrl={launcherUrl} />
-            <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
+            <a href="#builds" className="rounded-sm border border-white/50 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
       </section>
@@ -63,7 +63,7 @@ export default function Downloads() {
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
               {downloadUrl ? (
                 <div className="mt-4">
-                  <DownloadButton launcherUrl={downloadUrl} />
+                  <DownloadButton launcherUrl={downloadUrl} variant="default" />
                   <p className="mt-3 text-xs leading-5 text-slate-500">Windows system requirements for the launcher are not listed yet. Check that your PC can run it before installing.</p>
                 </div>
               ) : null}
@@ -102,7 +102,7 @@ export default function Downloads() {
   );
 }
 
-function DownloadButton({ launcherUrl }: { launcherUrl: string }) {
+function DownloadButton({ launcherUrl, variant = "default" }: { launcherUrl: string; variant?: "default" | "secondary" }) {
   const [busy, setBusy] = useState(false);
 
   async function startDownload() {
@@ -129,7 +129,7 @@ function DownloadButton({ launcherUrl }: { launcherUrl: string }) {
   return (
     <span
       onClick={startDownload}
-      className="inline-flex items-center gap-2 rounded-md bg-[#00a859] px-5 py-2.5 text-sm font-semibold text-white cursor-pointer hover:bg-[#00904a] active:bg-[#007a3d]"
+      className="inline-flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground cursor-pointer hover:bg-primary/90        active:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
       aria-label="Download the OpenWorlds Windows launcher executable"
       role="button"
       tabIndex={0}
