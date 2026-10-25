@@ -3,14 +3,14 @@ import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
 
-const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.25.1620/OpenWorldsLauncher.exe";
-const launcherSha256 = "4f93b285b49d30827789ae157162fad29d66c9d27c7bcb8bb8a72fe5c1e3";
+const launcherPageUrl = "https://github.com/openworldssupport/openworlds-hub/releases/tag/v2026.10.25.1620";
+const launcherSha256 = "4f93b285b49d30827789ae157162fad29d66c9d27c752c7bcb8bb8a72fe5c1e3";
 
 const platforms = [
   {
     name: "Windows",
     detail: "OpenWorlds Launcher is available for Windows.",
-    downloadUrl: launcherUrl,
+    downloadUrl: launcherPageUrl,
     icon: Monitor,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
@@ -44,7 +44,7 @@ export default function Downloads() {
             Download the OpenWorlds Launcher for Windows. The game is still in development.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <DownloadButton launcherUrl={launcherUrl} />
+            <DownloadButton launcherUrl={launcherPageUrl} />
             <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
