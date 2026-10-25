@@ -1,15 +1,11 @@
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
-import { ArrowDownToLine, ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
-
-const launcherUrl = "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.10.24.1849/OpenWorldsLauncher.exe";
-const launcherSha256 = "4efada538e0b7fa8f66ea15edf395dd618f54738484f214708c224cd466f2d8a";
+import { ArrowRight, CalendarDays, Laptop, Monitor, Terminal } from "lucide-react";
 
 const platforms = [
   {
     name: "Windows",
-    detail: "OpenWorlds Launcher is available for Windows.",
-    downloadUrl: launcherUrl,
+    detail: "The OpenWorlds Launcher is currently unavailable. Check back here for updates.",
     icon: Monitor,
     tone: "bg-blue-50 text-[#0066cc]",
     accent: "border-t-[#0066cc]",
@@ -40,10 +36,10 @@ export default function Downloads() {
           <p className="text-sm font-medium text-blue-100">Play OpenWorlds</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Download the OpenWorlds Launcher for Windows from the official GitHub release. The game is still in development.
+            The OpenWorlds Launcher is currently unavailable. We’ll post an update here when it’s ready to download.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a href={launcherUrl} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50" aria-label="Download the OpenWorlds Windows launcher executable"><ArrowDownToLine className="size-4" /> Download Windows launcher (.exe)</a>
+            <span className="inline-flex items-center rounded-lg border border-white/40 bg-white/10 px-5 py-3 text-sm font-medium text-white" aria-live="polite">Launcher currently unavailable</span>
             <a href="#builds" className="rounded-lg border border-white/50 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Build details</a>
           </div>
         </div>
@@ -51,7 +47,7 @@ export default function Downloads() {
 
       <section id="builds" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="grid gap-4 sm:grid-cols-3">
-          {platforms.map(({ name, detail, downloadUrl, icon: Icon, tone, accent }) => (
+          {platforms.map(({ name, detail, icon: Icon, tone, accent }) => (
             <article key={name} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent}`}>
               <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
                 <Icon className="size-5" />
@@ -60,17 +56,6 @@ export default function Downloads() {
                 {name}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
-              {downloadUrl ? (
-                <div className="mt-4">
-                  <a href={downloadUrl} className="inline-flex items-center gap-2 rounded-md bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white hover:bg-[#004a99]" aria-label="Download OpenWorldsLauncher.exe"><ArrowDownToLine className="size-4" /> Download OpenWorldsLauncher.exe</a>
-                  <dl className="mt-4 space-y-2 text-xs text-slate-600">
-                    <div className="flex justify-between gap-3"><dt>Release</dt><dd><a className="text-[#0066cc] underline" href="https://github.com/openworldssupport/openworlds-hub/releases/tag/v2026.10.24.1849">GitHub release</a></dd></div>
-                    <div className="flex justify-between gap-3"><dt>Platform</dt><dd>Windows (.exe)</dd></div>
-                  </dl>
-                  <p className="mt-3 break-all text-xs leading-5 text-slate-600"><span className="font-medium">SHA-256:</span> <code>{launcherSha256}</code></p>
-                  <p className="mt-3 text-xs leading-5 text-slate-500">The release does not list minimum Windows version or hardware requirements. Check that the launcher is compatible with your PC before installing.</p>
-                </div>
-              ) : null}
             </article>
           ))}
         </div>
@@ -102,7 +87,7 @@ export default function Downloads() {
       </section>
 
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · Windows launcher download
+        OpenWorlds © 2026 · Launcher currently unavailable
       </footer>
     </main>
   );
