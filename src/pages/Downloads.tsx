@@ -71,13 +71,13 @@ export default function Downloads() {
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#0066cc]">Open <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/news" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <ArrowDownToLine className="size-6 text-[#7651c9]" />
+              <CalendarDays className="size-6 text-[#7651c9]" />
               <h3 className="mt-3 font-semibold">Release notes</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Published updates will appear on the News page.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#7651c9]">Read news <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/support" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <ArrowDownToLine className="size-6 text-[#987000]" />
+              <Monitor className="size-6 text-[#987000]" />
               <h3 className="mt-3 font-semibold">Install help</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Have a question about downloads? Use the support form.</p>
               <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#987000]">Get help <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
