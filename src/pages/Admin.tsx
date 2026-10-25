@@ -533,7 +533,7 @@ function SubmissionNotificationPanel() {
           <button
             key={value}
             type="button"
-            className={`rounded-md border px-4 py-2 text-sm font-medium transition hover:bg-slate-100 ${newKind === value && recipients === undefined ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-700"}`}
+            className={`rounded-md border px-4 py-2 text-sm font-medium transition hover:bg-slate-100 ${newKind === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-700"}`}
             onClick={() => setNewKind(value)}
           >
             {label}

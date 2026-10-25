@@ -19,14 +19,11 @@ export const ADMIN_NOTIFICATION_CHANNEL_OPTIONS: Array<readonly [AdminNotificati
   ["both", "Both"],
 ];
 
-/** Admin-only: list every registered notification recipient. Requires staff-access verification. */
+/** Admin-only: list every registered notification recipient. */
 export const listAdminNotificationRecipients = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isAdmin(ctx))) return null;
-    const verifiedUntil = await requirePermissionVerification(ctx);
-    if ((verifiedUntil as unknown as number) <= 0) return null;
-    void verifiedUntil;
 
     const recipients = await ctx.db.query("adminNotificationRecipients").collect();
     return recipients
