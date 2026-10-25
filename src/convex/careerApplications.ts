@@ -5,6 +5,76 @@ import { careerPositionAliases, careerRoles, normalizeCareerPosition } from "../
 import { requireAdmin } from "./admin";
 import { requireSiteAvailable } from "./siteStatus";
 
+function careerFanoutText({
+  type,
+  roleTitle,
+  name,
+  email,
+  portfolio,
+  message,
+  submittedAt,
+}: {
+  type: "application" | "question";
+  roleTitle?: string;
+  name?: string;
+  email: string;
+  portfolio?: string;
+  message: string;
+  submittedAt: number;
+}) {
+  const heading = type === "application" ? "New career application — admin alert" : "New careers question — admin alert";
+  return [
+    heading,
+    "",
+    `Position: ${roleTitle || "(not specified)"}`,
+    `Name: ${name || "(not provided)"}`,
+    `Email: ${email}`,
+    `Portfolio: ${portfolio || "(none)"}`,
+    `Submitted: ${new Date(submittedAt).toISOString()}`,
+    "",
+    "Message:",
+    message,
+  ].join("\n");
+}
+
+function careerFanoutHtml({
+  type,
+  roleTitle,
+  name,
+  email,
+  portfolio,
+  message,
+  submittedAt,
+}: {
+  type: "application" | "question";
+  roleTitle?: string;
+  name?: string;
+  email: string;
+  portfolio?: string;
+  message: string;
+  submittedAt: number;
+}) {
+  const isApplication = type === "application";
+  return [
+    "<h2>" + (isApplication ? "New career application — admin alert" : "New careers question — admin alert") + "</h2>",
+    "<p><strong>Position:</strong> " + escapeHtml(roleTitle || "(not specified)") + "</p>",
+    "<p><strong>Name:</strong> " + escapeHtml(name || "(not provided)") + "</p>",
+    "<p><strong>Email:</strong> " + escapeHtml(email) + "</p>",
+    "<p><strong>Portfolio:</strong> " + escapeHtml(portfolio || "(none)") + "</p>",
+    "<p><strong>Submitted:</strong> " + escapeHtml(new Date(submittedAt).toISOString()) + "</p>",
+    "<hr />",
+    "<p>" + escapeHtml(message).replace(/\n/g, "<br />") + "</p>",
+  ].join("\n");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 /** Public role availability only; no applicant or account details are returned. */
 export const roleAvailability = query({
   args: {},
@@ -105,6 +175,14 @@ export const submitEnquiry = mutation({
       portfolio: portfolio || undefined,
       message,
       submittedAt: now,
+    });
+    await ctx.scheduler.runAfter(0, internal.adminNotifications.fanOutAdminNotification, {
+      channel: "careers",
+      subject: `New ${args.type === "application" ? "career application" : "careers question"}${roleTitle ? `: ${roleTitle}` : ""}`,
+      text: careerFanoutText({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
+      html: careerFanoutHtml({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
+      replyTo: email,
+      from: "careers",
     });
     return { accepted: true };
   },

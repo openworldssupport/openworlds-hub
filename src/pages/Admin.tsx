@@ -7,8 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { deriveBadge, type PublicBadge } from "@/lib/staff";
-import { AlertCircle, Loader2, Mail, Save, ShieldCheck } from "lucide-react";
+import { AlertCircle, Loader2, Mail, Save, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import {
+  ADMIN_NOTIFICATION_CHANNEL_OPTIONS,
+  type AdminNotificationChannel,
+} from "@/convex/adminNotifications";
+import { ADMIN_NOTIFICATION_LABELS } from "@/convex/adminNotifications";
+
 
 type TeamMember = {
   userId: Id<"users">;
@@ -420,6 +426,118 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
   );
 }
 
+function NotificationPreferencesPanel() {
+  const me = useQuery(api.staff.me);
+  const rosterStatus = useQuery(api.adminRoster.rosterStatus);
+  const requestPermissionCode = useAction(api.adminRoster.requestPermissionCode);
+  const verifyPermissionCode = useMutation(api.adminRoster.verifyPermissionCode);
+  const myChannel = useQuery(api.adminNotifications.myNotificationChannel);
+  const setChannel = useMutation(api.adminNotifications.setAdminNotificationChannel);
+  const [channel, setChannelState] = useState<AdminNotificationChannel | null>(null);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [clock, setClock] = useState(Date.now());
+
+  useEffect(() => {
+    if (myChannel === undefined) return;
+    setChannelState(myChannel);
+  }, [myChannel]);
+
+  useEffect(() => {
+    const verifiedUntil = rosterStatus?.permissionVerifiedUntil ?? 0;
+    if (!verifiedUntil || verifiedUntil <= Date.now()) return;
+    const timer = window.setTimeout(() => setClock(Date.now()), verifiedUntil - Date.now());
+    return () => window.clearTimeout(timer);
+  }, [rosterStatus?.permissionVerifiedUntil]);
+
+  const isAdmin = Boolean(me?.isAdmin);
+  const isVerified = Boolean(me?.isAdmin && rosterStatus?.isAdmin && (rosterStatus.permissionVerifiedUntil ?? 0) > clock);
+  const canChange = isAdmin && isVerified;
+
+  async function refreshCode() {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await requestPermissionCode({});
+      setMessage("A six-digit code was sent to support@openworlds.dk. It expires in 10 minutes.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send the verification code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verify(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await verifyPermissionCode({ code: code });
+      if (!result.ok) throw new Error(result.message);
+      setCode("");
+      setMessage("Verified. Notification settings are enabled for 15 minutes.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not verify the code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save(channelChoice: AdminNotificationChannel) {
+    if (!canChange) return;
+    setError("");
+    setMessage("");
+    try {
+      await setChannel({ channel: channelChoice });
+      setMessage(`Notifications ${ADMIN_NOTIFICATION_LABELS[channelChoice]} for this administrator.`);
+    } catch {
+      setError("Could not save the notification preference.");
+    }
+  }
+
+  if (me === undefined) return <div className="flex justify-center py-12"><Loader2 className="size-5 animate-spin text-slate-400" /></div>;
+  if (!isAdmin) return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Verified administrator access is required to change notification settings.</p>;
+
+  return (
+    <section className="max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><Bell className="size-5" /></span><div><h2 className="font-semibold">Incoming alerts from the website</h2><p className="mt-1 text-sm leading-6 text-slate-600">Only verified administrators can receive admin alerts when a career application or a support ticket is submitted. Each administrator chooses their own channel. A Support email code is required to change this setting.</p></div></div>
+
+      <div className="mt-4 flex flex-wrap items-start gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="min-w-0"><p className="text-sm font-semibold">Your channel</p><p className="mt-1 text-sm text-slate-600">{channel === null ? "Not set yet." : ADMIN_NOTIFICATION_LABELS[channel]}</p></div>
+        {message && <p className="text-sm text-emerald-700">{message}</p>}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {ADMIN_NOTIFICATION_CHANNEL_OPTIONS.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            disabled={!isAdmin || !isVerified}
+            onClick={() => void save(value)}
+            className={`rounded-md border px-4 py-2 text-sm font-medium transition hover:bg-slate-100 ${isAdmin && isVerified && channel === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-700"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {!isVerified ? (
+        <>
+          <Button className="mt-5" variant="outline" onClick={() => void refreshCode()} disabled={busy}><Mail className="size-4" />{busy ? "Sending code…" : "Send code to Support"}</Button>
+          <form onSubmit={(event) => void verify(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-notification-code">6-digit Support code</Label><Input id="admin-notification-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}><ShieldCheck className="size-4" />{busy ? "Verifying…" : "Verify"}</Button></form>
+          {error && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{error}</p>}
+        </>
+      ) : (
+        <p className="mt-4 text-sm text-slate-600">Verified. You can change the channel above for the next 15 minutes.</p>
+      )}
+    </section>
+  );
+}
+
 export default function AdminPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -429,6 +547,7 @@ export default function AdminPage() {
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">People directory</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private account directory for managing staff access, departments, roles, and volunteer recognition. Viewing accounts requires a Careers email code; changing staff or admin permissions also requires a Support email code.</p>
         <TeamPanel />
+        <NotificationPreferencesPanel />
       </section>
     </main>
   );

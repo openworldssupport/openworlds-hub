@@ -3,10 +3,94 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { supportReasonIds, supportReasonLabel } from "../lib/support";
+
+function reasonLabelLabel(reason: string): string {
+  return supportReasonLabel(reason).toUpperCase();
+}
+
+function supportFanoutText({
+  reason,
+  subject,
+  name,
+  email,
+  username,
+  message,
+  submittedAt,
+  reference,
+}: {
+  reason: string;
+  subject?: string;
+  name?: string;
+  email: string;
+  username?: string;
+  message: string;
+  submittedAt: number;
+  reference?: string;
+}) {
+  const channelTag = reasonLabelLabel(reason);
+  return [
+    "New OpenWorlds support ticket — admin alert",
+    "",
+    `Reason: ${channelTag}`,
+    `Reference: ${reference || "(none)"}`,
+    `Subject: ${subject || "(none)"}`,
+    `Name: ${name || "(not provided)"}`,
+    `Email: ${email}`,
+    `OpenWorlds username: ${username || "(not provided)"}`,
+    `Submitted: ${new Date(submittedAt).toISOString()}`,
+    "",
+    "Message:",
+    message,
+    "",
+    "Reply to this email to respond to the contacting user.",
+  ].join("\n");
+}
+
+function htmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function supportFanoutHtml({
+  reason,
+  subject,
+  name,
+  email,
+  username,
+  message,
+  submittedAt,
+  reference,
+}: {
+  reason: string;
+  subject?: string;
+  name?: string;
+  email: string;
+  username?: string;
+  message: string;
+  submittedAt: number;
+  reference?: string;
+}) {
+  const channelTag = reasonLabelLabel(reason);
+  return [
+    "<h2>New OpenWorlds support ticket — admin alert</h2>",
+    "<p><strong>Reason:</strong> " + htmlEscape(channelTag) + "</p>",
+    "<p><strong>Reference:</strong> " + htmlEscape(reference || "(none)") + "</p>",
+    "<p><strong>Subject:</strong> " + htmlEscape(subject || "(none)") + "</p>",
+    "<p><strong>Name:</strong> " + htmlEscape(name || "(not provided)") + "</p>",
+    "<p><strong>Email:</strong> " + htmlEscape(email) + "</p>",
+    "<p><strong>OpenWorlds username:</strong> " + htmlEscape(username || "(not provided)") + "</p>",
+    "<p><strong>Submitted:</strong> " + htmlEscape(new Date(submittedAt).toISOString()) + "</p>",
+    "<hr />",
+    "<p>" + htmlEscape(message).replace(/\n/g, "<br />") + "</p>",
+  ].join("\n");
+}
+
 import { isAdmin, requireAdmin } from "./admin";
 import { recordSecurityViolation } from "./security";
 import { requireSiteAvailable } from "./siteStatus";
-
 /** Rejection message when the sender has not accepted the policies. */
 export const SUPPORT_TERMS_CONSENT_MESSAGE =
   "You must accept our Privacy Policy and Terms of Service before opening a ticket.";
@@ -125,6 +209,14 @@ export const create = mutation({
       subject: subject || undefined,
       message,
       submittedAt,
+    });
+    await ctx.scheduler.runAfter(0, internal.adminNotifications.fanOutAdminNotification, {
+      channel: "support",
+      subject: `${reasonLabelLabel(reason)} — new support ticket${subject ? `, ${subject}` : ""}`,
+      text: supportFanoutText({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, message, submittedAt }),
+      html: supportFanoutHtml({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, message, submittedAt }),
+      replyTo: email,
+      from: "support",
     });
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendSupportAcknowledgement, {
       reference,

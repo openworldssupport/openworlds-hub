@@ -482,7 +482,7 @@ async function sendViaResend({
   }
 }
 
-async function sendBotEmail({
+export async function sendBotEmail({
   channel,
   to,
   replyTo,
