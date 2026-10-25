@@ -168,13 +168,13 @@ const schema = defineSchema(
       lastSubmittedAt: v.number(),
     }).index("by_email_hash", ["emailHash"]),
 
-    adminNotificationPreferences: defineTable({
-      userId: v.id("users"),
-      userEmail: v.optional(v.string()),
-      channel: v.union(v.literal("none"), v.literal("careers"), v.literal("support"), v.literal("both")),
+    adminNotificationRecipients: defineTable({
+      email: v.string(),
+      kind: v.union(v.literal("careers"), v.literal("support"), v.literal("both")),
+      createdAt: v.number(),
     })
-      .index("by_user", ["userId"])
-      .index("by_channel", ["channel"]),
+      .index("by_email", ["email"])
+      .index("by_channel_kind", ["kind"]),
 
     supportTickets: defineTable({
       reference: v.optional(v.string()),

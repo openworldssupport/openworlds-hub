@@ -75,6 +75,32 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function careersReadyForReviewBody({
+  type,
+  roleTitle,
+  name,
+  email,
+  portfolio,
+  submittedAt,
+}: {
+  type: "application" | "question";
+  roleTitle?: string;
+  name?: string;
+  email: string;
+  portfolio?: string;
+  submittedAt: number;
+}) {
+  return [
+    `A new ${type === "application" ? "career application" : "careers question"} has been submitted and is ready for review.`,
+    "",
+    `Position: ${roleTitle || "(not specified)"}`,
+    `Name: ${name || "(not provided)"}`,
+    `Email: ${email}`,
+    `Portfolio: ${portfolio || "(none)"}`,
+    `Submitted: ${new Date(submittedAt).toISOString()}`,
+  ].join("\n");
+}
+
 /** Public role availability only; no applicant or account details are returned. */
 export const roleAvailability = query({
   args: {},
@@ -181,6 +207,14 @@ export const submitEnquiry = mutation({
       subject: `New ${args.type === "application" ? "career application" : "careers question"}${roleTitle ? `: ${roleTitle}` : ""}`,
       text: careerFanoutText({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
       html: careerFanoutHtml({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
+      replyTo: email,
+      from: "careers",
+    });
+
+    await ctx.scheduler.runAfter(0, internal.adminNotifications.sendAdminReadyForReviewAlert, {
+      channel: "careers",
+      subject: `New OpenWorlds ${args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,
+      body: careersReadyForReviewBody({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, submittedAt: now }),
       replyTo: email,
       from: "careers",
     });

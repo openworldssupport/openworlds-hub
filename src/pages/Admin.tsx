@@ -11,9 +11,9 @@ import { AlertCircle, Loader2, Mail, Save, ShieldCheck, Bell, CheckCircle2 } fro
 import { SiteNav } from "@/components/SiteNav";
 import {
   ADMIN_NOTIFICATION_CHANNEL_OPTIONS,
-  type AdminNotificationChannel,
+  ADMIN_NOTIFICATION_RECIPIENT_KINDS,
+  type AdminNotificationRecipientKind,
 } from "@/convex/adminNotifications";
-import { ADMIN_NOTIFICATION_LABELS } from "@/convex/adminNotifications";
 
 
 type TeamMember = {
@@ -225,8 +225,8 @@ function TeamPanel() {
     return (
       <section className="mt-6 max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
         <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify access to the account directory</h2><p className="mt-1 text-sm leading-6 text-slate-600">For additional protection, enter a one-time code sent to careers@openworlds.dk before viewing account details. Verification lasts 15 minutes.</p></div></div>
-        <Button className="mt-5" variant="outline" onClick={() => void sendRosterCode()} disabled={verificationBusy}><Mail className="size-4" />{verificationBusy ? "Sending code…" : "Send code to Careers"}</Button>
-        <form onSubmit={(event) => void verifyRosterCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-roster-code">6-digit verification code</Label><Input id="admin-roster-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={verificationBusy || verificationCode.length !== 6}><ShieldCheck className="size-4" />{verificationBusy ? "Verifying…" : "Verify"}</Button></form>
+        <Button className="mt-5" variant="outline" onClick={() => void sendRosterCode()} disabled={verificationBusy}><Mail className="size-4" />{verificationBusy ? "Sending code..." : "Send code to Careers"}</Button>
+        <form onSubmit={(event) => void verifyRosterCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-roster-code">6-digit verification code</Label><Input id="admin-roster-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={verificationBusy || verificationCode.length !== 6}><ShieldCheck className="size-4" />{verificationBusy ? "Verifying..." : "Verify"}</Button></form>
         {verificationMessage && <p role="status" className="mt-3 text-sm text-slate-600">{verificationMessage}</p>}
         {verificationError && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{verificationError}</p>}
       </section>
@@ -236,13 +236,13 @@ function TeamPanel() {
     <div className="mt-6 space-y-3">
       <section className="max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
         <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify staff-access changes</h2><p className="mt-1 text-sm leading-6 text-slate-600">A separate one-time code from support@openworlds.dk is required before adding, changing, or removing a staff assignment. Verification lasts 15 minutes.</p></div></div>
-        <Button className="mt-5" variant="outline" onClick={() => void sendPermissionCode()} disabled={permissionBusy || isPermissionVerified}><Mail className="size-4" />{isPermissionVerified ? "Access changes verified" : permissionBusy ? "Sending code…" : "Send code to Support"}</Button>
-        {!isPermissionVerified && <form onSubmit={(event) => void verifyPermission(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-permission-code">6-digit Support code</Label><Input id="admin-permission-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={permissionCode} onChange={(event) => setPermissionCode(event.target.value.replace(/\\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={permissionBusy || permissionCode.length !== 6}><ShieldCheck className="size-4" />{permissionBusy ? "Verifying…" : "Verify access"}</Button></form>}
+        <Button className="mt-5" variant="outline" onClick={() => void sendPermissionCode()} disabled={permissionBusy || isPermissionVerified}><Mail className="size-4" />{isPermissionVerified ? "Access changes verified" : permissionBusy ? "Sending code..." : "Send code to Support"}</Button>
+        {!isPermissionVerified && <form onSubmit={(event) => void verifyPermission(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-permission-code">6-digit Support code</Label><Input id="admin-permission-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={permissionCode} onChange={(event) => setPermissionCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={permissionBusy || permissionCode.length !== 6}><ShieldCheck className="size-4" />{permissionBusy ? "Verifying..." : "Verify access"}</Button></form>}
         {permissionMessage && <p role="status" className="mt-3 text-sm text-slate-600">{permissionMessage}</p>}
         {permissionError && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{permissionError}</p>}
       </section>
       <p className="text-sm text-slate-600">Private directory of all non-anonymous accounts, including players, staff, admins, and volunteers. Viewing requires a Careers code; changing staff assignments also requires a Support code.</p>
-      <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " · all accounts shown" : " · load more below to see the rest"}</p>
+      <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
@@ -302,10 +302,10 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
           <p className="text-xs text-slate-500">{member.email || "Email unavailable"}</p>
           <p className="mt-1 text-xs text-slate-600">
             {member.isAdmin ? "Administrator" : member.isStaff ? "Staff member" : "Player account"}
-            {member.department ? ` · ${member.department}` : ""}
-            {member.position ? ` · ${member.position}` : ""}
-            {member.isBanned ? " · access restricted" : ""}
-            {member.memberStatus === "volunteer-thank-you" ? " · volunteer · thank-you" : ""}
+            {member.department ? ` - ${member.department}` : ""}
+            {member.position ? ` - ${member.position}` : ""}
+            {member.isBanned ? " - access restricted" : ""}
+            {member.memberStatus === "volunteer-thank-you" ? " - volunteer - thank-you" : ""}
           </p>
         </div>
       </div>
@@ -426,34 +426,34 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
   );
 }
 
-function NotificationPreferencesPanel() {
+function SubmissionNotificationPanel() {
   const me = useQuery(api.staff.me);
   const rosterStatus = useQuery(api.adminRoster.rosterStatus);
   const requestPermissionCode = useAction(api.adminRoster.requestPermissionCode);
   const verifyPermissionCode = useMutation(api.adminRoster.verifyPermissionCode);
-  const myChannel = useQuery(api.adminNotifications.myNotificationChannel);
-  const setChannel = useMutation(api.adminNotifications.setAdminNotificationChannel);
-  const [channel, setChannelState] = useState<AdminNotificationChannel | null>(null);
+  const recipients = useQuery(api.adminNotifications.listAdminNotificationRecipients);
+  const addRecipient = useMutation(api.adminNotifications.addAdminNotificationRecipient);
+  const removeRecipient = useMutation(api.adminNotifications.removeAdminNotificationRecipient);
+  const [newEmail, setNewEmail] = useState("");
+  const [newKind, setNewKind] = useState<AdminNotificationRecipientKind>("both");
+  const [removeId, setRemoveId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addBusy, setAddBusy] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [clock, setClock] = useState(Date.now());
 
+  const verifiedUntil = rosterStatus?.permissionVerifiedUntil ?? 0;
   useEffect(() => {
-    if (myChannel === undefined) return;
-    setChannelState(myChannel);
-  }, [myChannel]);
-
-  useEffect(() => {
-    const verifiedUntil = rosterStatus?.permissionVerifiedUntil ?? 0;
     if (!verifiedUntil || verifiedUntil <= Date.now()) return;
     const timer = window.setTimeout(() => setClock(Date.now()), verifiedUntil - Date.now());
     return () => window.clearTimeout(timer);
-  }, [rosterStatus?.permissionVerifiedUntil]);
+  }, [verifiedUntil]);
 
   const isAdmin = Boolean(me?.isAdmin);
-  const isVerified = Boolean(me?.isAdmin && rosterStatus?.isAdmin && (rosterStatus.permissionVerifiedUntil ?? 0) > clock);
+  const isVerified = Boolean(isAdmin && (verifiedUntil > clock));
   const canChange = isAdmin && isVerified;
 
   async function refreshCode() {
@@ -479,7 +479,7 @@ function NotificationPreferencesPanel() {
       const result = await verifyPermissionCode({ code: code });
       if (!result.ok) throw new Error(result.message);
       setCode("");
-      setMessage("Verified. Notification settings are enabled for 15 minutes.");
+      setMessage("Verified. You can add or remove recipients for the next 15 minutes.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify the code.");
     } finally {
@@ -487,52 +487,150 @@ function NotificationPreferencesPanel() {
     }
   }
 
-  async function save(channelChoice: AdminNotificationChannel) {
+  async function handleAdd() {
     if (!canChange) return;
+    if (!newEmail.trim()) {
+      setError("Enter the email address that should receive alerts.");
+      return;
+    }
     setError("");
-    setMessage("");
+    setAddBusy(true);
     try {
-      await setChannel({ channel: channelChoice });
-      setMessage(`Notifications ${ADMIN_NOTIFICATION_LABELS[channelChoice]} for this administrator.`);
-    } catch {
-      setError("Could not save the notification preference.");
+      await addRecipient({ email: newEmail, kind: newKind });
+      setNewEmail("");
+      setMessage("Recipient added. They will receive a short alert whenever a matching submission comes in.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add the recipient.");
+    } finally {
+      setAddBusy(false);
+    }
+  }
+
+  async function handleRemove(recipientId: string, email: string) {
+    if (!canChange) return;
+    setRemoveId(recipientId);
+    setRemoveBusy(true);
+    try {
+      await removeRecipient({ recipientId: recipientId as any as Id<"adminNotificationRecipients"> });
+      setMessage(`Removed ${email} from submission alerts.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove the recipient.");
+    } finally {
+      setRemoveBusy(false);
+      setRemoveId(null);
     }
   }
 
   if (me === undefined) return <div className="flex justify-center py-12"><Loader2 className="size-5 animate-spin text-slate-400" /></div>;
-  if (!isAdmin) return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Verified administrator access is required to change notification settings.</p>;
+  if (!isAdmin) return <p className="mt-6 rounded-lg border border-slate-200 bg-white p-5 text-sm">Verified administrator access is required to manage submission alerts.</p>;
 
   return (
     <section className="max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><Bell className="size-5" /></span><div><h2 className="font-semibold">Incoming alerts from the website</h2><p className="mt-1 text-sm leading-6 text-slate-600">Only verified administrators can receive admin alerts when a career application or a support ticket is submitted. Each administrator chooses their own channel. A Support email code is required to change this setting.</p></div></div>
-
-      <div className="mt-4 flex flex-wrap items-start gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <div className="min-w-0"><p className="text-sm font-semibold">Your channel</p><p className="mt-1 text-sm text-slate-600">{channel === null ? "Not set yet." : ADMIN_NOTIFICATION_LABELS[channel]}</p></div>
-        {message && <p className="text-sm text-emerald-700">{message}</p>}
-      </div>
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><Bell className="size-5" /></span><div><h2 className="font-semibold">Submission alerts</h2><p className="mt-1 text-sm leading-6 text-slate-600">Add the email addresses that should be notified when a submission is ready for review. Each address can be set to careers submissions only, support tickets only, or both. Recipients get a short "new submission, ready for review" email; they do not get the full submission details unless they open the ticket or application inbox.</p></div></div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {ADMIN_NOTIFICATION_CHANNEL_OPTIONS.map(([value, label]) => (
           <button
             key={value}
             type="button"
-            disabled={!isAdmin || !isVerified}
-            onClick={() => void save(value)}
-            className={`rounded-md border px-4 py-2 text-sm font-medium transition hover:bg-slate-100 ${isAdmin && isVerified && channel === value ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-700"}`}
+            className={`rounded-md border px-4 py-2 text-sm font-medium transition hover:bg-slate-100 ${newKind === value && recipients === undefined ? "border-[#0066cc] bg-blue-50 text-[#0066cc]" : "border-slate-200 text-slate-700"}`}
+            onClick={() => setNewKind(value)}
           >
             {label}
           </button>
         ))}
       </div>
 
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleAdd();
+        }}
+        className="mt-4 flex flex-wrap items-end gap-3"
+      >
+        <div className="min-w-0 flex-1 space-y-2">
+          <Label htmlFor="admin-notification-email">Email address to notify</Label>
+          <Input
+            id="admin-notification-email"
+            type="email"
+            autoComplete="email"
+            required
+            maxLength={254}
+            value={newEmail}
+            onChange={(event) => setNewEmail(event.target.value)}
+            placeholder="alerts@openworlds.dk"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="admin-notification-kind">Alerts for</Label>
+          <select
+            id="admin-notification-kind"
+            value={newKind}
+            onChange={(event) => setNewKind(event.target.value as AdminNotificationRecipientKind)}
+            className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+          >
+            {ADMIN_NOTIFICATION_CHANNEL_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" disabled={!canChange || addBusy || !newEmail.trim()}>{addBusy ? "Adding..." : "Add recipient"}</Button>
+      </form>
+
+      {message && <p role="status" className="mt-3 text-sm text-emerald-700">{message}</p>}
+      {error && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{error}</p>}
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">Recipients</span>
+        <span className="text-xs text-slate-500">These addresses get a short "ready for review" email when a matching submission is received.</span>
+      </div>
+
+      {recipients === null ? (
+        <p className="mt-2 text-sm text-slate-600">No recipients loaded.</p>
+      ) : !recipients ? (
+        <p className="mt-2 text-sm text-slate-600">Recipients not loaded yet.</p>
+      ) : recipients.length === 0 ? (
+        <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No recipients yet. Add the email address that should receive submission alerts.</p>
+      ) : (
+        <ul className="mt-3 flex flex-col gap-2">
+          {recipients.map((recipient) => {
+            const kindLabel = ADMIN_NOTIFICATION_RECIPIENT_KINDS.find(([kind]) => kind === recipient.kind)?.[1] ?? "Both";
+            return (
+              <li
+                key={recipient._id}
+                className="rounded-lg border border-slate-200 bg-white p-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">{recipient.email}</p>
+                    <p className="text-xs text-slate-600">{kindLabel}</p>
+                  </div>
+                  {canChange && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={removeBusy}
+                      onClick={() => void handleRemove(recipient._id, recipient.email)}
+                    >
+                      {removeBusy ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
       {!isVerified ? (
         <>
-          <Button className="mt-5" variant="outline" onClick={() => void refreshCode()} disabled={busy}><Mail className="size-4" />{busy ? "Sending code…" : "Send code to Support"}</Button>
-          <form onSubmit={(event) => void verify(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-notification-code">6-digit Support code</Label><Input id="admin-notification-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}><ShieldCheck className="size-4" />{busy ? "Verifying…" : "Verify"}</Button></form>
+          <Button className="mt-5" variant="outline" onClick={() => void refreshCode()} disabled={busy}><Mail className="size-4" />{busy ? "Sending code..." : "Send code to Support"}</Button>
+          <form onSubmit={(event) => void verify(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-notification-code">6-digit Support code</Label><Input id="admin-notification-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}><ShieldCheck className="size-4" />{busy ? "Verifying..." : "Verify"}</Button></form>
           {error && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{error}</p>}
         </>
       ) : (
-        <p className="mt-4 text-sm text-slate-600">Verified. You can change the channel above for the next 15 minutes.</p>
+        <p className="mt-4 text-sm text-slate-600">Verified. You can add or remove recipients for the next 15 minutes.</p>
       )}
     </section>
   );
@@ -543,11 +641,11 @@ export default function AdminPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds · Company operations</p>
+        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds - Company operations</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">People directory</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private account directory for managing staff access, departments, roles, and volunteer recognition. Viewing accounts requires a Careers email code; changing staff or admin permissions also requires a Support email code.</p>
         <TeamPanel />
-        <NotificationPreferencesPanel />
+        <SubmissionNotificationPanel />
       </section>
     </main>
   );

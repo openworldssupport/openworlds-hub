@@ -5,111 +5,81 @@ import { isAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { sendBotEmail } from "./supportEmail";
 
-export const ADMIN_NOTIFICATION_CHANNEL = {
-  careers: "careers" as const,
-  support: "support" as const,
-  both: "both" as const,
-  none: "none" as const,
-} as const;
-export type AdminNotificationChannel = (typeof ADMIN_NOTIFICATION_CHANNEL)[keyof typeof ADMIN_NOTIFICATION_CHANNEL];
+export type AdminNotificationRecipientKind = "careers" | "support" | "both";
 
-export const ADMIN_NOTIFICATION_LABELS: Record<AdminNotificationChannel, string> = {
-  careers: "Careers only",
-  support: "Support only",
-  both: "Careers and support",
-  none: "No notifications",
-};
-
-export const ADMIN_NOTIFICATION_CHANNEL_OPTIONS: Array<readonly [AdminNotificationChannel, string]> = [
-  ["none", "No notifications"],
-  ["careers", "Careers only"],
-  ["support", "Support only"],
-  ["both", "Careers and support"],
+export const ADMIN_NOTIFICATION_RECIPIENT_KINDS: Array<readonly [AdminNotificationRecipientKind, string]> = [
+  ["careers", "Career applications and careers questions only"],
+  ["support", "Support tickets only"],
+  ["both", "Career applications and support tickets"],
 ];
 
-/** Admin-only: list every admin's notification preference. Requires staff-access verification. */
-export const listAdminNotificationPreferences = query({
+export const ADMIN_NOTIFICATION_CHANNEL_OPTIONS: Array<readonly [AdminNotificationRecipientKind, string]> = [
+  ["careers", "Careers only"],
+  ["support", "Support only"],
+  ["both", "Both"],
+];
+
+/** Admin-only: list every registered notification recipient. Requires staff-access verification. */
+export const listAdminNotificationRecipients = query({
   args: {},
   handler: async (ctx) => {
-    const isAllowed = await isAdmin(ctx);
-    if (!isAllowed) return null;
-    const permissionVerifiedUntil = await requirePermissionVerification(ctx);
-    if ((permissionVerifiedUntil as unknown as number) <= 0) {
-      return null;
-    }
-    void permissionVerifiedUntil;
+    if (!(await isAdmin(ctx))) return null;
+    const verifiedUntil = await requirePermissionVerification(ctx);
+    if ((verifiedUntil as unknown as number) <= 0) return null;
+    void verifiedUntil;
 
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
-    if (!user) return null;
-
-    const prefs = await ctx.db.query("adminNotificationPreferences").collect();
-    const rows = prefs.map((doc) => ({
-      _id: doc._id,
-      userId: doc.userId,
-      userEmail: doc.userEmail,
-      channel: doc.channel,
-    }));
-    rows.sort((a, b) => (a.userEmail ?? "").localeCompare(b.userEmail ?? ""));
-    return rows;
+    const recipients = await ctx.db.query("adminNotificationRecipients").collect();
+    return recipients
+      .map((row) => ({
+        _id: row._id,
+        email: row.email,
+        kind: row.kind,
+      }))
+      .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
   },
 });
 
-/** Admin-only: update the current administrator's notification channel. Requires staff-access verification. */
-export const setAdminNotificationChannel = mutation({
-  args: { channel: v.union(v.literal("none"), v.literal("careers"), v.literal("support"), v.literal("both")) },
-  handler: async (ctx, { channel }) => {
+/** Admin-only: add a recipient for admin submission alerts. Requires staff-access verification. */
+export const addAdminNotificationRecipient = mutation({
+  args: {
+    email: v.string(),
+    kind: v.union(v.literal("careers"), v.literal("support"), v.literal("both")),
+  },
+  handler: async (ctx, { email, kind }) => {
     await requirePermissionVerification(ctx);
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Signed-in administrator required.");
+    const normalized = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      throw new Error("Enter a valid email address for the notification recipient.");
+    }
 
     const existing = await ctx.db
-      .query("adminNotificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .query("adminNotificationRecipients")
+      .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
-
-    const normalizedChannel: AdminNotificationChannel =
-      channel === "careers" || channel === "support" || channel === "both" || channel === "none"
-        ? channel
-        : "none";
-
-    const values: { userId: typeof userId; userEmail?: string; channel: AdminNotificationChannel } = {
-      userId,
-      channel: normalizedChannel,
-    };
 
     if (existing) {
-      await ctx.db.patch(existing._id, values);
+      await ctx.db.patch(existing._id, { kind });
     } else {
-      const user = await ctx.db.get(userId);
-      if (!user) throw new Error("Signed-in administrator record not found.");
-      values.userEmail = user.email?.trim().toLowerCase() ?? undefined;
-      await ctx.db.insert("adminNotificationPreferences", values);
+      await ctx.db.insert("adminNotificationRecipients", { email: normalized, kind, createdAt: Date.now() });
     }
 
-    return { ok: true, channel: normalizedChannel };
+    return { ok: true, email: normalized, kind };
   },
 });
 
-/** Admin-only: current administrator's preference, if set. */
-export const myNotificationChannel = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const row = await ctx.db
-      .query("adminNotificationPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-
-    return row ? (row.channel as AdminNotificationChannel) : null;
+/** Admin-only: remove a registered notification recipient. Requires staff-access verification. */
+export const removeAdminNotificationRecipient = mutation({
+  args: { recipientId: v.id("adminNotificationRecipients") },
+  handler: async (ctx, { recipientId }) => {
+    await requirePermissionVerification(ctx);
+    const recipient = await ctx.db.get(recipientId);
+    if (!recipient) return { ok: true };
+    await ctx.db.delete(recipientId);
+    return { ok: true, email: recipient.email };
   },
 });
 
-/** Internal: fan out an admin-only email to every admin who opted in to that channel. */
+/** Internal: fan out the full submission details to registered recipients for that submission kind. */
 export const fanOutAdminNotification = internalAction({
   args: {
     channel: v.union(v.literal("careers"), v.literal("support")),
@@ -120,32 +90,83 @@ export const fanOutAdminNotification = internalAction({
     from: v.union(v.literal("support"), v.literal("careers")),
   },
   handler: async (actionCtx, { channel, subject, text, html, replyTo, from }) => {
-    const preferences = await (actionCtx as any).db
-      .query("adminNotificationPreferences")
-      .withIndex("by_channel", (q: any) => q.eq("channel", channel))
+    const expectedKind = channel === "careers" ? "careers" : "support";
+    const recipients = await (actionCtx as any).db
+      .query("adminNotificationRecipients")
+      .withIndex("by_channel_kind", (q: any) => q.eq("kind", expectedKind))
       .collect();
 
-    const qualified = preferences.filter((p: { channel: string | null; userEmail?: string | null }) => {
-      const pChannel = p.channel;
-      if (pChannel === channel) return true;
-      if (pChannel === "both") return true;
+    const eligible = recipients.filter((r: { kind: string | null }) => {
+      const rKind = r.kind;
+      if (rKind === expectedKind) return true;
+      if (rKind === "both") return true;
       return false;
     });
 
-    for (const pref of qualified) {
-      if (!pref.userEmail) continue;
+    for (const recipient of eligible) {
+      if (!recipient.email) continue;
       try {
         await sendBotEmail({
           channel: from as "support" | "careers",
-          to: pref.userEmail,
+          to: recipient.email,
           replyTo,
           subject,
           text,
           html,
         });
       } catch {
-        // One failing admin should not suppress the rest.
+        // One failing recipient should not suppress the rest.
       }
     }
   },
 });
+
+/** Internal: send a short "new submission, ready for review" alert to registered recipients for that submission kind. */
+export const sendAdminReadyForReviewAlert = internalAction({
+  args: {
+    channel: v.union(v.literal("careers"), v.literal("support")),
+    subject: v.string(),
+    body: v.string(),
+    replyTo: v.string(),
+    from: v.union(v.literal("support"), v.literal("careers")),
+  },
+  handler: async (actionCtx, { channel, subject, body, replyTo, from }) => {
+    const expectedKind = channel === "careers" ? "careers" : "support";
+    const recipients = await (actionCtx as any).db
+      .query("adminNotificationRecipients")
+      .withIndex("by_channel_kind", (q: any) => q.eq("kind", expectedKind))
+      .collect();
+
+    const eligible = recipients.filter((r: { kind: string | null }) => {
+      const rKind = r.kind;
+      if (rKind === expectedKind) return true;
+      if (rKind === "both") return true;
+      return false;
+    });
+
+    for (const recipient of eligible) {
+      if (!recipient.email) continue;
+      try {
+        await sendBotEmail({
+          channel: from as "support" | "careers",
+          to: recipient.email,
+          replyTo,
+          subject,
+          text: body,
+          html: readyForReviewHtml(body),
+        });
+      } catch {
+        // One failing recipient should not suppress the rest.
+      }
+    }
+  },
+});
+
+function readyForReviewHtml(body: string): string {
+  const escaped = body
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:620px;margin:28px auto;background:#ffffff;border:1px solid #e2e8f0"><div style="padding:22px 28px;background:#073b70;color:#ffffff;font-size:18px;font-weight:700">OpenWorlds</div><div style="padding:28px"><p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">New submission — ready for review</p><p style="margin:0 0 18px;font-size:16px;font-weight:600;color:#0f172a">A new submission has been received and is ready for review.</p><div style="margin:18px 0;padding:16px;border-left:3px solid #0066cc;background:#f8fafc;white-space:pre-wrap;line-height:1.6;color:#334155">${escaped}</div><p style="margin:24px 0 0;line-height:1.6;color:#334155">Regards,<br><strong>OpenWorlds notification service</strong></p></div></div></body></html>`;
+}
