@@ -34,15 +34,10 @@ export default function CareerApplication() {
         roleSlug: role.slug,
         name: String(values.get("name") ?? ""),
         email: String(values.get("email") ?? ""),
-        portfolio: String(values.get("portfolio") ?? ""),
         message: [
           ["Relevant experience", "experience"],
           ["Why I’m interested and what I’d contribute", "motivation"],
-          ["Relevant project or achievement", "project"],
-          ["Skills I’d bring to this role", "skills"],
-          ["Availability and expected time commitment", "availability"],
-          ["Anything else for the Careers team", "additional"],
-        ].map(([label, field]) => `${label}:\n${String(values.get(field) ?? "").trim() || "(not provided)"}`).join("\n\n"),
+        ].map(([label, field]) => `${label}:\n${String(values.get(field) ?? "").trim()}`).join("\n\n"),
         honeypot: String(values.get("website") ?? ""),
         privacyAccepted: values.get("careerConsent") === "on",
       });
@@ -87,13 +82,8 @@ export default function CareerApplication() {
               </div>
               <div className="space-y-2"><Label htmlFor="application-experience">Relevant experience</Label><Textarea id="application-experience" name="experience" required minLength={10} maxLength={2500} rows={5} placeholder="Share relevant experience, projects, or skills." /></div>
               <div className="space-y-2"><Label htmlFor="application-motivation">Why are you interested in this role?</Label><Textarea id="application-motivation" name="motivation" required minLength={10} maxLength={2500} rows={5} placeholder="Tell us what interests you and what you would bring to the team." /></div>
-              <div className="space-y-2"><Label htmlFor="application-project">A relevant project or achievement <span className="font-normal text-slate-500">(optional)</span></Label><Textarea id="application-project" name="project" maxLength={2000} rows={4} placeholder="What have you worked on that relates to this position?" /></div>
-              <div className="space-y-2"><Label htmlFor="application-skills">Skills you’d bring <span className="font-normal text-slate-500">(optional)</span></Label><Textarea id="application-skills" name="skills" maxLength={1500} rows={3} placeholder="List relevant tools, strengths, or areas of knowledge." /></div>
-              <div className="space-y-2"><Label htmlFor="application-availability">Availability <span className="font-normal text-slate-500">(optional)</span></Label><Textarea id="application-availability" name="availability" maxLength={1000} rows={3} placeholder="When could you contribute, and roughly how much time could you offer?" /></div>
-              <div className="space-y-2"><Label htmlFor="application-additional">Anything else you’d like us to know? <span className="font-normal text-slate-500">(optional)</span></Label><Textarea id="application-additional" name="additional" maxLength={1500} rows={3} /></div>
-              <div className="space-y-2"><Label htmlFor="application-portfolio">Portfolio or relevant link <span className="font-normal text-slate-500">(optional)</span></Label><Input id="application-portfolio" name="portfolio" type="url" maxLength={500} placeholder="https://" /></div>
               <p className="text-xs leading-5 text-slate-500">Please don’t include passwords or sensitive account information.</p>
-              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my email and application details will be emailed to the Careers team. My name and answers marked optional may be left blank. The website does not save this application.</span></label>
+              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my email and application details will be emailed to the Careers team. My name is optional. The website does not save this application.</span></label>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" disabled={busy}><Mail className="size-4" />{busy ? "Submitting application…" : "Submit application"}</Button>
             </form>
