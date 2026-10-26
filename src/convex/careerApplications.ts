@@ -202,15 +202,6 @@ export const submitEnquiry = mutation({
       message,
       submittedAt: now,
     });
-    await ctx.scheduler.runAfter(0, internal.adminNotifications.fanOutAdminNotification, {
-      channel: "careers",
-      subject: `New ${args.type === "application" ? "career application" : "careers question"}${roleTitle ? `: ${roleTitle}` : ""}`,
-      text: careerFanoutText({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
-      html: careerFanoutHtml({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, message, submittedAt: now }),
-      replyTo: email,
-      from: "careers",
-    });
-
     await ctx.scheduler.runAfter(0, internal.adminNotifications.sendAdminReadyForReviewAlert, {
       channel: "careers",
       subject: `New OpenWorlds ${args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,

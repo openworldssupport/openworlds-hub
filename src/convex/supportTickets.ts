@@ -240,15 +240,6 @@ export const create = mutation({
       message,
       submittedAt,
     });
-    await ctx.scheduler.runAfter(0, internal.adminNotifications.fanOutAdminNotification, {
-      channel: "support",
-      subject: `[OpenWorlds Support] New ticket submitted — ready for review${subject ? `, ${subject}` : ""}`,
-      text: supportFanoutText({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, message, submittedAt }),
-      html: supportFanoutHtml({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, message, submittedAt }),
-      replyTo: email,
-      from: "support",
-    });
-
     await ctx.scheduler.runAfter(0, internal.adminNotifications.sendAdminReadyForReviewAlert, {
       channel: "support",
       subject: `New OpenWorlds support ticket submitted — ready for review`,

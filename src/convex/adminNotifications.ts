@@ -1,5 +1,5 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { internalAction, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalAction, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
@@ -33,6 +33,15 @@ export const listAdminNotificationRecipients = query({
         kind: row.kind,
       }))
       .sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+  },
+});
+
+/** Internal: return saved recipients that match a submission channel. */
+export const getEligibleAdminNotificationRecipients = internalQuery({
+  args: { channel: v.union(v.literal("careers"), v.literal("support")) },
+  handler: async (ctx, { channel }) => {
+    const recipients = await ctx.db.query("adminNotificationRecipients").collect();
+    return recipients.filter((recipient) => recipient.kind === channel || recipient.kind === "both");
   },
 });
 
@@ -87,25 +96,14 @@ export const fanOutAdminNotification = internalAction({
     from: v.union(v.literal("support"), v.literal("careers")),
   },
   handler: async (actionCtx, { channel, subject, text, html, replyTo, from }) => {
-    const expectedKind = channel === "careers" ? "careers" : "support";
-    const recipients = await (actionCtx as any).db
-      .query("adminNotificationRecipients")
-      .withIndex("by_channel_kind", (q: any) => q.eq("kind", expectedKind))
-      .collect();
+    const recipients = await actionCtx.runQuery(internal.adminNotifications.getEligibleAdminNotificationRecipients, { channel });
 
-    const eligible = recipients.filter((r: { kind: string | null }) => {
-      const rKind = r.kind;
-      if (rKind === expectedKind) return true;
-      if (rKind === "both") return true;
-      return false;
-    });
-
-    console.warn(`[adminNotifications:fanOut] channel=${channel} expectedKind=${expectedKind} recipientCount=${eligible.length}`);
-    for (const recipient of eligible) {
+    console.warn(`[adminNotifications:fanOut] channel=${channel} recipientCount=${recipients.length}`);
+    for (const recipient of recipients) {
       if (!recipient.email) continue;
       console.warn(`[adminNotifications:fanOut] attempt to=${recipient.email} kind=${recipient.kind}`);
       try {
-        await sendBotEmail({
+        const result = await sendBotEmail({
           channel: from as "support" | "careers",
           to: recipient.email,
           replyTo,
@@ -113,6 +111,10 @@ export const fanOutAdminNotification = internalAction({
           text,
           html,
         });
+        if (!result.sent) {
+          console.error(`[adminNotifications:fanOut] delivery failed to=${recipient.email} reason=${result.reason ?? "unknown"}`);
+          continue;
+        }
         console.warn(`[adminNotifications:fanOut] sent ok to=${recipient.email}`);
       } catch (err) {
         console.error(`[adminNotifications:fanOut] failed to=${recipient.email}`, err);
@@ -132,25 +134,14 @@ export const sendAdminReadyForReviewAlert = internalAction({
     from: v.union(v.literal("support"), v.literal("careers")),
   },
   handler: async (actionCtx, { channel, subject, body, replyTo, from }) => {
-    const expectedKind = channel === "careers" ? "careers" : "support";
-    const recipients = await (actionCtx as any).db
-      .query("adminNotificationRecipients")
-      .withIndex("by_channel_kind", (q: any) => q.eq("kind", expectedKind))
-      .collect();
+    const recipients = await actionCtx.runQuery(internal.adminNotifications.getEligibleAdminNotificationRecipients, { channel });
 
-    const eligible = recipients.filter((r: { kind: string | null }) => {
-      const rKind = r.kind;
-      if (rKind === expectedKind) return true;
-      if (rKind === "both") return true;
-      return false;
-    });
-
-    console.warn(`[adminNotifications:readyForReview] channel=${channel} expectedKind=${expectedKind} recipientCount=${eligible.length} subject=${subject}`);
-    for (const recipient of eligible) {
+    console.warn(`[adminNotifications:readyForReview] channel=${channel} recipientCount=${recipients.length} subject=${subject}`);
+    for (const recipient of recipients) {
       if (!recipient.email) continue;
       console.warn(`[adminNotifications:readyForReview] attempt to=${recipient.email} kind=${recipient.kind}`);
       try {
-        await sendBotEmail({
+        const result = await sendBotEmail({
           channel: from as "support" | "careers",
           to: recipient.email,
           replyTo,
@@ -158,6 +149,10 @@ export const sendAdminReadyForReviewAlert = internalAction({
           text: body,
           html: readyForReviewHtml(body),
         });
+        if (!result.sent) {
+          console.error(`[adminNotifications:readyForReview] delivery failed to=${recipient.email} reason=${result.reason ?? "unknown"}`);
+          continue;
+        }
         console.warn(`[adminNotifications:readyForReview] sent ok to=${recipient.email}`);
       } catch (err) {
         console.error(`[adminNotifications:readyForReview] failed to=${recipient.email}`, err);
