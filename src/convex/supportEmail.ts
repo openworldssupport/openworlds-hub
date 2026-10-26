@@ -289,10 +289,9 @@ export const sendAdminReadyForReviewAlert = internalAction({
     channel: v.union(v.literal("careers"), v.literal("support")),
     subject: v.string(),
     body: v.string(),
-    replyTo: v.string(),
     from: v.union(v.literal("support"), v.literal("careers")),
   },
-  handler: async (actionCtx, { channel, subject, body, replyTo, from }) => {
+  handler: async (actionCtx, { channel, subject, body, from }) => {
     const recipients = await actionCtx.runQuery(
       internal.adminNotifications.getEligibleAdminNotificationRecipients,
       { channel },
@@ -304,7 +303,7 @@ export const sendAdminReadyForReviewAlert = internalAction({
         const result = await sendBotEmail({
           channel: from,
           to: recipient.email,
-          replyTo,
+          replyTo: from === "support" ? DEFAULT_SUPPORT_EMAIL : CAREERS_EMAIL,
           subject,
           text: body,
           html: readyForReviewHtml(body),

@@ -75,30 +75,8 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function careersReadyForReviewBody({
-  type,
-  roleTitle,
-  name,
-  email,
-  portfolio,
-  submittedAt,
-}: {
-  type: "application" | "question";
-  roleTitle?: string;
-  name?: string;
-  email: string;
-  portfolio?: string;
-  submittedAt: number;
-}) {
-  return [
-    `A new ${type === "application" ? "career application" : "careers question"} has been submitted and is ready for review.`,
-    "",
-    `Position: ${roleTitle || "(not specified)"}`,
-    `Name: ${name || "(not provided)"}`,
-    `Email: ${email}`,
-    `Portfolio: ${portfolio || "(none)"}`,
-    `Submitted: ${new Date(submittedAt).toISOString()}`,
-  ].join("\n");
+function careersReadyForReviewBody(type: "application" | "question") {
+  return `A new ${type === "application" ? "career application" : "careers question"} has been submitted and is ready for review.`;
 }
 
 /** Public role availability only; no applicant or account details are returned. */
@@ -205,8 +183,7 @@ export const submitEnquiry = mutation({
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendAdminReadyForReviewAlert, {
       channel: "careers",
       subject: `New OpenWorlds ${args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,
-      body: careersReadyForReviewBody({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, submittedAt: now }),
-      replyTo: email,
+      body: careersReadyForReviewBody(args.type),
       from: "careers",
     });
     return { accepted: true };

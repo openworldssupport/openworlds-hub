@@ -54,34 +54,8 @@ function htmlEscape(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function supportReadyForReviewBody({
-  reference,
-  name,
-  email,
-  username,
-  reason,
-  subject,
-  submittedAt,
-}: {
-  reference?: string;
-  name?: string;
-  email: string;
-  username?: string;
-  reason: string;
-  subject?: string;
-  submittedAt: number;
-}) {
-  return [
-    "A new support ticket has been submitted and is ready for review.",
-    "",
-    `Reference: ${reference || "(none)"}`,
-    `Reason: ${reasonLabelLabel(reason)}`,
-    `Subject: ${subject || "(none)"}`,
-    `Name: ${name || "(not provided)"}`,
-    `Email: ${email}`,
-    `OpenWorlds username: ${username || "(not provided)"}`,
-    `Submitted: ${new Date(submittedAt).toISOString()}`,
-  ].join("\n");
+function supportReadyForReviewBody() {
+  return "A new support ticket has been submitted and is ready for review.";
 }
 
 function supportFanoutHtml({
@@ -243,8 +217,7 @@ export const create = mutation({
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendAdminReadyForReviewAlert, {
       channel: "support",
       subject: `New OpenWorlds support ticket submitted — ready for review`,
-      body: supportReadyForReviewBody({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, submittedAt }),
-      replyTo: email,
+      body: supportReadyForReviewBody(),
       from: "support",
     });
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendSupportAcknowledgement, {
