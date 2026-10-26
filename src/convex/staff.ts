@@ -186,6 +186,9 @@ export const listMembers = query({
         badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
         memberStatus: user.memberStatus ?? null,
         isBanned: user.isSiteBanned === true,
+        isOfficialCreator: user.isOfficialCreator === true,
+        playerLogin: user.playerLogin ?? null,
+        image: user.image ?? null,
       };
       });
     page.sort((a, b) => Number(a.isAdmin) - Number(b.isAdmin));
@@ -197,6 +200,23 @@ export const listMembers = query({
  * Admin only: assign (or clear) a person's department, position and public
  * badge. Clearing both department and position removes staff access.
  */
+export const setOfficialCreator = mutation({
+  args: { userId: v.id("users"), isOfficialCreator: v.boolean() },
+  handler: async (ctx, { userId, isOfficialCreator }) => {
+    await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
+    const target = await ctx.db.get(userId);
+    if (!target || target.role !== "user" || target.emailVerificationTime === undefined || target.isSiteBanned) {
+      throw new Error("Choose an active, verified player account.");
+    }
+    if (isOfficialCreator && !target.playerLogin?.trim()) {
+      throw new Error("This player account has no OpenWorlds username to display.");
+    }
+    await ctx.db.patch(userId, { isOfficialCreator: isOfficialCreator ? true : undefined });
+    return { ok: true, isOfficialCreator };
+  },
+});
+
 export const setMemberStatus = mutation({
   args: {
     userId: v.id("users"),

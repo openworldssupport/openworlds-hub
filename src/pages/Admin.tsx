@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { deriveBadge, type PublicBadge } from "@/lib/staff";
-import { AlertCircle, Loader2, Mail, Save, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
+import { AlertCircle, BadgeCheck, Loader2, Mail, Save, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 type AdminNotificationRecipientKind = "careers" | "support" | "both";
 
@@ -33,9 +33,13 @@ type TeamMember = {
   position: string | null;
   isStaff: boolean;
   isAdmin: boolean;
+  role: string | null;
   badge: PublicBadge | null;
   memberStatus: "volunteer-thank-you" | null;
   isBanned: boolean;
+  isOfficialCreator: boolean;
+  playerLogin: string | null;
+  image: string | null;
 };
 
 type TeamRowProps = {
@@ -127,6 +131,7 @@ function TeamPanel() {
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
+  const setOfficialCreator = useMutation(api.staff.setOfficialCreator);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -264,6 +269,18 @@ function TeamPanel() {
             busy={busyId === member.userId}
             saved={savedId === member.userId}
             onSave={save}
+            onSetOfficialCreator={async (userId, isOfficialCreator) => {
+              setError("");
+              setBusyId(userId);
+              try {
+                await setOfficialCreator({ userId, isOfficialCreator });
+                setSavedId(userId);
+              } catch (error) {
+                setError(error instanceof Error ? error.message : "Could not update Official Content Creator status.");
+              } finally {
+                setBusyId(null);
+              }
+            }}
             canChangeAccess={isPermissionVerified}
           />
         ))
@@ -274,7 +291,7 @@ function TeamPanel() {
   );
 }
 
-function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps & { canChangeAccess: boolean }) {
+function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeAccess }: TeamRowProps & { canChangeAccess: boolean; onSetOfficialCreator: (userId: Id<"users">, isOfficialCreator: boolean) => Promise<void> }) {
   const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
   const [department, setDepartment] = useState(member.department ?? "");
   const [position, setPosition] = useState(member.position ?? "");
@@ -298,7 +315,7 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold">
-            {member.nickname || member.name || "Unnamed account"}
+            {member.nickname || member.name || member.playerLogin || "Unnamed account"}
             {member.isAdmin ? (
               <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">
                 Admin
@@ -308,6 +325,7 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
             )}
           </p>
           <p className="text-xs text-slate-500">{member.email || "Email unavailable"}</p>
+          {member.playerLogin && <p className="mt-1 text-xs text-slate-600">OpenWorlds username: <span className="font-medium">{member.playerLogin}</span></p>}
           <p className="mt-1 text-xs text-slate-600">
             {member.isAdmin ? "Administrator" : member.isStaff ? "Staff member" : "Player account"}
             {member.department ? ` - ${member.department}` : ""}
@@ -317,6 +335,24 @@ function TeamRow({ member, busy, saved, onSave, canChangeAccess }: TeamRowProps 
           </p>
         </div>
       </div>
+      {member.role === "user" && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+          <span className="text-sm font-medium">Official Content Creator</span>
+          {member.isOfficialCreator && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800"><BadgeCheck className="size-3.5" /> Verified creator</span>}
+          <Button
+            type="button"
+            size="sm"
+            variant={member.isOfficialCreator ? "outline" : "default"}
+            disabled={!canChangeAccess || busy || !member.playerLogin}
+            onClick={() => void onSetOfficialCreator(member.userId, !member.isOfficialCreator)}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+            {member.isOfficialCreator ? "Remove official status" : "Approve as creator"}
+          </Button>
+          {!member.playerLogin && <span className="text-xs text-slate-500">No OpenWorlds username on this account</span>}
+          {!canChangeAccess && <span className="text-xs text-slate-500">Verify Support access to change this status</span>}
+        </div>
+      )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
         {!member.isAdmin && (
           <>

@@ -75,8 +75,11 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function careersReadyForReviewBody(type: "application" | "question") {
-  return `A new ${type === "application" ? "career application" : "careers question"} has been submitted and is ready for review.`;
+function careersReadyForReviewBody(type: "application" | "question" | "creator-application") {
+  const submission = type === "creator-application"
+    ? "Official Content Creator application"
+    : type === "application" ? "career application" : "careers question";
+  return `A new ${submission} has been submitted and is ready for review.`;
 }
 
 /** Public role availability only; no applicant or account details are returned. */
@@ -119,7 +122,7 @@ export const setRoleAvailability = mutation({
 /** Send applications and questions straight to Careers; submissions are never stored in Convex. */
 export const submitEnquiry = mutation({
   args: {
-    type: v.union(v.literal("application"), v.literal("question")),
+    type: v.union(v.literal("application"), v.literal("question"), v.literal("creator-application")),
     roleSlug: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.string(),
@@ -138,13 +141,20 @@ export const submitEnquiry = mutation({
     const message = args.message.trim();
     const portfolio = args.portfolio?.trim() ?? "";
     if (!args.privacyAccepted) throw new Error("Consent is required to email your enquiry to Careers.");
+    if (args.type === "creator-application") {
+      const username = message.match(/^OpenWorlds username:\n([^\n]+)/m)?.[1]?.trim() ?? "";
+      if (username.length < 2 || username.length > 32) throw new Error("Enter your OpenWorlds username (2–32 characters).");
+    }
     if (name.length > 100) throw new Error("Keep your name under 100 characters.");
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
     if (message.length < 20 || message.length > 16000) throw new Error("Keep your message between 20 and 16,000 characters.");
     if (portfolio.length > 500 || (portfolio && !/^https:\/\//i.test(portfolio))) throw new Error("Use an HTTPS portfolio link under 500 characters.");
 
     let roleTitle: string | undefined;
-    if (args.type === "application") {
+    if (args.type === "creator-application") {
+      if (args.roleSlug) throw new Error("Creator applications should not include a career position.");
+      roleTitle = "Official Content Creator Program";
+    } else if (args.type === "application") {
       const role = careerRoles.find((item) => item.slug === args.roleSlug);
       if (!role || role.status === "Filled") throw new Error("Choose a current open position.");
       const currentStatus = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
@@ -182,7 +192,7 @@ export const submitEnquiry = mutation({
     });
     await ctx.scheduler.runAfter(0, internal.supportEmail.sendAdminReadyForReviewAlert, {
       channel: "careers",
-      subject: `New OpenWorlds ${args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,
+      subject: `New OpenWorlds ${args.type === "creator-application" ? "Official Content Creator application" : args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,
       body: careersReadyForReviewBody(args.type),
       from: "careers",
     });

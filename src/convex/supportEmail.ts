@@ -191,7 +191,7 @@ export const sendSupportAcknowledgement = internalAction({
 
 export const sendCareerEnquiry = internalAction({
   args: {
-    type: v.union(v.literal("application"), v.literal("question")),
+    type: v.union(v.literal("application"), v.literal("question"), v.literal("creator-application")),
     roleTitle: v.optional(v.string()),
     name: v.optional(v.string()),
     email: v.string(),
@@ -201,13 +201,16 @@ export const sendCareerEnquiry = internalAction({
   },
   handler: async (_ctx, args) => {
     if (args.message.length > 16000) throw new Error("Careers submission exceeds the email size limit.");
-    const isApplication = args.type === "application";
-    const subject = isApplication
-      ? `Career application: ${args.roleTitle ?? "Contributor position"}`
-      : "Careers question from the OpenWorlds website";
+    const isApplication = args.type !== "question";
+    const isCreatorApplication = args.type === "creator-application";
+    const subject = isCreatorApplication
+      ? "Official Content Creator application"
+      : isApplication
+        ? `Career application: ${args.roleTitle ?? "Contributor position"}`
+        : "Careers question from the OpenWorlds website";
     const submitted = new Date(args.submittedAt).toISOString();
     const applicationText = [
-      isApplication ? "New career application" : "New careers question",
+      isCreatorApplication ? "New Official Content Creator application" : isApplication ? "New career application" : "New careers question",
       "",
       `Name: ${args.name || "(not provided)"}`,
       `Email: ${args.email}`,
@@ -219,9 +222,9 @@ export const sendCareerEnquiry = internalAction({
       args.message,
     ].join("\n");
     const applicationHtml = emailTemplate({
-      title: isApplication ? "New career application" : "New careers question",
+      title: isCreatorApplication ? "New Official Content Creator application" : isApplication ? "New career application" : "New careers question",
       greeting: "Careers team,",
-      paragraphs: ["A new message was sent through the OpenWorlds Careers page."],
+      paragraphs: [isCreatorApplication ? "A new application was submitted for the OpenWorlds Official Content Creator program." : "A new message was sent through the OpenWorlds Careers page."],
       details: [
         ["Name", args.name || "(not provided)"],
         ["Email", args.email],
@@ -246,14 +249,18 @@ export const sendCareerEnquiry = internalAction({
     }
 
     const greeting = args.name ? `Hello ${args.name},` : "Hello,";
-    const confirmationSubject = isApplication
-      ? "We received your OpenWorlds Careers application"
-      : "We received your OpenWorlds Careers message";
+    const confirmationSubject = isCreatorApplication
+      ? "We received your Official Content Creator application"
+      : isApplication
+        ? "We received your OpenWorlds Careers application"
+        : "We received your OpenWorlds Careers message";
     const confirmationText = [
       greeting,
       "",
       isApplication
-        ?      `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
+        ? isCreatorApplication
+          ? "Thank you for applying to become an Official Content Creator. Your application has been sent to the Careers team for review."
+          : `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
         : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
       "",
       "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
@@ -262,11 +269,13 @@ export const sendCareerEnquiry = internalAction({
       "OpenWorlds Careers Bot",
     ].join("\n");
     const confirmationHtml = emailTemplate({
-      title: isApplication ? "Application received" : "Careers message received",
+      title: isCreatorApplication ? "Creator application received" : isApplication ? "Application received" : "Careers message received",
       greeting,
       paragraphs: [
         isApplication
-          ?      `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
+          ? isCreatorApplication
+            ? "Thank you for applying to become an Official Content Creator. Your application has been sent to the Careers team for review."
+            : `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
           : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
         "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
       ],

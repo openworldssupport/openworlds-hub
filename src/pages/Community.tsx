@@ -1,5 +1,8 @@
 import { SiteNav } from "@/components/SiteNav";
-import { Heart, Lightbulb, LockKeyhole, ShieldCheck, Users, Youtube } from "lucide-react";
+import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { BadgeCheck, Heart, Lightbulb, LockKeyhole, ShieldCheck, Users, Youtube } from "lucide-react";
 
 const guidelines = [
   { title: "Respect & kindness", description: "Treat all community members with respect. Harassment, discrimination, and hateful content have no place here.", icon: Heart },
@@ -9,6 +12,10 @@ const guidelines = [
 ];
 
 export default function Community() {
+  const officialCreators = useQuery(api.users.publicOfficialCreators);
+  const creators = officialCreators ?? [];
+  const creatorLoop = creators.length > 0 ? [...creators, ...creators] : creators;
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
@@ -51,6 +58,49 @@ export default function Community() {
                 <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+      <section className="border-t border-slate-200 bg-white px-5 py-12 sm:px-8 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#7651c9]">Create with OpenWorlds</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Become an Official Content Creator</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Apply to share your OpenWorlds creations with the community. The Careers team reviews each application; submitting one does not grant official status.</p>
+            </div>
+            <CareerEnquiryDialog label="Apply to be a creator" mode="creator-application" />
+          </div>
+
+          <div className="mt-10 border-t border-slate-200 pt-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold">Official Content Creators</h3>
+                <p className="mt-1 text-sm text-slate-600">OpenWorlds players approved by the team.</p>
+              </div>
+              {creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
+            </div>
+            {officialCreators === undefined ? (
+              <p className="mt-5 text-sm text-slate-500">Loading official creators…</p>
+            ) : creators.length === 0 ? (
+              <p className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-600">No Official Content Creators yet. Approved creators will appear here.</p>
+            ) : (
+              <div className="creator-marquee mt-5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 py-4" aria-label="Official Content Creators, scrolling automatically">
+                <div className="creator-marquee-track flex w-max gap-4 px-4">
+                  {creatorLoop.map((creator, index) => (
+                    <div key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-56 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                      {creator.image ? (
+                        <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
+                      ) : (
+                        <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
+                      <span title="Verified Official Content Creator" className="shrink-0 text-[#176b45]"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

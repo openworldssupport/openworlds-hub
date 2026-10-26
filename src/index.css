@@ -205,12 +205,31 @@ main > footer {
   outline-offset: 2px;
 }
 
+@keyframes official-creators-scroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.creator-marquee-track {
+  animation: official-creators-scroll 32s linear infinite;
+}
+
+.creator-marquee:hover .creator-marquee-track,
+.creator-marquee:focus-within .creator-marquee-track {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .creator-marquee-track {
+    animation: none;
   }
 }
 

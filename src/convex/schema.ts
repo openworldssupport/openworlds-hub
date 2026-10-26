@@ -30,6 +30,7 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
       role: v.optional(roleValidator), // role of the user. do not remove
       playerLogin: v.optional(v.string()),
+      isOfficialCreator: v.optional(v.boolean()),
       pendingRecoveryEmail: v.optional(v.string()),
       recoveryEmail: v.optional(v.string()),
       recoveryEmailVerifiedAt: v.optional(v.number()),
@@ -69,7 +70,9 @@ const schema = defineSchema(
       newsPostingCodeWindowAt: v.optional(v.number()),
       newsPostingCodeRequestCount: v.optional(v.number()),
       newsPostingCodeRequestedAt: v.optional(v.number()),
-    }).index("email", ["email"]), // index for the email. do not remove or modify
+    })
+      .index("email", ["email"]) // index for the email. do not remove or modify
+      .index("by_official_creator", ["isOfficialCreator"]),
 
     // Emails explicitly approved for private company OTP sign-in.
     companyAccess: defineTable({
