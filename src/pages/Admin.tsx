@@ -337,8 +337,8 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
         </div>
       </div>
       {member.role === "user" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
-          <span className="text-sm font-medium">Official Content Creator</span>
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">            <span className="text-sm font-medium">Official Content Creator</span>
+
           {member.isOfficialCreator && <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800"><BadgeCheck className="size-3.5" /> Verified creator</span>}
           <Button
             type="button"
@@ -496,7 +496,7 @@ function CreatorRosterPanel({ canChange }: { canChange: boolean }) {
       setDisplayName("");
       setSocialPlatform("");
       setSocialUrl("");
-      setMessage(result.linkedToAccount ? "Creator added and matched to the player account; the verified badge is active." : "Creator added to the public roster. The badge will link to the player account when the submitted username or email matches an account.");
+      setMessage(result.linkedToAccount ? "Creator verified and linked to the player account. Their badge and public listing are active." : "The creator was not linked to a verified player account.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add this creator.");
     } finally {
@@ -520,15 +520,15 @@ function CreatorRosterPanel({ canChange }: { canChange: boolean }) {
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-800"><BadgeCheck className="size-5" /></span><div><h2 className="font-semibold">Official Content Creators</h2><p className="mt-1 text-sm leading-6 text-slate-600">Add approved creators after reviewing their application. Contact email stays private; approved public details appear on the creator program page. Entries are matched to existing player accounts by username or email to show their account badge.</p></div></div>
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-800"><BadgeCheck className="size-5" /></span><div><h2 className="font-semibold">Official Content Creators</h2><p className="mt-1 text-sm leading-6 text-slate-600">Review the application, then enter the creator’s public details and the email verified on their OpenWorlds player account. Username and verified recovery email must match the same account before a badge or public listing is granted.</p></div></div>
       {!canChange ? <p className="mt-4 text-sm text-slate-600">Verify Support access above to manage the creator roster.</p> : (
         <>
           <form onSubmit={(event) => void addCreator(event)} className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2"><Label htmlFor="creator-email">Contact email (private)</Label><Input id="creator-email" type="email" required maxLength={254} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="creator@example.com" /></div>
+            <div className="space-y-2"><Label htmlFor="creator-email">Player account recovery email (private)</Label><Input id="creator-email" type="email" required maxLength={254} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="creator@example.com" /></div>
             <div className="space-y-2"><Label htmlFor="creator-username">OpenWorlds username</Label><Input id="creator-username" required minLength={2} maxLength={32} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Player username" /></div>
             <div className="space-y-2"><Label htmlFor="creator-display-name">Public creator name</Label><Input id="creator-display-name" required minLength={2} maxLength={60} value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Display name" /></div>
-            <div className="space-y-2"><Label htmlFor="creator-social-platform">Social platform (optional)</Label><Input id="creator-social-platform" maxLength={40} value={socialPlatform} onChange={(event) => setSocialPlatform(event.target.value)} placeholder="YouTube, Twitch, TikTok…" /></div>
-            <div className="space-y-2 sm:col-span-2"><Label htmlFor="creator-social-url">Social profile link (optional)</Label><Input id="creator-social-url" type="url" maxLength={500} value={socialUrl} onChange={(event) => setSocialUrl(event.target.value)} placeholder="https://…" /></div>
+            <div className="space-y-2"><Label htmlFor="creator-social-platform">Social platform</Label><Input id="creator-social-platform" required maxLength={40} value={socialPlatform} onChange={(event) => setSocialPlatform(event.target.value)} placeholder="YouTube, Twitch, TikTok…" /></div>
+            <div className="space-y-2 sm:col-span-2"><Label htmlFor="creator-social-url">Social profile link</Label><Input id="creator-social-url" type="url" required maxLength={500} value={socialUrl} onChange={(event) => setSocialUrl(event.target.value)} placeholder="https://…" /></div>
             <div className="sm:col-span-2"><Button type="submit" disabled={busy || !canChange}><BadgeCheck className="size-4" />{busy ? "Saving…" : "Add approved creator"}</Button></div>
           </form>
           {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}

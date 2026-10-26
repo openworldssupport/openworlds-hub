@@ -38,10 +38,10 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
         roleSlug: mode === "application" ? roleSlug : undefined,
         name: String(values.get("name") ?? ""),
         email: String(values.get("email") ?? ""),
-        portfolio: String(values.get("portfolio") ?? ""),
+        portfolio: String(values.get(mode === "creator-application" ? "socialUrl" : "portfolio") ?? ""),
         message: mode !== "question"
           ? [
-              ...(mode === "creator-application" ? [["OpenWorlds username", "creatorUsername"]] : []),
+              ...(mode === "creator-application" ? [["OpenWorlds username", "creatorUsername"], ["Social platform", "socialPlatform"]] : []),
               [mode === "creator-application" ? "Content creation experience" : "Relevant experience", "experience"],
               [mode === "creator-application" ? "Why I want to become an Official Content Creator" : "Why I’m interested and what I’d contribute", "motivation"],
             ].map(([fieldLabel, field]) => `${fieldLabel}:\n${String(values.get(field) ?? "").trim()}`).join("\n\n")
@@ -99,12 +99,18 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
                   </select>
                 </div>
               )}
-              {mode === "creator-application" && <div className="space-y-2"><Label htmlFor="career-player-username">OpenWorlds username</Label><Input id="career-player-username" name="creatorUsername" required minLength={2} maxLength={32} autoComplete="username" placeholder="Your in-game username" /><p className="text-xs text-muted-foreground">Also include the email linked to your player account so the team can match your approval correctly.</p></div>}
+              {mode === "creator-application" && <div className="space-y-2"><Label htmlFor="career-player-username">OpenWorlds username</Label><Input id="career-player-username" name="creatorUsername" required minLength={2} maxLength={32} autoComplete="username" placeholder="Your in-game username" /></div>}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label htmlFor="career-name">Name <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-name" name="name" maxLength={100} autoComplete="name" /></div>
                 <div className="space-y-2"><Label htmlFor="career-email">Email</Label><Input id="career-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
               </div>
-              {mode !== "question" && <div className="space-y-2"><Label htmlFor="career-portfolio">Portfolio or relevant link <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-portfolio" name="portfolio" type="url" maxLength={500} placeholder="https://" /></div>}
+              {mode === "creator-application" ? (
+                <>
+                  <div className="space-y-2"><Label htmlFor="creator-social-platform">Social platform</Label><Input id="creator-social-platform" name="socialPlatform" required maxLength={40} placeholder="YouTube, Twitch, TikTok, or another platform" /></div>
+                  <div className="space-y-2"><Label htmlFor="creator-social-url">Social profile link</Label><Input id="creator-social-url" name="socialUrl" type="url" required maxLength={500} placeholder="https://…" /></div>
+                  <p className="text-xs text-muted-foreground">Use the same email as the verified recovery email on your OpenWorlds player account. The team uses it with your username to match your account.</p>
+                </>
+              ) : mode !== "question" && <div className="space-y-2"><Label htmlFor="career-portfolio">Portfolio or relevant link <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-portfolio" name="portfolio" type="url" maxLength={500} placeholder="https://" /></div>}
               {mode !== "question" ? (
                 <>
                   <div className="space-y-2">

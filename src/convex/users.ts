@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin } from "./admin";
-import { requirePermissionVerification } from "./adminRoster";
+import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
 
 /**
  * Get the current signed in user. Returns null if the user is not signed in.
@@ -82,7 +82,24 @@ export const publicOfficialCreators = query({
   },
 });
 
-/** Admin-only creator records, including private contact email. */
+/** Staff creator roster. Private contact emails are not returned. */
+export const staffOfficialCreators = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireCreatorVerification(ctx);
+    return (await ctx.db.query("officialCreators").collect())
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map(({ _id, username, displayName, socialPlatform, socialUrl, linkedUserId }) => ({
+        _id,
+        username,
+        displayName,
+        socialPlatform: socialPlatform ?? null,
+        socialUrl: socialUrl ?? null,
+        isLinked: Boolean(linkedUserId),
+      }));
+  },
+});
+
 export const adminOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
@@ -109,8 +126,7 @@ export const saveOfficialCreator = mutation({
     socialUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    await requireCreatorManagementAuthorization(ctx);
     const email = args.email.trim().toLowerCase();
     const username = args.username.trim().replace(/^@/, "");
     const displayName = args.displayName.trim();
@@ -138,7 +154,8 @@ export const saveOfficialCreator = mutation({
       recoveryAccount.recoveryEmailVerifiedAt !== undefined && recoveryAccount.recoveryEmail?.trim().toLowerCase() === email
       ? usernameAccount
       : null;
-    if (matched?.isSiteBanned) throw new Error("This account is restricted and cannot be verified as a creator.");
+    if (!matched) throw new Error("The email must be verified on the OpenWorlds account with this username before the creator badge can be approved.");
+    if (matched.isSiteBanned) throw new Error("This account is restricted and cannot be verified as a creator.");
     const linkedOwner = matched ? await ctx.db.query("officialCreators").withIndex("by_linked_user", (q) => q.eq("linkedUserId", matched._id)).first() : null;
     if (linkedOwner && linkedOwner._id !== emailRecord?._id) throw new Error("That player account is already linked to another creator record.");
 
@@ -171,8 +188,7 @@ export const saveOfficialCreator = mutation({
 export const removeOfficialCreator = mutation({
   args: { creatorId: v.id("officialCreators") },
   handler: async (ctx, { creatorId }) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    await requireCreatorManagementAuthorization(ctx);
     const record = await ctx.db.get(creatorId);
     if (!record) return { ok: true };
     if (record.linkedUserId) {

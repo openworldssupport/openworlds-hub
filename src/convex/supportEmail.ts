@@ -61,6 +61,18 @@ export const sendPlayerRecoveryCode = internalAction({
   },
 });
 
+export const sendCreatorVerificationCode = internalAction({
+  args: { code: v.string() },
+  handler: async (_ctx, { code }) => {
+    const subject = "OpenWorlds creator approval verification code";
+    const text = `Your OpenWorlds creator approval verification code is ${code}. It expires in 10 minutes. Enter it in the Staff or Admin creator review panel only if you requested to approve or remove a verified creator. Do not share it. If you did not request this code, ignore this email.`;
+    const html = `<p>Your OpenWorlds creator approval verification code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Enter it in the Staff or Admin creator review panel only if you requested to approve or remove a verified creator. Do not share it. If you did not request this code, ignore this email.</p>`;
+    const result = await sendBotEmail({ channel: "support", to: DEFAULT_SUPPORT_EMAIL, replyTo: DEFAULT_SUPPORT_EMAIL, subject, text, html });
+    if (!result.sent) throw new Error("Could not deliver the creator verification code.");
+    return { sent: true };
+  },
+});
+
 export const sendAdminPermissionCode = internalAction({
   args: { code: v.string() },
   handler: async (_ctx, { code }) => {
