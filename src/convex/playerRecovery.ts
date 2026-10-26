@@ -2,6 +2,7 @@ import { getAuthUserId, invalidateSessions, modifyAccountCredentials } from "@co
 import { v } from "convex/values";
 import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { linkVerifiedCreatorAccount } from "./users";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -86,6 +87,7 @@ export const verifyRecoveryEmail = mutation({
     if (prior && prior._id !== user._id) throw new Error("That email cannot be used as a recovery email.");
     await ctx.db.patch(user._id, { recoveryEmail: row.email, recoveryEmailVerifiedAt: Date.now(), pendingRecoveryEmail: undefined });
     await ctx.db.delete(row._id);
+    await linkVerifiedCreatorAccount(ctx, user._id);
     return { ok: true as const };
   },
 });

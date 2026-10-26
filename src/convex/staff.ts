@@ -7,6 +7,7 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
+import { linkVerifiedCreatorAccount } from "./users";
 
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -209,10 +210,24 @@ export const setOfficialCreator = mutation({
     if (!target || target.role !== "user" || target.emailVerificationTime === undefined || target.isSiteBanned) {
       throw new Error("Choose an active, verified player account.");
     }
-    if (isOfficialCreator && !target.playerLogin?.trim()) {
-      throw new Error("This player account has no OpenWorlds username to display.");
+    if (isOfficialCreator) {
+      if (!target.playerLogin?.trim()) {
+        throw new Error("This player account has no OpenWorlds username to display.");
+      }
+      const linked = await ctx.db.query("officialCreators")
+        .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
+        .first();
+      if (!linked) throw new Error("Only approved creators with a matching username and verified recovery email can receive the creator badge.");
+      if (!(await linkVerifiedCreatorAccount(ctx, userId))) {
+        throw new Error("The account username and verified recovery email do not match an approved creator record.");
+      }
+    } else {
+      const linked = await ctx.db.query("officialCreators")
+        .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
+        .first();
+      if (linked) await ctx.db.patch(linked._id, { linkedUserId: undefined, updatedAt: Date.now() });
+      await ctx.db.patch(userId, { isOfficialCreator: undefined });
     }
-    await ctx.db.patch(userId, { isOfficialCreator: isOfficialCreator ? true : undefined });
     return { ok: true, isOfficialCreator };
   },
 });

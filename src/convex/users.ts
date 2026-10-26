@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
@@ -11,7 +12,46 @@ import { requirePermissionVerification } from "./adminRoster";
  * Usage: const signedInUser = await ctx.runQuery(api.authHelpers.currentUser);
  * THIS FUNCTION IS READ-ONLY. DO NOT MODIFY.
  */
-export const publicOfficialCreators = query({
+/**
+ * Link a player to an admin-approved creator only after both identity fields
+ * are verified together: the OpenWorlds username and verified recovery email.
+ */
+export async function linkVerifiedCreatorAccount(ctx: MutationCtx, userId: Id<"users">): Promise<boolean> {
+  const user = await ctx.db.get(userId);
+  if (!user) return false;
+
+  const linkedRecord = await ctx.db.query("officialCreators")
+    .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
+    .first();
+  const username = user.playerLogin?.trim().toLowerCase();
+  const email = user.recoveryEmail?.trim().toLowerCase();
+  const record = user.role === "user" && !user.isSiteBanned && username && email && user.recoveryEmailVerifiedAt
+    ? await ctx.db.query("officialCreators").withIndex("by_email", (q) => q.eq("email", email)).first()
+    : null;
+  const isExactMatch = Boolean(record && record.username.trim().toLowerCase() === username);
+  const usernameOwner = isExactMatch
+    ? await ctx.db.query("officialCreators").withIndex("by_username", (q) => q.eq("username", username!)).first()
+    : null;
+  const canLink = Boolean(
+    record && isExactMatch && (!usernameOwner || usernameOwner._id === record._id) &&
+    (!record.linkedUserId || record.linkedUserId === userId),
+  );
+
+  if (!canLink) {
+    if (linkedRecord) await ctx.db.patch(linkedRecord._id, { linkedUserId: undefined, updatedAt: Date.now() });
+    if (user.isOfficialCreator) await ctx.db.patch(userId, { isOfficialCreator: undefined });
+    return false;
+  }
+
+  if (linkedRecord && linkedRecord._id !== record!._id) {
+    await ctx.db.patch(linkedRecord._id, { linkedUserId: undefined, updatedAt: Date.now() });
+  }
+  await ctx.db.patch(record!._id, { linkedUserId: userId, updatedAt: Date.now() });
+  if (user.isOfficialCreator !== true) await ctx.db.patch(userId, { isOfficialCreator: true });
+  return true;
+}
+
+export const publicOfficialCreators = query({ 
   args: {},
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
@@ -88,16 +128,17 @@ export const saveOfficialCreator = mutation({
     if (usernameOwner && usernameOwner._id !== emailRecord?._id) throw new Error("That username is already assigned to another creator.");
 
     const byUsername = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", normalizedUsername)).first();
-    const byEmail = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
     const byRecoveryEmail = await ctx.db.query("users").withIndex("by_recovery_email", (q) => q.eq("recoveryEmail", email)).first();
-    const emailMatch = [byEmail, byRecoveryEmail].find((user) => user?.role === "user");
-    if (byUsername?.role === "user" && emailMatch?.role === "user" && byUsername._id !== emailMatch._id) {
-      throw new Error("The username and email belong to different player accounts. Check the approved creator details.");
+    const usernameAccount = byUsername?.role === "user" ? byUsername : null;
+    const recoveryAccount = byRecoveryEmail?.role === "user" ? byRecoveryEmail : null;
+    if (usernameAccount && recoveryAccount && usernameAccount._id !== recoveryAccount._id) {
+      throw new Error("The username and verified recovery email belong to different player accounts.");
     }
-    const matched = [byUsername, byEmail, byRecoveryEmail].find((user) => user?.role === "user");
+    const matched = usernameAccount && recoveryAccount && usernameAccount._id === recoveryAccount._id &&
+      recoveryAccount.recoveryEmailVerifiedAt !== undefined && recoveryAccount.recoveryEmail?.trim().toLowerCase() === email
+      ? usernameAccount
+      : null;
     if (matched?.isSiteBanned) throw new Error("This account is restricted and cannot be verified as a creator.");
-    if (matched && matched.emailVerificationTime === undefined) throw new Error("The matching player account is not verified yet.");
-    if (matched?.playerLogin && matched.playerLogin.toLowerCase() !== normalizedUsername) throw new Error("The email belongs to a different OpenWorlds username.");
     const linkedOwner = matched ? await ctx.db.query("officialCreators").withIndex("by_linked_user", (q) => q.eq("linkedUserId", matched._id)).first() : null;
     if (linkedOwner && linkedOwner._id !== emailRecord?._id) throw new Error("That player account is already linked to another creator record.");
 
@@ -116,8 +157,13 @@ export const saveOfficialCreator = mutation({
     if (emailRecord?.linkedUserId && emailRecord.linkedUserId !== matched?._id) {
       await ctx.db.patch(emailRecord.linkedUserId, { isOfficialCreator: undefined });
     }
-    if (matched) await ctx.db.patch(matched._id, { isOfficialCreator: true });
-    return { ok: true, linkedToAccount: Boolean(matched) };
+    const usernameAccountAfterSave = await ctx.db.query("users")
+      .withIndex("by_player_login", (q) => q.eq("playerLogin", normalizedUsername))
+      .first();
+    const linkedToAccount = usernameAccountAfterSave?.role === "user"
+      ? await linkVerifiedCreatorAccount(ctx, usernameAccountAfterSave._id)
+      : false;
+    return { ok: true, linkedToAccount };
   },
 });
 
