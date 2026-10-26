@@ -15,7 +15,6 @@ export default function Media() {
   const submitEnquiry = useMutation(api.careerApplications.submitEnquiry);
   const officialCreators = useQuery(api.users.publicOfficialCreators);
   const creators = officialCreators ?? [];
-  const creatorLoop = creators.length > 0 ? [...creators, ...creators] : creators;
   const [creatorApplicationOpen, setCreatorApplicationOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
@@ -172,34 +171,21 @@ export default function Media() {
       </section>
 
       <section className="border-t border-slate-200 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-[#176b45]">Official creators</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">Verified OpenWorlds creators</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Only active player accounts approved by OpenWorlds staff appear here.</p>
-            </div>
-            {officialCreators === undefined ? <span className="text-xs text-slate-500">Loading creator list…</span> : creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
-          </div>
-          {officialCreators === undefined ? (
-            <p className="mt-5 text-sm text-slate-500">Loading official creators…</p>
-          ) : creators.length === 0 ? (
-            <p className="mt-5 rounded-lg border border-dashed border-slate-300 bg-white px-5 py-6 text-center text-sm text-slate-600">No Official Content Creators yet. Approved creators will appear here.</p>
-          ) : (
-            <div className="creator-marquee mt-5 overflow-hidden rounded-lg border border-slate-200 bg-white py-4" aria-label="Official Content Creators, scrolling automatically">
-              <div className="creator-marquee-track flex w-max gap-4 px-4">
-                {creatorLoop.map((creator, index) => (
-                  <div key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-56 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
-                    {creator.image ? (
-                      <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
-                    ) : (
-                      <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
-                    )}
-                    <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
-                    <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
-                  </div>
-                ))}
-              </div>
+        <div className="mx-auto max-w-4xl">
+          <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Verified Openworlds Creators</h2>
+          {officialCreators !== undefined && creators.length > 0 && (
+            <div className="mt-8 divide-y divide-slate-200">
+              {creators.map((creator) => (
+                <div key={creator.username} className="flex items-center gap-4 px-4 py-4">
+                  {creator.image ? (
+                    <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
+                  ) : (
+                    <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
+                  <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                </div>
+              ))}
             </div>
           )}
         </div>
