@@ -12,22 +12,22 @@ const platforms = [
     detail: "OpenWorlds Launcher is available for Windows.",
     downloadUrl: launcherUrl,
     icon: Monitor,
-    tone: "bg-blue-50 text-[#0066cc]",
-    accent: "border-t-[#0066cc]",
+    tone: "bg-[#e8f3ec] text-[#176b45]",
+    accent: "border-t-[#176b45]",
   },
   {
     name: "macOS",
     detail: "No macOS launcher is listed in this release.",
     icon: Laptop,
-    tone: "bg-violet-50 text-[#7651c9]",
-    accent: "border-t-[#7651c9]",
+    tone: "bg-[#e8f3ec] text-[#176b45]",
+    accent: "border-t-[#176b45]",
   },
   {
     name: "Linux",
     detail: "No Linux launcher is listed in this release.",
     icon: Terminal,
-    tone: "bg-amber-50 text-[#987000]",
-    accent: "border-t-[#f3c64e]",
+    tone: "bg-[#e8f3ec] text-[#176b45]",
+    accent: "border-t-[#176b45]",
   },
 ];
 
@@ -76,22 +76,22 @@ export default function Downloads() {
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-4 sm:grid-cols-3">
             <Link to="/roadmap" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <CalendarDays className="size-6 text-[#0066cc]" />
+              <CalendarDays className="size-6 text-[#176b45]" />
               <h3 className="mt-3 font-semibold">Watch the roadmap</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Check the roadmap for confirmed milestones.</p>
-              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#0066cc]">Open <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#176b45]">Open <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/news" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <CalendarDays className="size-6 text-[#7651c9]" />
+              <CalendarDays className="size-6 text-[#a52234]" />
               <h3 className="mt-3 font-semibold">Release notes</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Published updates will appear on the News page.</p>
-              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#7651c9]">Read news <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#a52234]">Read news <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
             <Link to="/support" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-              <Monitor className="size-6 text-[#987000]" />
+              <Monitor className="size-6 text-[#795600]" />
               <h3 className="mt-3 font-semibold">Install help</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">Have a question about downloads? Use the support form.</p>
-              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#987000]">Get help <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
+              <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#795600]">Get help <ArrowRight className="size-4 transition group-hover:translate-x-0.5" /></span>
             </Link>
           </div>
         </div>
