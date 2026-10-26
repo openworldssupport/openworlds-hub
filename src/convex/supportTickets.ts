@@ -240,7 +240,7 @@ export const create = mutation({
       message,
       submittedAt,
     });
-    await ctx.scheduler.runAfter(0, internal.adminNotifications.sendAdminReadyForReviewAlert, {
+    await ctx.scheduler.runAfter(0, internal.supportEmail.sendAdminReadyForReviewAlert, {
       channel: "support",
       subject: `New OpenWorlds support ticket submitted — ready for review`,
       body: supportReadyForReviewBody({ reference, name: name || undefined, email, username: username || undefined, reason, subject: subject || undefined, submittedAt }),

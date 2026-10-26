@@ -1,5 +1,6 @@
 "use node";
 
+import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
@@ -282,6 +283,50 @@ export const sendCareerEnquiry = internalAction({
     return { forwarded: forwarded.sent, confirmationSent: confirmation.sent };
   },
 });
+
+export const sendAdminReadyForReviewAlert = internalAction({
+  args: {
+    channel: v.union(v.literal("careers"), v.literal("support")),
+    subject: v.string(),
+    body: v.string(),
+    replyTo: v.string(),
+    from: v.union(v.literal("support"), v.literal("careers")),
+  },
+  handler: async (actionCtx, { channel, subject, body, replyTo, from }) => {
+    const recipients = await actionCtx.runQuery(
+      internal.adminNotifications.getEligibleAdminNotificationRecipients,
+      { channel },
+    );
+
+    console.info(`[adminNotifications] Dispatching ${channel} ready-for-review alert to ${recipients.length} recipient(s).`);
+    for (const recipient of recipients) {
+      try {
+        const result = await sendBotEmail({
+          channel: from,
+          to: recipient.email,
+          replyTo,
+          subject,
+          text: body,
+          html: readyForReviewHtml(body),
+        });
+        if (!result.sent) {
+          console.error(`[adminNotifications] Delivery failed (${channel}): ${result.reason ?? "provider unavailable"}.`);
+        }
+      } catch (error) {
+        console.error(`[adminNotifications] Delivery failed (${channel}).`, error);
+      }
+    }
+  },
+});
+
+function readyForReviewHtml(body: string): string {
+  const escaped = body
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:620px;margin:28px auto;background:#ffffff;border:1px solid #e2e8f0"><div style="padding:22px 28px;background:#073b70;color:#ffffff;font-size:18px;font-weight:700">OpenWorlds</div><div style="padding:28px"><p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">New submission — ready for review</p><div style="margin:18px 0;padding:16px;border-left:3px solid #0066cc;background:#f8fafc;white-space:pre-wrap;line-height:1.6;color:#334155">${escaped}</div><p style="margin:24px 0 0;line-height:1.6;color:#334155">Regards,<br><strong>OpenWorlds notification service</strong></p></div></div></body></html>`;
+}
 
 export const sendSupportNotification = internalAction({
   args: {

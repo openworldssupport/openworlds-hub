@@ -202,7 +202,7 @@ export const submitEnquiry = mutation({
       message,
       submittedAt: now,
     });
-    await ctx.scheduler.runAfter(0, internal.adminNotifications.sendAdminReadyForReviewAlert, {
+    await ctx.scheduler.runAfter(0, internal.supportEmail.sendAdminReadyForReviewAlert, {
       channel: "careers",
       subject: `New OpenWorlds ${args.type === "application" ? "career application" : "careers question"} submitted — ready for review`,
       body: careersReadyForReviewBody({ type: args.type, roleTitle, name: name || undefined, email, portfolio: portfolio || undefined, submittedAt: now }),
