@@ -48,7 +48,7 @@ export default function Landing() {
           </h1>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-black/5 bg-[#f5f7fb] px-4 py-3 sm:px-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7651c9]">Site news</p>
-            <p className="text-sm font-medium text-slate-700">The Windows launcher is available to download.</p>
+            <p className="text-sm font-medium text-slate-700">OpenWorlds downloads are temporarily unavailable.</p>
           </div>
           <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
             OpenWorlds is in development. Follow official project updates and find the current status of public resources.
@@ -74,7 +74,7 @@ export default function Landing() {
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">
-            <Link to="/downloads" className="font-medium text-white underline underline-offset-4 hover:text-amber-100">Download the launcher</Link>
+            <Link to="/downloads" className="font-medium text-white underline underline-offset-4 hover:text-amber-100">Download status</Link>
             <span aria-hidden="true" className="text-white/40">·</span>
             <Link to="/support" className="hover:text-white">Support</Link>
             <span aria-hidden="true" className="text-white/40">·</span>
@@ -151,14 +151,14 @@ export default function Landing() {
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 sm:p-8">
           <p className="text-sm font-medium text-[#7c5a00]">In development</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            Get the Windows launcher
+            Downloads temporarily unavailable
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-            The OpenWorlds Windows launcher is available from the official GitHub release. The game itself is still in development; published updates are listed on the News page.
+            OpenWorlds downloads are temporarily unavailable. The game is still in development; published updates are listed on the News page.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link to="/downloads" className="inline-flex h-11 items-center gap-2 rounded-sm bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">
-              Download for Windows <ArrowRight className="size-4" />
+              Check download status <ArrowRight className="size-4" />
             </Link>
             <Link to="/roadmap" className="inline-flex h-11 items-center rounded-sm border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">
               View the roadmap
