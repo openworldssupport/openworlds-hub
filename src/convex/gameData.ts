@@ -14,6 +14,50 @@ async function requirePlayer(ctx: QueryCtx | MutationCtx) {
   return { userId, user };
 }
 
+/** Search publicly published worlds by title. */
+export const searchPublishedWorlds = query({
+  args: { search: v.string() },
+  handler: async (ctx, { search }) => {
+    await requireSiteAvailable(ctx);
+    const term = search.trim();
+    if (term.length < 2) return [];
+    const worlds = await ctx.db.query("publishedWorlds")
+      .withSearchIndex("search_published_worlds", (q) => q.search("title", term))
+      .take(20);
+    const owners = await Promise.all(worlds.map((world) => ctx.db.get(world.ownerId)));
+    return worlds.flatMap((world, index) => {
+      const owner = owners[index];
+      if (!owner || owner.isSiteBanned) return [];
+      return [{
+        id: world._id,
+        title: world.title,
+        description: world.description,
+        ownerUsername: owner.profileDiscoverable ? owner.playerLogin ?? null : null,
+      }];
+    });
+  },
+});
+
+/** Publish a real world listing under the authenticated player's account. */
+export const publishWorld = mutation({
+  args: { title: v.string(), description: v.string() },
+  handler: async (ctx, { title, description }) => {
+    await requireSiteAvailable(ctx);
+    const { userId } = await requirePlayer(ctx);
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
+    if (cleanTitle.length < 2 || cleanTitle.length > 60) throw new Error("World title must be 2–60 characters.");
+    if (cleanDescription.length > 240) throw new Error("Description must be 240 characters or fewer.");
+    await ctx.db.insert("publishedWorlds", {
+      ownerId: userId,
+      title: cleanTitle,
+      description: cleanDescription,
+      createdAt: Date.now(),
+    });
+    return { ok: true };
+  },
+});
+
 /** Current player's private profile and save data. */
 export const myGameData = query({
   args: {},
@@ -37,7 +81,7 @@ export const updateProfile = mutation({
     const { userId } = await requirePlayer(ctx);
     const name = displayName.trim();
     if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
-    await ctx.db.patch(userId, { name });
+    await ctx.db.patch(userId, { name, profileDiscoverable: true });
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
     if (saved) await ctx.db.patch(saved._id, { displayName: name, updatedAt: Date.now() });
     return { displayName: name };

@@ -8,8 +8,11 @@ import { ArrowRight, BadgeCheck, Compass, Search, ShieldCheck, Users } from "luc
 
 export default function Worlds() {
   const [search, setSearch] = useState("");
+  const [worldSearch, setWorldSearch] = useState("");
   const deferredSearch = useDeferredValue(search.trim().replace(/^@/, ""));
+  const deferredWorldSearch = useDeferredValue(worldSearch.trim());
   const profiles = useQuery(api.users.searchPlayerProfiles, { search: deferredSearch });
+  const worlds = useQuery(api.gameData.searchPublishedWorlds, { search: deferredWorldSearch });
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -23,6 +26,7 @@ export default function Worlds() {
       </section>
 
       <section className="mx-auto grid max-w-6xl gap-6 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Users className="size-5" /></span>
@@ -56,11 +60,43 @@ export default function Worlds() {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Compass className="size-5" /></span>
+            <div><h2 className="text-xl font-semibold tracking-tight">Worlds</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search real worlds that have been published to OpenWorlds.</p></div>
+          </div>
+          <label htmlFor="world-search" className="sr-only">Search published worlds</label>
+          <div className="relative mt-6">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input id="world-search" value={worldSearch} onChange={(event) => setWorldSearch(event.target.value)} placeholder="Search worlds…" className="h-11 pl-10" autoComplete="off" />
+          </div>
+          <div className="mt-5" aria-live="polite">
+            {deferredWorldSearch.length < 2 ? (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Enter at least 2 characters to search published worlds.</p>
+            ) : worlds === undefined ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Searching published worlds…</p>
+            ) : worlds.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No published worlds found. Worlds will appear once the game’s publishing feed is connected.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {worlds.map((world) => (
+                  <li key={world.id} className="px-4 py-3">
+                    <p className="font-medium text-slate-900">{world.title}</p>
+                    {world.description && <p className="mt-1 text-sm leading-5 text-slate-600">{world.description}</p>}
+                    {world.ownerUsername && <p className="mt-2 text-xs text-slate-500">By {world.ownerUsername}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+        </div>
+
         <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#0066cc] ring-1 ring-slate-200"><Compass className="size-5" /></span>
-          <p className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700"><ShieldCheck className="size-4" /> Verified listings only</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight">No worlds published yet</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">There isn’t a public worlds directory yet, so there are no real world listings to search. Worlds will show up here when the publishing system is available.</p>
+          <span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#0066cc] ring-1 ring-slate-200"><ShieldCheck className="size-5" /></span>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Privacy-respecting discovery</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">You choose what’s visible</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Player searches include only accounts that have opted into discovery. Search results never expose sign-in emails or private account details.</p>
           <Link to="/community" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100">Visit community <ArrowRight className="size-4" /></Link>
         </aside>
       </section>

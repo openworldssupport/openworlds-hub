@@ -72,6 +72,7 @@ export const playerPassword = ConvexCredentials({
           playerLogin: login,
           name,
           role: "user",
+          profileDiscoverable: true,
           ...(recoveryEmail ? { pendingRecoveryEmail: recoveryEmail } : {}),
         },
       });
@@ -137,6 +138,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
             role: "user",
             ...(name ? { name } : {}),
             ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
+            profileDiscoverable: true,
           });
           const savedProfile = await ctx.db.query("playerGameData").filter((q) => q.eq(q.field("userId"), existingPlayer._id)).first();
           if (!savedProfile) {
@@ -156,6 +158,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           ...(name ? { name } : {}),
           ...(typeof profile.playerLogin === "string" ? { playerLogin: profile.playerLogin } : {}),
           ...(typeof profile.pendingRecoveryEmail === "string" ? { pendingRecoveryEmail: profile.pendingRecoveryEmail } : {}),
+          profileDiscoverable: true,
           role: "user",
         });
         const now = Date.now();

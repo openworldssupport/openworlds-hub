@@ -179,6 +179,19 @@ const schema = defineSchema(
       }),
     }).index("by_user", ["userId"]),
 
+    // Public world listings are created explicitly by authenticated players.
+    publishedWorlds: defineTable({
+      ownerId: v.id("users"),
+      title: v.string(),
+      description: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_owner", ["ownerId"])
+      .searchIndex("search_published_worlds", {
+        searchField: "title",
+        filterFields: [],
+      }),
+
     legalAcceptances: defineTable({
       userId: v.id("users"),
       privacyVersion: v.string(),
