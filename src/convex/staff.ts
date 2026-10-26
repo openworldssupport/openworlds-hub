@@ -207,8 +207,8 @@ export const setOfficialCreator = mutation({
     await requireCompanyAdmin(ctx);
     await requirePermissionVerification(ctx);
     const target = await ctx.db.get(userId);
-    if (!target || target.role !== "user" || target.emailVerificationTime === undefined || target.isSiteBanned) {
-      throw new Error("Choose an active, verified player account.");
+    if (!target || target.role !== "user" || target.isSiteBanned || target.recoveryEmailVerifiedAt === undefined) {
+      throw new Error("Choose an active player account with a verified recovery email.");
     }
     if (isOfficialCreator) {
       if (!target.playerLogin?.trim()) {

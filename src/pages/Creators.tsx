@@ -31,13 +31,14 @@ export default function Creators() {
         ) : !access.allowed ? (
           <div className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-7 text-center sm:p-9">
             <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-600"><ShieldCheck className="size-6" /></span>
-            <h2 className="mt-4 text-xl font-semibold">Restricted to verified creators and team members</h2>
+            <h2 className="mt-4 text-xl font-semibold">Creator Space access required</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Sign in with an approved OpenWorlds account. Creator access is granted by the team; a regular player account does not receive access automatically.
+              Access is automatic for email-verified OpenWorlds staff and administrators, and for player accounts linked to an approved creator profile. Sign in with the eligible account to continue.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Button asChild><Link to="/auth?returnTo=%2Fcreators">Sign in</Link></Button>
-              <Button asChild variant="outline"><Link to="/">Back to home</Link></Button>
+              <Button asChild><Link to="/player-login?returnTo=%2Fcreators">Player sign in</Link></Button>
+              <Button asChild variant="outline"><Link to="/auth?returnTo=%2Fcreators">Staff sign in</Link></Button>
+              <Button asChild variant="ghost"><Link to="/">Back to home</Link></Button>
             </div>
           </div>
         ) : (

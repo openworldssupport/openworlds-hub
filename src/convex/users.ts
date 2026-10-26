@@ -97,16 +97,17 @@ export const creatorSpaceAccess = query({
       (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk");
     const isStaff = user.emailVerificationTime !== undefined &&
       Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
-    const isCreator = user.role === "user" && user.isOfficialCreator === true;
-    const accessLevel = isAdmin ? "admin" as const : isStaff ? "staff" as const : isCreator ? "creator" as const : null;
-
-    if (!accessLevel) return { allowed: false as const, accessLevel: null, creatorProfile: null };
-
-    const record = isCreator
+    const creatorRecord = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined
       ? await ctx.db.query("officialCreators")
         .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
         .first()
       : null;
+    const isCreator = Boolean(creatorRecord);
+    const accessLevel = isAdmin ? "admin" as const : isStaff ? "staff" as const : isCreator ? "creator" as const : null;
+
+    if (!accessLevel) return { allowed: false as const, accessLevel: null, creatorProfile: null };
+
+    const record = creatorRecord;
 
     return {
       allowed: true as const,
@@ -291,13 +292,18 @@ export const currentUser = query({
 
     // Expose only the profile fields needed by the client; never return the raw
     // auth user document (which includes the private sign-in email).
-    const hasCreatorSpaceAccess = !user.isSiteBanned && user.emailVerificationTime !== undefined && (
-      user.isOfficialCreator === true ||
+    const hasCompanyCreatorSpaceAccess = user.emailVerificationTime !== undefined && (
       user.role === "admin" ||
       user.email?.trim().toLowerCase() === "support@openworlds.dk" ||
       user.staffAccess === true ||
       Boolean(user.department?.trim() || user.position?.trim())
     );
+    const hasVerifiedCreatorSpaceAccess = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined
+      ? Boolean(await ctx.db.query("officialCreators")
+        .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
+        .first())
+      : false;
+    const hasCreatorSpaceAccess = !user.isSiteBanned && (hasCompanyCreatorSpaceAccess || hasVerifiedCreatorSpaceAccess);
 
     return {
       userId: user._id,
