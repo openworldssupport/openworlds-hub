@@ -9,11 +9,19 @@ import { RoleBadge } from "@/components/RoleBadge";
 import { deriveBadge, type PublicBadge } from "@/lib/staff";
 import { AlertCircle, Loader2, Mail, Save, ShieldCheck, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
-import {
-  ADMIN_NOTIFICATION_CHANNEL_OPTIONS,
-  ADMIN_NOTIFICATION_RECIPIENT_KINDS,
-  type AdminNotificationRecipientKind,
-} from "@/convex/adminNotifications";
+type AdminNotificationRecipientKind = "careers" | "support" | "both";
+
+const ADMIN_NOTIFICATION_CHANNEL_OPTIONS: Array<readonly [AdminNotificationRecipientKind, string]> = [
+  ["careers", "Careers only"],
+  ["support", "Support only"],
+  ["both", "Both"],
+];
+
+const ADMIN_NOTIFICATION_RECIPIENT_KINDS: Array<readonly [AdminNotificationRecipientKind, string]> = [
+  ["careers", "Career applications and careers questions only"],
+  ["support", "Support tickets only"],
+  ["both", "Career applications and support tickets"],
+];
 
 
 type TeamMember = {

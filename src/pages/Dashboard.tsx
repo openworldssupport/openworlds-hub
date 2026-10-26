@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { ArrowDownToLine, Megaphone, ShieldCheck } from "lucide-react";
+import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -115,6 +116,9 @@ export default function Dashboard() {
               </form>
               {saveMessage ? <p role="status" className="mt-2 text-sm text-slate-600">{saveMessage}</p> : null}
             </div>
+          </motion.section>
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
+            <AccountSecuritySettings />
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <h2 className="font-semibold tracking-tight">Account recovery</h2>

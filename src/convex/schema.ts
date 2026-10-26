@@ -35,6 +35,15 @@ const schema = defineSchema(
       recoveryEmailVerifiedAt: v.optional(v.number()),
       recoveryCodeWindowAt: v.optional(v.number()),
       recoveryCodeRequestCount: v.optional(v.number()),
+      twoFactorEnabled: v.optional(v.boolean()),
+      twoFactorSecret: v.optional(v.string()),
+      twoFactorPendingSecret: v.optional(v.string()),
+      twoFactorVerifiedSessionId: v.optional(v.string()),
+      twoFactorLoginVerifiedUntil: v.optional(v.number()),
+      twoFactorAttemptWindowAt: v.optional(v.number()),
+      twoFactorAttemptCount: v.optional(v.number()),
+      twoFactorLastCounter: v.optional(v.number()),
+      twoFactorRecoveryCodeHashes: v.optional(v.array(v.string())),
 
       // Company org data, assigned from the admin panel. A user with a
       // department and/or position is treated as staff and can use /staff.
@@ -103,6 +112,21 @@ const schema = defineSchema(
       expiresAt: v.number(),
       attempts: v.number(),
     }).index("by_user_created", ["userId", "createdAt"]),
+
+    twoFactorLoginChallenges: defineTable({
+      userId: v.id("users"),
+      tokenHash: v.string(),
+      createdAt: v.number(),
+      expiresAt: v.number(),
+      attempts: v.number(),
+      verifiedAt: v.optional(v.number()),
+    }).index("by_token_hash", ["tokenHash"]).index("by_user_created", ["userId", "createdAt"]),
+
+    staffOtpLoginAttempts: defineTable({
+      email: v.string(),
+      windowAt: v.number(),
+      attempts: v.number(),
+    }).index("by_email", ["email"]),
 
     adminRosterVerifications: defineTable({
       userId: v.id("users"),

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { displayNameFor, displayInitials } from "@/lib/staff";
 import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
+import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 
 const MAX_MESSAGE_LENGTH = 2000;
 type AnnouncementCategory = "announcement" | "development" | "release" | "event";
@@ -113,9 +114,8 @@ function WorkspaceOverview({
       )}
 
       {/* Nickname settings: first-login pick + always-change control. */}
-      {me && me.signedIn && me.isStaff && (
-        <NicknameSettings me={me} />
-      )}
+      {me && me.signedIn && me.isStaff && <NicknameSettings me={me} />}
+      {me && me.signedIn && <AccountSecuritySettings />}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Announcements" value={announcements?.length ?? "—"} detail="Drafts and published updates" />

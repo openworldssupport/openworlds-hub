@@ -45,6 +45,8 @@ function OpenWorldsLogo() {
 function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
   const isSignup = mode === "player-signup";
   const { signIn } = useAuthActions();
+  const passwordSignIn = useAction(api.accountSecurity.passwordSignIn);
+  const completePasswordSignIn = useAction(api.accountSecurity.completePasswordSignIn);
   const requestRecoveryEmailCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
   const beginPasswordReset = useAction(api.playerRecovery.beginPasswordReset);
   const resetPassword = useAction(api.playerRecovery.resetPassword);
@@ -59,6 +61,8 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetCode, setResetCode] = useState("");
+  const [twoFactorToken, setTwoFactorToken] = useState("");
+  const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [resetStep, setResetStep] = useState<"closed" | "request" | "verify">("closed");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -74,13 +78,23 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     }
     setBusy(true);
     try {
-      const result = await signIn("player-password", {
-        flow: isSignup ? "signUp" : "signIn",
-        email: login.trim().toLowerCase(),
-        ...(isSignup ? { name: name.trim(), ...(recoveryEmail.trim() ? { recoveryEmail: recoveryEmail.trim() } : {}) } : {}),
-        password,
-      });
-      if (!result.signingIn) throw new Error("Player sign-in did not complete.");
+      if (isSignup) {
+        const result = await signIn("player-password", {
+          flow: "signUp",
+          email: login.trim().toLowerCase(),
+          name: name.trim(),
+          ...(recoveryEmail.trim() ? { recoveryEmail: recoveryEmail.trim() } : {}),
+          password,
+        });
+        if (!result.signingIn) throw new Error("Player account creation did not complete.");
+      } else {
+        const result = await passwordSignIn({ login: login.trim().toLowerCase(), password });
+        if (result.required) {
+          setTwoFactorToken(result.token ?? "");
+          setTwoFactorStep(true);
+          return;
+        }
+      }
       if (isSignup && recoveryEmail.trim()) {
         try {
           await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
@@ -94,6 +108,16 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     } finally {
       setBusy(false);
     }
+  }
+
+  async function finishTwoFactor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError(""); setNotice("");
+    try {
+      await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: resetCode.trim().toUpperCase() });
+      navigate(destination, { replace: true });
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Could not verify the authenticator code.");
+    } finally { setBusy(false); }
   }
 
   async function requestReset(event: FormEvent<HTMLFormElement>) {
@@ -144,7 +168,15 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username and password. Recovery email is optional." : "Sign in to access your player profile and saved game progress."}</p>
-          {resetStep === "request" ? (
+          {twoFactorStep ? (
+            <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
+              <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
+              <div className="space-y-2"><Label htmlFor="player-two-factor-code">Authenticator or recovery code</Label><Input id="player-two-factor-code" autoComplete="one-time-code" required value={resetCode} onChange={(event) => setResetCode(event.target.value.trim())} /></div>
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy || !resetCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setTwoFactorStep(false); setTwoFactorToken(""); setResetCode(""); }}>Back to password</button>
+            </form>
+          ) : resetStep === "request" ? (
             <form onSubmit={requestReset} className="mt-6 space-y-4">
               <div className="space-y-2"><Label htmlFor="reset-login">Username or email</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} /></div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
