@@ -1,5 +1,4 @@
 import { Email } from "@convex-dev/auth/providers/Email";
-import axios from "axios";
 import { RandomReader, generateRandomString } from "@oslojs/crypto/random";
 import type { ActionCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -24,51 +23,14 @@ export const emailOtp = Email({
       const emailLower = email.trim().toLowerCase();
       const allowed = await ctx.runQuery(internal.admin.isCompanyEmailAllowed, { email: emailLower });
       if (!allowed) throw new Error("Could not send a sign-in code. If this account is eligible, try again shortly.");
-      await axios.post(
-        freebuffEmailOtpUrl(),
-        {
-          to: emailLower,
-          otp: token,
-        },
-        {
-          headers: {
-            ...freebuffEmailOtpHeaders(),
-          },
-        },
-      );
+      await ctx.runAction(internal.supportEmail.sendCompanySignInCode, { email: emailLower, code: token });
     } catch (error) {
       throw freebuffEmailOtpError(error);
     }
   },
 });
 
-// Sign-in codes are sent by the Freebuff integrations gateway, which knows
-// this project by its own key: VLY_INTEGRATION_KEY, a Convex environment
-// variable set when the project was created. The email's wording is fixed by
-// the gateway.
-function freebuffEmailOtpUrl(): string {
-  const base =
-    process.env.VLY_INTEGRATION_BASE_URL || "https://integrations.vly.ai";
-  return `${base.replace(/\/+$/, "")}/v1/email/otp`;
-}
-
-function freebuffEmailOtpHeaders(): Record<string, string> {
-  const key = process.env.VLY_INTEGRATION_KEY;
-  if (!key) {
-    throw new Error(
-      "VLY_INTEGRATION_KEY is not set on this Convex deployment, so email sign-in cannot send codes.",
-    );
-  }
-  return { Authorization: `Bearer ${key}` };
-}
-
-// Never stringify the whole request error: it carries the request headers.
-function freebuffEmailOtpError(error: unknown): Error {
-  const response = (
-    error as { response?: { status?: number; data?: { error?: unknown } } }
-  )?.response;
-  if (response) {
-    return new Error("Could not send a sign-in code. Please try again later.");
-  }
-  return new Error("Could not send the sign-in code. Please try again later.");
+// Do not expose provider details or sign-in tokens in authentication errors.
+function freebuffEmailOtpError(_error: unknown): Error {
+  return new Error("Could not send a sign-in code. Please try again later.");
 }

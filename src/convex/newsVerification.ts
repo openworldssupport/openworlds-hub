@@ -5,6 +5,8 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
+const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <support@openworlds.dk>";
+
 export const sendCode = action({
   args: {},
   handler: async (ctx) => {
@@ -37,7 +39,7 @@ export const deliverCode = internalAction({
       const response = await fetch("https://integrations.vly.ai/v1/email/send", {
         method: "POST",
         headers: { Authorization: `Bearer ${vlyKey}`, "Content-Type": "application/json", "X-Vly-Version": "0.1.0" },
-        body: JSON.stringify({ to: [recipient], subject: "OpenWorlds news verification code", text, html, replyTo: email }),
+        body: JSON.stringify({ to: [recipient], from: SUPPORT_BOT_FROM, subject: "OpenWorlds news verification code", text, html, replyTo: email }),
       });
       if (!response.ok) throw new Error("Could not send the verification code.");
       return { sent: true };
@@ -47,7 +49,7 @@ export const deliverCode = internalAction({
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: process.env.RESEND_FROM ?? "OpenWorlds <onboarding@resend.dev>", to: [recipient], reply_to: email, subject: "OpenWorlds news verification code", text, html }),
+        body: JSON.stringify({ from: SUPPORT_BOT_FROM, to: [recipient], reply_to: email, subject: "OpenWorlds news verification code", text, html }),
       });
       if (!response.ok) throw new Error("Could not send the verification code.");
       return { sent: true };

@@ -1,4 +1,4 @@
-import { getAuthSessionId, getAuthUserId, retrieveAccount, signInViaProvider, invalidateSessions } from "@convex-dev/auth/server";
+import { getAuthSessionId, getAuthUserId, retrieveAccount, signInViaProvider } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
@@ -50,8 +50,12 @@ async function hash(value: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export  async function hashLoginChallenge(value: string) {
+export const hashToken = internalAction({
+  args: { token: v.string() },
+  handler: async (_ctx, { token }) => await hash(token),
+});
 
+export async function hashLoginChallenge(value: string) {
   return await hash(value);
 }
 
@@ -301,11 +305,7 @@ export const passwordSignIn = action({
     try { account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId, secret: password } }); }
     catch { throw new Error("Username/email or password is incorrect."); }
     if (!account || account.user.role !== "user" || account.user.isSiteBanned) throw new Error("Username/email or password is incorrect.");
-    if (!account.user.twoFactorEnabled) {
-      const { signIn } = await import("./auth");
-      await signIn("player-password", { params: { flow: "signIn", email: accountId, password } });
-      return { required: false };
-    }
+    if (!account.user.twoFactorEnabled) return { required: false };
     const random = new Uint8Array(32);
     crypto.getRandomValues(random);
     const token = Array.from(random, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -324,10 +324,43 @@ export const completePasswordSignIn = action({
     const tokenHash = await hashLoginChallenge(token);
     const challenge = await ctx.runMutation(internal.accountSecurity.consumeLoginChallenge, { userId: account.user._id, tokenHash, code });
     if (!challenge.ok) throw new Error(challenge.message);
-    const { signIn } = await import("./auth");
-    const signInResult = await signIn("player-password", { params: { flow: "twoFactorSignIn", email: accountId, password, twoFactorToken: token } });
-    if (!signInResult) throw new Error("Two-step sign-in failed. Please try again.");
     return { ok: true };
+  },
+});
+
+export const createLoginChallenge = internalMutation({
+  args: { userId: v.id("users"), tokenHash: v.string(), expiresAt: v.number() },
+  handler: async (ctx, { userId, tokenHash, expiresAt }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "user" || user.isSiteBanned || !user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
+    const existing = await ctx.db.query("twoFactorLoginChallenges")
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
+      .collect();
+    for (const challenge of existing) await ctx.db.delete(challenge._id);
+    await ctx.db.insert("twoFactorLoginChallenges", { userId, tokenHash, createdAt: Date.now(), expiresAt, attempts: 0 });
+    return { ok: true };
+  },
+});
+
+export const consumeLoginChallenge = internalMutation({
+  args: { userId: v.id("users"), tokenHash: v.string(), code: v.string() },
+  handler: async (ctx, { userId, tokenHash, code }) => {
+    const challenge = await ctx.db.query("twoFactorLoginChallenges")
+      .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+      .unique();
+    const user = await ctx.db.get(userId);
+    if (!challenge || challenge.userId !== userId || !user || user.role !== "user" || user.isSiteBanned || !user.twoFactorEnabled || challenge.expiresAt < Date.now() || challenge.verifiedAt !== undefined) {
+      return { ok: false as const, message: "Sign-in verification expired. Start again." };
+    }
+    const result = await consumeCode(ctx, user, code);
+    if (!result.ok) {
+      const attempts = challenge.attempts + 1;
+      if (attempts >= MAX_ATTEMPTS) await ctx.db.delete(challenge._id);
+      else await ctx.db.patch(challenge._id, { attempts });
+      return result;
+    }
+    await ctx.db.patch(challenge._id, { verifiedAt: Date.now() });
+    return { ok: true as const };
   },
 });
 

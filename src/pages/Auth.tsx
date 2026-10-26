@@ -94,6 +94,12 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           setTwoFactorStep(true);
           return;
         }
+        const signInResult = await signIn("player-password", {
+          flow: "signIn",
+          email: login.trim().toLowerCase(),
+          password,
+        });
+        if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
       }
       if (isSignup && recoveryEmail.trim()) {
         try {
@@ -114,6 +120,13 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     event.preventDefault(); setBusy(true); setError(""); setNotice("");
     try {
       await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: resetCode.trim().toUpperCase() });
+      const signInResult = await signIn("player-password", {
+        flow: "twoFactorSignIn",
+        email: login.trim().toLowerCase(),
+        password,
+        twoFactorToken,
+      });
+      if (!signInResult.signingIn) throw new Error("Two-step sign-in did not complete.");
       navigate(destination, { replace: true });
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : "Could not verify the authenticator code.");

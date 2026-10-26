@@ -45,7 +45,7 @@ export const playerRecoveryStatus = query({
   },
 });
 
-const playerPassword = ConvexCredentials({
+export const playerPassword = ConvexCredentials({
   id: "player-password",
   crypto: passwordCrypto,
   authorize: async (credentials, ctx) => {

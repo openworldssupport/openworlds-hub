@@ -10,6 +10,25 @@ const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <support@openworlds.dk>";
 const CAREERS_BOT_FROM = "OpenWorlds Careers Bot <careers@openworlds.dk>";
 
+export const sendCompanySignInCode = internalAction({
+  args: { email: v.string(), code: v.string() },
+  handler: async (_ctx, { email, code }) => {
+    const subject = "Your OpenWorlds staff sign-in code";
+    const text = `Your OpenWorlds staff sign-in code is ${code}. It expires in 15 minutes. Do not share it. If you did not request this code, you can ignore this email.`;
+    const html = `<p>Your OpenWorlds staff sign-in code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 15 minutes. Do not share it. If you did not request this code, you can ignore this email.</p>`;
+    const result = await sendBotEmail({
+      channel: "support",
+      to: email,
+      replyTo: DEFAULT_SUPPORT_EMAIL,
+      subject,
+      text,
+      html,
+    });
+    if (!result.sent) throw new Error("Could not send a sign-in code.");
+    return { sent: true };
+  },
+});
+
 export const sendPlayerRecoveryCode = internalAction({
   args: { email: v.string(), code: v.string() },
   handler: async (_ctx, { email, code }) => {
@@ -97,7 +116,7 @@ export const sendSiteStatusCode = internalAction({
       const response = await fetch(VLY_EMAIL_ENDPOINT, {
         method: "POST",
         headers: { Authorization: `Bearer ${vlyKey}`, "Content-Type": "application/json", "X-Vly-Version": "0.1.0" },
-        body: JSON.stringify({ to: [to], subject, text, html }),
+        body: JSON.stringify({ to: [to], from: SUPPORT_BOT_FROM, subject, text, html }),
       });
       if (!response.ok) throw new Error("Could not send the website status verification code.");
       return { sent: true };
