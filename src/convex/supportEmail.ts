@@ -1,9 +1,10 @@
 "use node";
 
 import { internal } from "./_generated/api";
-import { internalAction } from "./_generated/server";
+import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
 const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -281,6 +282,33 @@ export const sendCareerEnquiry = internalAction({
       html: confirmationHtml,
     });
     return { forwarded: forwarded.sent, confirmationSent: confirmation.sent };
+  },
+});
+
+export const sendAdminNotificationTest = action({
+  args: {
+    recipientId: v.id("adminNotificationRecipients"),
+    channel: v.union(v.literal("careers"), v.literal("support")),
+  },
+  handler: async (ctx, { recipientId, channel }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Sign in as an administrator first.");
+    const recipient = await ctx.runQuery(internal.adminNotifications.canSendTestAlert, {
+      userId,
+      recipientId,
+      channel,
+    });
+    const department = channel === "careers" ? "Careers" : "Support";
+    const result = await sendBotEmail({
+      channel,
+      to: recipient.email,
+      replyTo: channel === "support" ? DEFAULT_SUPPORT_EMAIL : CAREERS_EMAIL,
+      subject: `OpenWorlds ${department} notification test`,
+      text: `This is a test notification for the ${department} alert channel. The saved recipient address is receiving email successfully. Real submissions will generate a short ready-for-review alert.`,
+      html: readyForReviewHtml(`This is a test notification for the ${department} alert channel. The saved recipient address is receiving email successfully. Real submissions will generate a short ready-for-review alert.`),
+    });
+    if (!result.sent) throw new Error("The email provider could not deliver the test alert. Check the configured email provider and try again.");
+    return { sent: true };
   },
 });
 

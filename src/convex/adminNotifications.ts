@@ -39,6 +39,29 @@ export const getEligibleAdminNotificationRecipients = internalQuery({
   },
 });
 
+/** Internal: check permission to send a test alert to a saved recipient. */
+export const canSendTestAlert = internalQuery({
+  args: { userId: v.id("users"), recipientId: v.id("adminNotificationRecipients"), channel: v.union(v.literal("careers"), v.literal("support")) },
+  handler: async (ctx, { userId, recipientId, channel }) => {
+    const user = await ctx.db.get(userId);
+    const isVerifiedAdmin = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
+      (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk"));
+    if (!isVerifiedAdmin) throw new Error("Verified administrator access is required.");
+
+    const verification = await ctx.db.query("adminRosterVerifications")
+      .withIndex("by_user", (q) => q.eq("userId", userId)).unique();
+    if (!verification?.permissionVerifiedUntil || verification.permissionVerifiedUntil < Date.now()) {
+      throw new Error("Verify the code sent to support@openworlds.dk before sending a test alert.");
+    }
+
+    const recipient = await ctx.db.get(recipientId);
+    if (!recipient || (recipient.kind !== channel && recipient.kind !== "both")) {
+      throw new Error("That saved recipient is not configured for this alert type.");
+    }
+    return { email: recipient.email };
+  },
+});
+
 /** Admin-only: add or update a recipient. Requires Support email verification. */
 export const addAdminNotificationRecipient = mutation({
   args: {

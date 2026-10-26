@@ -442,6 +442,7 @@ function SubmissionNotificationPanel() {
   const recipients = useQuery(api.adminNotifications.listAdminNotificationRecipients);
   const addRecipient = useMutation(api.adminNotifications.addAdminNotificationRecipient);
   const removeRecipient = useMutation(api.adminNotifications.removeAdminNotificationRecipient);
+  const sendTestAlert = useAction(api.supportEmail.sendAdminNotificationTest);
   const [newEmail, setNewEmail] = useState("");
   const [newKind, setNewKind] = useState<AdminNotificationRecipientKind>("both");
   const [removeId, setRemoveId] = useState<string | null>(null);
@@ -449,6 +450,7 @@ function SubmissionNotificationPanel() {
   const [busy, setBusy] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [removeBusy, setRemoveBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [clock, setClock] = useState(Date.now());
@@ -518,6 +520,7 @@ function SubmissionNotificationPanel() {
     if (!canChange) return;
     setRemoveId(recipientId);
     setRemoveBusy(true);
+    setError("");
     try {
       await removeRecipient({ recipientId: recipientId as any as Id<"adminNotificationRecipients"> });
       setMessage(`Removed ${email} from submission alerts.`);
@@ -526,6 +529,22 @@ function SubmissionNotificationPanel() {
     } finally {
       setRemoveBusy(false);
       setRemoveId(null);
+    }
+  }
+
+  async function handleTest(recipientId: Id<"adminNotificationRecipients">, channel: "careers" | "support") {
+    if (!canChange) return;
+    const key = `${recipientId}:${channel}`;
+    setTestBusy(key);
+    setError("");
+    setMessage("");
+    try {
+      await sendTestAlert({ recipientId, channel });
+      setMessage(`The email provider accepted the ${channel} test alert for this saved address. Check that inbox and its spam folder.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not deliver the test alert.");
+    } finally {
+      setTestBusy(null);
     }
   }
 
@@ -590,7 +609,7 @@ function SubmissionNotificationPanel() {
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <span className="text-sm font-semibold">Recipients</span>
-        <span className="text-xs text-slate-500">These addresses get a short "ready for review" email when a matching submission is received.</span>
+        <span className="text-xs text-slate-500">These addresses get a short "ready for review" email when a matching submission is received. Send a test first to confirm the provider accepts mail for the saved address.</span>
       </div>
 
       {recipients === null ? (
@@ -614,15 +633,27 @@ function SubmissionNotificationPanel() {
                     <p className="text-xs text-slate-600">{kindLabel} · admin-configured, address ownership not verified</p>
                   </div>
                   {canChange && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={removeBusy}
-                      onClick={() => void handleRemove(recipient._id, recipient.email)}
-                    >
-                      {removeBusy ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {(recipient.kind === "careers" || recipient.kind === "both") && (
+                        <Button type="button" size="sm" variant="outline" disabled={testBusy !== null || removeBusy} onClick={() => void handleTest(recipient._id, "careers")}>
+                          {testBusy === `${recipient._id}:careers` ? <Loader2 className="size-4 animate-spin" /> : "Test careers"}
+                        </Button>
+                      )}
+                      {(recipient.kind === "support" || recipient.kind === "both") && (
+                        <Button type="button" size="sm" variant="outline" disabled={testBusy !== null || removeBusy} onClick={() => void handleTest(recipient._id, "support")}>
+                          {testBusy === `${recipient._id}:support` ? <Loader2 className="size-4 animate-spin" /> : "Test support"}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={removeBusy || testBusy !== null}
+                        onClick={() => void handleRemove(recipient._id, recipient.email)}
+                      >
+                        {removeId === recipient._id ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </li>
