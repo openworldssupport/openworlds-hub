@@ -177,8 +177,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const userByEmail = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first();
       const assignedUser = existingUser ?? userByEmail;
       if (assignedUser?.role === "user" && !invitation) throw new Error("This email is already used by a player account. Use a different email for company access.");
+      const assignedAdmin = assignedUser?.role === "admin";
       const assignedStaff = Boolean(assignedUser?.emailVerificationTime !== undefined && (assignedUser.staffAccess || assignedUser.department?.trim() || assignedUser.position?.trim()));
-      if (!isBootstrapAdmin && !invitation && !assignedStaff) throw new Error("Staff sign-in is available only to invited or approved staff accounts.");
+      if (!isBootstrapAdmin && !invitation && !assignedAdmin && !assignedStaff) throw new Error("Staff sign-in is available only to invited or approved staff accounts.");
 
       const verified = type === "verification" && profile.emailVerified === true;
       if (verified && assignedUser?.twoFactorEnabled) {

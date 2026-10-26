@@ -50,12 +50,12 @@ export const isCompanyEmailAllowed = internalQuery({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", normalized))
       .first();
-    if (invitation && invitation.accessLevel !== "admin") return true;
+    if (invitation) return true;
     const assignedStaff = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", normalized))
       .first();
-    return Boolean(assignedStaff?.emailVerificationTime !== undefined && (assignedStaff.staffAccess || assignedStaff.department?.trim() || assignedStaff.position?.trim()));
+    return Boolean(assignedStaff?.role === "admin" || (assignedStaff?.emailVerificationTime !== undefined && (assignedStaff.staffAccess || assignedStaff.department?.trim() || assignedStaff.position?.trim())));
   },
 });
 

@@ -169,7 +169,18 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/support/status" element={<TicketStatus />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth
+                    title="Admin sign in"
+                    description="Sign in with your approved OpenWorlds admin email to access the admin console."
+                    redirectImmediately
+                  >
+                    <Admin />
+                  </RequireAuth>
+                }
+              />
               <Route path="/auth" element={<Auth />} />
               <Route path="/player-login" element={<Auth mode="player-login" />} />
               <Route path="/player-signup" element={<Auth mode="player-signup" />} />
