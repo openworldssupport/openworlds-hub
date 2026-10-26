@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, BadgeCheck, Megaphone, ShieldCheck } from "lucide-react";
+import { ArrowDownToLine, BadgeCheck, Megaphone, Search, ShieldCheck } from "lucide-react";
 import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const updateProfile = useMutation(api.gameData.updateProfile);
+  const setProfileDiscoverability = useMutation(api.users.setProfileDiscoverability);
+  const profilePrivacy = useQuery(api.users.currentProfilePrivacy, user?.role === "user" ? {} : "skip");
   const recoveryStatus = useQuery(
     api.playerRecovery.recoveryStatus,
     user?.role === "user" ? {} : "skip",
@@ -115,6 +117,10 @@ export default function Dashboard() {
                 <div className="flex gap-2"><Input id="player-display-name" minLength={2} maxLength={32} value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={user.playerName} /><Button type="submit" variant="outline" disabled={!displayName.trim()}>Update</Button></div>
               </form>
               {saveMessage ? <p role="status" className="mt-2 text-sm text-slate-600">{saveMessage}</p> : null}
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div><p className="flex items-center gap-2 text-sm font-medium text-slate-800"><Search className="size-4 text-[#0066cc]" /> Profile discovery</p><p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">{profilePrivacy?.discoverable ? "Your username can appear in player searches." : "Your username is hidden from player searches."}</p></div>
+                <Button type="button" size="sm" variant="outline" disabled={profilePrivacy === undefined} onClick={() => void setProfileDiscoverability({ discoverable: !profilePrivacy?.discoverable })}>{profilePrivacy?.discoverable ? "Hide my profile" : "Make discoverable"}</Button>
+              </div>
             </div>
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">

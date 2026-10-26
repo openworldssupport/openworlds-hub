@@ -1,62 +1,70 @@
-import { SiteNav } from "@/components/SiteNav";
+import { useDeferredValue, useState } from "react";
+import { useQuery } from "convex/react";
 import { Link } from "react-router";
-import { ArrowRight, Compass, ShieldCheck } from "lucide-react";
+import { api } from "@/convex/_generated/api";
+import { SiteNav } from "@/components/SiteNav";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, BadgeCheck, Compass, Search, ShieldCheck, Users } from "lucide-react";
 
 export default function Worlds() {
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search.trim().replace(/^@/, ""));
+  const profiles = useQuery(api.users.searchPlayerProfiles, { search: deferredSearch });
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
-
       <section className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-medium text-blue-100">Worlds</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
-            Made for exploring
-          </h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            Community worlds will appear here once they are real and ready to share. We won’t fill the
-            shelf with made-up examples.
-          </p>
+          <p className="text-sm font-medium text-blue-100">OpenWorlds discovery</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Find players and worlds</h1>
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Search player profiles that have opted into discovery. Published community worlds will appear here when real listings are available.</p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-        <div className="rounded-xl border border-slate-200 bg-white p-7 sm:p-10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]">
-              <Compass className="size-6" />
-            </span>
-            <div className="max-w-2xl">
-              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                <ShieldCheck className="size-4" /> Verified listings only
-              </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight">No worlds published yet</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                There aren’t any confirmed community worlds to feature right now. When actual worlds are
-                available and approved to share, this page will show their details here.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  to="/learning"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#0066cc] px-4 text-sm font-medium text-white hover:bg-[#004a99]"
-                >
-                  Explore learning <ArrowRight className="size-4" />
-                </Link>
-                <Link
-                  to="/community"
-                  className="inline-flex h-10 items-center rounded-lg border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  Visit community
-                </Link>
-              </div>
-            </div>
+      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Users className="size-5" /></span>
+            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Look up players by username. Only profiles made discoverable by their owner are shown.</p></div>
+          </div>
+          <label htmlFor="profile-search" className="sr-only">Search player usernames</label>
+          <div className="relative mt-6">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Input id="profile-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search usernames…" className="h-11 pl-10" autoComplete="off" />
+          </div>
+          <div className="mt-5" aria-live="polite">
+            {deferredSearch.length < 2 ? (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Enter at least 2 characters to search.</p>
+            ) : profiles === undefined ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Searching player profiles…</p>
+            ) : profiles.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No discoverable players found. Check the spelling or try another username.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {profiles.map((profile) => (
+                  <li key={profile.username} className="flex items-center gap-3 px-4 py-3">
+                    {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{profile.username.slice(0, 1).toUpperCase()}</span>}
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</p>
+                      {profile.displayName && profile.displayName !== profile.username && <p className="truncate text-sm text-slate-500">{profile.displayName}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
-      </section>
 
-      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">
-        OpenWorlds © 2026 · Community worlds will be listed when available.
-      </footer>
+        <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#0066cc] ring-1 ring-slate-200"><Compass className="size-5" /></span>
+          <p className="mt-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700"><ShieldCheck className="size-4" /> Verified listings only</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">No worlds published yet</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">There isn’t a public worlds directory yet, so there are no real world listings to search. Worlds will show up here when the publishing system is available.</p>
+          <Link to="/community" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100">Visit community <ArrowRight className="size-4" /></Link>
+        </aside>
+      </section>
+      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Find discoverable players and published worlds.</footer>
     </main>
   );
 }
