@@ -254,6 +254,7 @@ function TeamPanel() {
         {permissionMessage && <p role="status" className="mt-3 text-sm text-slate-600">{permissionMessage}</p>}
         {permissionError && <p role="alert" className="mt-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="size-4" />{permissionError}</p>}
       </section>
+      <CreatorRosterPanel canChange={isPermissionVerified} />
       <p className="text-sm text-slate-600">Private directory of all non-anonymous accounts, including players, staff, admins, and volunteers. Viewing requires a Careers code; changing staff assignments also requires a Support code.</p>
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
@@ -467,6 +468,83 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
         {saved && <span className="text-xs text-emerald-700">Saved</span>}
       </div>
     </article>
+  );
+}
+
+function CreatorRosterPanel({ canChange }: { canChange: boolean }) {
+  const creators = useQuery(api.users.adminOfficialCreators, canChange ? {} : "skip");
+  const saveCreator = useMutation(api.users.saveOfficialCreator);
+  const removeCreator = useMutation(api.users.removeOfficialCreator);
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [socialPlatform, setSocialPlatform] = useState("");
+  const [socialUrl, setSocialUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function addCreator(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await saveCreator({ email, username, displayName, socialPlatform, socialUrl });
+      setEmail("");
+      setUsername("");
+      setDisplayName("");
+      setSocialPlatform("");
+      setSocialUrl("");
+      setMessage(result.linkedToAccount ? "Creator added and matched to the player account; the verified badge is active." : "Creator added to the public roster. The badge will link to the player account when the submitted username or email matches an account.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add this creator.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteCreator(creatorId: Id<"officialCreators">) {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await removeCreator({ creatorId });
+      setMessage("Creator removed from the official roster.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove this creator.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-800"><BadgeCheck className="size-5" /></span><div><h2 className="font-semibold">Official Content Creators</h2><p className="mt-1 text-sm leading-6 text-slate-600">Add approved creators after reviewing their application. Contact email stays private; approved public details appear on the creator program page. Entries are matched to existing player accounts by username or email to show their account badge.</p></div></div>
+      {!canChange ? <p className="mt-4 text-sm text-slate-600">Verify Support access above to manage the creator roster.</p> : (
+        <>
+          <form onSubmit={(event) => void addCreator(event)} className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2"><Label htmlFor="creator-email">Contact email (private)</Label><Input id="creator-email" type="email" required maxLength={254} autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="creator@example.com" /></div>
+            <div className="space-y-2"><Label htmlFor="creator-username">OpenWorlds username</Label><Input id="creator-username" required minLength={2} maxLength={32} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Player username" /></div>
+            <div className="space-y-2"><Label htmlFor="creator-display-name">Public creator name</Label><Input id="creator-display-name" required minLength={2} maxLength={60} value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Display name" /></div>
+            <div className="space-y-2"><Label htmlFor="creator-social-platform">Social platform (optional)</Label><Input id="creator-social-platform" maxLength={40} value={socialPlatform} onChange={(event) => setSocialPlatform(event.target.value)} placeholder="YouTube, Twitch, TikTok…" /></div>
+            <div className="space-y-2 sm:col-span-2"><Label htmlFor="creator-social-url">Social profile link (optional)</Label><Input id="creator-social-url" type="url" maxLength={500} value={socialUrl} onChange={(event) => setSocialUrl(event.target.value)} placeholder="https://…" /></div>
+            <div className="sm:col-span-2"><Button type="submit" disabled={busy || !canChange}><BadgeCheck className="size-4" />{busy ? "Saving…" : "Add approved creator"}</Button></div>
+          </form>
+          {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+          {message && <p role="status" className="mt-3 text-sm text-emerald-700">{message}</p>}
+          <div className="mt-6 space-y-2">
+            <h3 className="text-sm font-semibold">Approved roster</h3>
+            {creators === undefined ? <p className="text-sm text-slate-500">Loading…</p> : creators.length === 0 ? <p className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">No creators have been added yet.</p> : creators.map((creator) => (
+              <article key={creator._id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 p-3">
+                <div className="min-w-0"><p className="flex items-center gap-2 font-medium">{creator.displayName}<BadgeCheck className="size-4 text-sky-600" /></p><p className="text-xs text-slate-600">@{creator.username} · {creator.email} · {creator.isLinked ? "Linked to player account" : "No matching player account"}</p>{creator.socialUrl && <a className="text-xs text-[#0066cc] underline" href={creator.socialUrl} target="_blank" rel="noopener noreferrer">{creator.socialPlatform || "Social profile"}</a>}</div>
+                <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void deleteCreator(creator._id)}>Remove</Button>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 

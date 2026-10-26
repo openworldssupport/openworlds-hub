@@ -16,6 +16,7 @@ const News = lazy(() => import("./pages/News.tsx"));
 const Media = lazy(() => import("./pages/Media.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
+const Creators = lazy(() => import("./pages/Creators.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Support = lazy(() => import("./pages/Support.tsx"));
 const TicketStatus = lazy(() => import("./pages/TicketStatus.tsx"));
@@ -162,6 +163,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/downloads" element={<Downloads />} />
               <Route path="/about" element={<About />} />
               <Route path="/community" element={<Community />} />
+              <Route path="/creators" element={<Creators />} />
               <Route path="/learning" element={<Learning />} />
               <Route path="/worlds" element={<Worlds />} />
               <Route path="/roadmap" element={<Roadmap />} />

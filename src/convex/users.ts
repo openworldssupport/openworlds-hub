@@ -3,6 +3,8 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
+import { requireCompanyAdmin } from "./admin";
+import { requirePermissionVerification } from "./adminRoster";
 
 /**
  * Get the current signed in user. Returns null if the user is not signed in.
@@ -13,16 +15,126 @@ export const publicOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
-    const creators = await ctx.db.query("users")
+    const records = await ctx.db.query("officialCreators").collect();
+    const linkedUsers = await Promise.all(records.map((record) => record.linkedUserId ? ctx.db.get(record.linkedUserId) : null));
+    const creators = records.flatMap((record, index) => {
+      const linkedUser = linkedUsers[index];
+      if (linkedUser?.isSiteBanned) return [];
+      return [{
+        username: record.username,
+        displayName: record.displayName,
+        image: linkedUser?.image ?? null,
+        socialPlatform: record.socialPlatform ?? null,
+        socialUrl: record.socialUrl ?? null,
+      }];
+    });
+    const knownUsernames = new Set(creators.map((creator) => creator.username.toLowerCase()));
+    const legacyCreators = await ctx.db.query("users")
       .withIndex("by_official_creator", (q) => q.eq("isOfficialCreator", true))
       .collect();
-    return creators
-      .filter((creator) => creator.emailVerificationTime !== undefined && !creator.isSiteBanned && Boolean(creator.playerLogin?.trim()))
-      .map((creator) => ({
-        username: creator.playerLogin!.trim(),
-        image: creator.image ?? null,
-      }))
-      .sort((a, b) => a.username.localeCompare(b.username));
+    for (const creator of legacyCreators) {
+      const username = creator.playerLogin?.trim();
+      if (creator.emailVerificationTime === undefined || creator.isSiteBanned || !username || knownUsernames.has(username.toLowerCase())) continue;
+      creators.push({ username, displayName: username, image: creator.image ?? null, socialPlatform: null, socialUrl: null });
+      knownUsernames.add(username.toLowerCase());
+    }
+    return creators.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  },
+});
+
+/** Admin-only creator records, including private contact email. */
+export const adminOfficialCreators = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
+    return (await ctx.db.query("officialCreators").collect())
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map(({ _id, email, username, displayName, socialPlatform, socialUrl, linkedUserId }) => ({
+        _id, email, username, displayName,
+        socialPlatform: socialPlatform ?? null,
+        socialUrl: socialUrl ?? null,
+        isLinked: Boolean(linkedUserId),
+      }));
+  },
+});
+
+/** Add or update an approved creator and grant the badge to a matching active player account. */
+export const saveOfficialCreator = mutation({
+  args: {
+    email: v.string(),
+    username: v.string(),
+    displayName: v.string(),
+    socialPlatform: v.optional(v.string()),
+    socialUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
+    const email = args.email.trim().toLowerCase();
+    const username = args.username.trim().replace(/^@/, "");
+    const displayName = args.displayName.trim();
+    const socialPlatform = args.socialPlatform?.trim() || undefined;
+    const socialUrl = args.socialUrl?.trim() || undefined;
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid contact email.");
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,31}$/.test(username)) throw new Error("Enter a valid OpenWorlds username (2–32 letters, numbers, dots, hyphens, or underscores).");
+    if (displayName.length < 2 || displayName.length > 60) throw new Error("Display name must be 2–60 characters.");
+    if (socialPlatform && socialPlatform.length > 40) throw new Error("Keep the social platform name under 40 characters.");
+    if (socialUrl && (socialUrl.length > 500 || !/^https:\/\//i.test(socialUrl))) throw new Error("Use an HTTPS link under 500 characters for the social profile.");
+
+    const normalizedUsername = username.toLowerCase();
+    const usernameOwner = await ctx.db.query("officialCreators").withIndex("by_username", (q) => q.eq("username", normalizedUsername)).first();
+    const emailRecord = await ctx.db.query("officialCreators").withIndex("by_email", (q) => q.eq("email", email)).first();
+    if (usernameOwner && usernameOwner._id !== emailRecord?._id) throw new Error("That username is already assigned to another creator.");
+
+    const byUsername = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", normalizedUsername)).first();
+    const byEmail = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
+    const byRecoveryEmail = await ctx.db.query("users").withIndex("by_recovery_email", (q) => q.eq("recoveryEmail", email)).first();
+    const emailMatch = [byEmail, byRecoveryEmail].find((user) => user?.role === "user");
+    if (byUsername?.role === "user" && emailMatch?.role === "user" && byUsername._id !== emailMatch._id) {
+      throw new Error("The username and email belong to different player accounts. Check the approved creator details.");
+    }
+    const matched = [byUsername, byEmail, byRecoveryEmail].find((user) => user?.role === "user");
+    if (matched?.isSiteBanned) throw new Error("This account is restricted and cannot be verified as a creator.");
+    if (matched && matched.emailVerificationTime === undefined) throw new Error("The matching player account is not verified yet.");
+    if (matched?.playerLogin && matched.playerLogin.toLowerCase() !== normalizedUsername) throw new Error("The email belongs to a different OpenWorlds username.");
+    const linkedOwner = matched ? await ctx.db.query("officialCreators").withIndex("by_linked_user", (q) => q.eq("linkedUserId", matched._id)).first() : null;
+    if (linkedOwner && linkedOwner._id !== emailRecord?._id) throw new Error("That player account is already linked to another creator record.");
+
+    const now = Date.now();
+    const values = {
+      email,
+      username: normalizedUsername,
+      displayName,
+      socialPlatform,
+      socialUrl,
+      linkedUserId: matched?._id,
+      updatedAt: now,
+    };
+    if (emailRecord) await ctx.db.patch(emailRecord._id, values);
+    else await ctx.db.insert("officialCreators", { ...values, createdAt: now, createdBy: (await getAuthUserId(ctx))! });
+    if (emailRecord?.linkedUserId && emailRecord.linkedUserId !== matched?._id) {
+      await ctx.db.patch(emailRecord.linkedUserId, { isOfficialCreator: undefined });
+    }
+    if (matched) await ctx.db.patch(matched._id, { isOfficialCreator: true });
+    return { ok: true, linkedToAccount: Boolean(matched) };
+  },
+});
+
+/** Remove an approved creator and its badge from the linked player account. */
+export const removeOfficialCreator = mutation({
+  args: { creatorId: v.id("officialCreators") },
+  handler: async (ctx, { creatorId }) => {
+    await requireCompanyAdmin(ctx);
+    await requirePermissionVerification(ctx);
+    const record = await ctx.db.get(creatorId);
+    if (!record) return { ok: true };
+    if (record.linkedUserId) {
+      const user = await ctx.db.get(record.linkedUserId);
+      if (user) await ctx.db.patch(user._id, { isOfficialCreator: undefined });
+    }
+    await ctx.db.delete(creatorId);
+    return { ok: true };
   },
 });
 

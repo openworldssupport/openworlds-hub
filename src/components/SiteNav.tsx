@@ -28,6 +28,7 @@ export function SiteNav() {
           <Link to="/" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Home</Link>
           <Link to="/about" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">About</Link>
           <Link to="/community" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Community</Link>
+          <Link to="/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Creators</Link>
           <Link to="/worlds" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Worlds</Link>
           <Link to="/events" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Events</Link>
           <Link to="/roadmap" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Roadmap</Link>

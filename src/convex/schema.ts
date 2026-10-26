@@ -75,6 +75,7 @@ const schema = defineSchema(
       .index("email", ["email"]) // index for the email. do not remove or modify
       .index("by_official_creator", ["isOfficialCreator"])
       .index("by_player_login", ["playerLogin"])
+      .index("by_recovery_email", ["recoveryEmail"])
       .searchIndex("search_player_profiles", {
         searchField: "playerLogin",
         filterFields: ["role", "profileDiscoverable"],
@@ -188,6 +189,23 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_user_and_versions", ["userId", "privacyVersion", "termsVersion"])
       .index("by_user_versions_revision", ["userId", "privacyVersion", "termsVersion", "agreementRevision"]),
+
+    // Admin-approved creators are stored separately from emailed applications.
+    // The contact email is private and is never returned by public queries.
+    officialCreators: defineTable({
+      email: v.string(),
+      username: v.string(),
+      displayName: v.string(),
+      socialPlatform: v.optional(v.string()),
+      socialUrl: v.optional(v.string()),
+      linkedUserId: v.optional(v.id("users")),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      createdBy: v.id("users"),
+    })
+      .index("by_email", ["email"])
+      .index("by_username", ["username"])
+      .index("by_linked_user", ["linkedUserId"]),
 
     careerRoleAvailability: defineTable({
       roleSlug: v.string(),

@@ -2,7 +2,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { BadgeCheck, Heart, Lightbulb, LockKeyhole, ShieldCheck, Users, Youtube } from "lucide-react";
+import { BadgeCheck, Heart, Lightbulb, LockKeyhole, ShieldCheck, Users, Youtube, ArrowRight, ExternalLink, Sparkles } from "lucide-react";
 
 const guidelines = [
   { title: "Respect & kindness", description: "Treat all community members with respect. Harassment, discrimination, and hateful content have no place here.", icon: Heart },
@@ -66,17 +66,17 @@ export default function Community() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-medium text-[#7651c9]">Create with OpenWorlds</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Become an Official Content Creator</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Apply to share your OpenWorlds creations with the community. The Careers team reviews each application; submitting one does not grant official status.</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds Creator Program</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A home for creators making videos, streams, guides, art, and community stories around OpenWorlds. Approved creators are listed here with a verified badge; applying does not grant official status.</p>
             </div>
-            <CareerEnquiryDialog label="Apply to be a creator" mode="creator-application" />
+            <CareerEnquiryDialog label="Apply to the program" mode="creator-application" />
           </div>
 
           <div className="mt-10 border-t border-slate-200 pt-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold">Official Content Creators</h3>
-                <p className="mt-1 text-sm text-slate-600">OpenWorlds players approved by the team.</p>
+                <h3 className="text-lg font-semibold">Meet the official creators</h3>
+                <p className="mt-1 text-sm text-slate-600">Creators reviewed and approved by the OpenWorlds team.</p>
               </div>
               {creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
             </div>
@@ -88,19 +88,32 @@ export default function Community() {
               <div className="creator-marquee mt-5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 py-4" aria-label="Official Content Creators, scrolling automatically">
                 <div className="creator-marquee-track flex w-max gap-4 px-4">
                   {creatorLoop.map((creator, index) => (
-                    <div key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-56 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <div key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-64 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
                       {creator.image ? (
                         <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
                       ) : (
                         <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
                       )}
-                      <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
+                      <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-slate-900">{creator.displayName}</span><span className="block truncate text-xs text-slate-500">@{creator.username}</span></span>
+                      {creator.socialUrl && <a href={creator.socialUrl} target="_blank" rel="noopener noreferrer" title={`Visit ${creator.displayName} on ${creator.socialPlatform || "their social profile"}`} className="shrink-0 text-slate-500 hover:text-[#176b45]"><ExternalLink className="size-4" aria-label="Open creator social profile" /></a>}
                       <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="mt-10 grid gap-4 border-t border-slate-200 pt-8 sm:grid-cols-3">
+            {[
+              { icon: Sparkles, title: "Make it yours", text: "Create videos, streams, artwork, tutorials, or other original OpenWorlds content." },
+              { icon: BadgeCheck, title: "Get recognized", text: "Approved members receive the official creator badge and a public profile on this page." },
+              { icon: Users, title: "Grow together", text: "Help new players discover the project and connect with the wider community." },
+            ].map(({ icon: Icon, title, text }) => <article key={title} className="rounded-lg border border-slate-200 bg-slate-50 p-5"><Icon className="size-5 text-[#176b45]" /><h3 className="mt-3 font-semibold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{text}</p></article>)}
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-[#104b35] p-6 text-white sm:p-8">
+            <div><h3 className="text-xl font-semibold">Interested in creating with us?</h3><p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50">Send the Careers team your OpenWorlds username, creator links, and a little about what you’d like to make.</p></div>
+            <CareerEnquiryDialog label="Start an application" mode="creator-application" variant="outline" />
           </div>
         </div>
       </section>

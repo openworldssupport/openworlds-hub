@@ -72,7 +72,7 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
               {sent
                 ? "Your submission has been sent to the Careers email system. Please check your inbox for a confirmation."
                 : mode === "creator-application"
-                  ? "Apply to join the OpenWorlds Official Content Creator program. Your application is emailed to the Careers team for review and is not stored as an application in the website database."
+                  ? "Apply to join the OpenWorlds Creator Program. Your application is emailed to the Careers team for review and is not stored as an application in the website database. Applying does not grant a verified badge; admins add approved creators to the official roster after review."
                   : mode === "application"
                     ? "Tell us about your experience and interest in the role. Your application is emailed to careers@openworlds.dk and is not stored as an application in the website database. The site keeps a hashed email and submission time for rate limiting."
                     : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored as a submission in the website database. The site keeps a hashed email and submission time for rate limiting."}
@@ -99,7 +99,7 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
                   </select>
                 </div>
               )}
-              {mode === "creator-application" && <div className="space-y-2"><Label htmlFor="career-player-username">OpenWorlds username</Label><Input id="career-player-username" name="creatorUsername" required minLength={2} maxLength={32} autoComplete="username" placeholder="Your in-game username" /></div>}
+              {mode === "creator-application" && <div className="space-y-2"><Label htmlFor="career-player-username">OpenWorlds username</Label><Input id="career-player-username" name="creatorUsername" required minLength={2} maxLength={32} autoComplete="username" placeholder="Your in-game username" /><p className="text-xs text-muted-foreground">Also include the email linked to your player account so the team can match your approval correctly.</p></div>}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label htmlFor="career-name">Name <span className="font-normal text-muted-foreground">(optional)</span></Label><Input id="career-name" name="name" maxLength={100} autoComplete="name" /></div>
                 <div className="space-y-2"><Label htmlFor="career-email">Email</Label><Input id="career-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
