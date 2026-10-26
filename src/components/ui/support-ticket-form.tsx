@@ -158,7 +158,7 @@ export function SupportTicketForm() {
       )}
 
       <p className="text-xs leading-5 text-slate-500">
-        Do not include passwords or payment details. Authorized company staff can read your ticket.
+        Your ticket details are stored in the website database and emailed to Support. Authorized administrators can review the full ticket; configured alert recipients receive only a generic ready-for-review notice. Do not include passwords, payment details, or unnecessary sensitive information.
       </p>
 
       <div className="space-y-3 pt-2">

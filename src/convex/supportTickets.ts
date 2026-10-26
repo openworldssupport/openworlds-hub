@@ -93,7 +93,6 @@ function supportFanoutHtml({
 }
 
 import { isAdmin, requireAdmin } from "./admin";
-import { recordSecurityViolation } from "./security";
 import { requireSiteAvailable } from "./siteStatus";
 /** Rejection message when the sender has not accepted the policies. */
 export const SUPPORT_TERMS_CONSENT_MESSAGE =
@@ -166,7 +165,6 @@ export const create = mutation({
       throw new Error("Describe your request in 20–5,000 characters.");
     }
     if (!args.privacyAndTermsAccepted) {
-      await recordSecurityViolation(ctx);
       throw new Error(SUPPORT_TERMS_CONSENT_MESSAGE);
     }
 

@@ -73,8 +73,8 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
               {sent
                 ? "Your submission has been sent to the Careers email system. Please check your inbox for a confirmation."
                 : mode === "application"
-                  ? "Tell us about your experience and interest in the role. Your application is emailed directly to careers@openworlds.dk and is not stored in the website database."
-                  : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored in the website database."}
+                  ? "Tell us about your experience and interest in the role. Your application is emailed to careers@openworlds.dk and is not stored as an application in the website database. The site keeps a hashed email and submission time for rate limiting."
+                  : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored as a submission in the website database. The site keeps a hashed email and submission time for rate limiting."}
             </DialogDescription>
           </DialogHeader>
           {sent ? (
@@ -123,7 +123,7 @@ export function CareerEnquiryDialog({ initialRoleSlug, label, mode, variant = "d
               <p className="text-xs text-muted-foreground">Please don’t include passwords or sensitive account information.</p>
               <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700">
                 <input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" />
-                <span>I agree that my email and {mode === "application" ? "application details" : "question"} will be emailed to the Careers team. My name is optional. The website does not save this submission.</span>
+                <span>I agree that my email and {mode === "application" ? "application details" : "question"} will be emailed to the Careers team. My name is optional. The site keeps a hashed email and submission time for rate limiting; configured admin recipients may receive a generic ready-for-review notice.</span>
               </label>
               {error && <p role="alert" className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="mt-0.5 size-4 shrink-0" />{error}</p>}
               <div className="flex justify-end"><Button type="submit" disabled={busy}>{busy ? (mode === "application" ? "Submitting application…" : "Sending…") : mode === "application" ? "Submit application" : "Send question"}</Button></div>

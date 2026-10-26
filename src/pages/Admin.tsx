@@ -534,7 +534,7 @@ function SubmissionNotificationPanel() {
 
   return (
     <section className="max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><Bell className="size-5" /></span><div><h2 className="font-semibold">Submission alerts</h2><p className="mt-1 text-sm leading-6 text-slate-600">Add the email addresses that should be notified when a submission is ready for review. Each address can be set to careers submissions only, support tickets only, or both. Recipients get a short "new submission, ready for review" email; they do not get the full submission details unless they open the ticket or application inbox.</p></div></div>
+      <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><Bell className="size-5" /></span><div><h2 className="font-semibold">Submission alerts</h2><p className="mt-1 text-sm leading-6 text-slate-600">Configure addresses for generic ready-for-review emails: careers only, support only, or both. Recipient addresses are not verified, so add only addresses approved to receive alerts. Alert emails do not contain applicant or ticket details. Support tickets are stored in the site database; career submissions go to the Careers inbox and are not saved as application records in the database.</p></div></div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {ADMIN_NOTIFICATION_CHANNEL_OPTIONS.map(([value, label]) => (
@@ -611,7 +611,7 @@ function SubmissionNotificationPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-slate-900">{recipient.email}</p>
-                    <p className="text-xs text-slate-600">{kindLabel}</p>
+                    <p className="text-xs text-slate-600">{kindLabel} · admin-configured, address ownership not verified</p>
                   </div>
                   {canChange && (
                     <Button
@@ -650,8 +650,8 @@ export default function AdminPage() {
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds - Company operations</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">People directory</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A private account directory for managing staff access, departments, roles, and volunteer recognition. Viewing accounts requires a Careers email code; changing staff or admin permissions also requires a Support email code.</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Admin console</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Manage the private account directory and generic submission-alert recipients. Only verified admins can access these controls. Viewing account records requires a Careers email code; changing staff/admin permissions or alert recipients requires a separate Support email code. The directory includes player and staff account emails and role/restriction details, so use it only for legitimate administration.</p>
         <TeamPanel />
         <SubmissionNotificationPanel />
       </section>

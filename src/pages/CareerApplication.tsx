@@ -69,7 +69,7 @@ export default function CareerApplication() {
         <section className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-12">
           <div className="mb-7 border-b border-slate-200 pb-6">
             <h2 className="text-2xl font-semibold tracking-tight">Application</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Tell us about your experience and interest in the position. Your application will be emailed to careers@openworlds.dk and not stored in the website database.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Tell us about your experience and interest in the position. Your application is emailed to careers@openworlds.dk and is not stored as an application in the website database. The site retains a hashed email and submission time for rate limiting; configured admins receive only a generic ready-for-review alert.</p>
           </div>
           {sent ? (
             <div className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 size-5 shrink-0" /><div><h2 className="font-semibold">Application submitted</h2><p className="mt-1 leading-6">Thank you for applying. Please check your inbox for an automated confirmation from OpenWorlds Careers Bot.</p></div></div>
@@ -83,7 +83,7 @@ export default function CareerApplication() {
               <div className="space-y-2"><Label htmlFor="application-experience">Relevant experience</Label><Textarea id="application-experience" name="experience" required minLength={10} maxLength={2500} rows={5} placeholder="Share relevant experience, projects, or skills." /></div>
               <div className="space-y-2"><Label htmlFor="application-motivation">Why are you interested in this role?</Label><Textarea id="application-motivation" name="motivation" required minLength={10} maxLength={2500} rows={5} placeholder="Tell us what interests you and what you would bring to the team." /></div>
               <p className="text-xs leading-5 text-slate-500">Please don’t include passwords or sensitive account information.</p>
-              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my email and application details will be emailed to the Careers team. My name is optional. The website does not save this application.</span></label>
+              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="careerConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree that my email and application details will be emailed to the Careers team. My name is optional. The site retains a hashed email and submission time for rate limiting; configured admins may receive a generic ready-for-review alert.</span></label>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" disabled={busy}><Mail className="size-4" />{busy ? "Submitting application…" : "Submit application"}</Button>
             </form>

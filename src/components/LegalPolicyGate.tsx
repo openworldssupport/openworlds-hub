@@ -133,8 +133,8 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-6 sm:px-7">
           <article>
             <h2 className="font-semibold">Privacy Policy · version {ACTIVE_PRIVACY_VERSION}</h2>
-            <p className="mt-2 text-slate-600">This policy describes website account, support, staff, and media information, plus careers submissions emailed directly to Careers and not stored in the website database. The game client is designed to send account, session, and player-presence information for online play, use short-lived Vivox voice tokens, and store some settings locally. The complete deployed game backend has not been verified, so its actual collection and retention may differ. Convex provides the website database, authentication, and file storage; configured email services deliver website messages.</p>
-            <p className="mt-2 text-slate-600">When you use in-game voice chat, your voice is transmitted to other players so you can communicate. See the full Privacy Policy for details on website and in-game information.</p>
+            <p className="mt-2 text-slate-600">This policy describes player and staff account/security data, support tickets stored in the website database, career submissions emailed to the Careers inbox (with a hashed-email rate-limit record), and generic submission alerts configured by admins. Admin and staff visibility, privacy controls, and provider/game-data verification limits are detailed below. Convex provides the website database, authentication, and file storage; configured email services deliver website messages.</p>
+            <p className="mt-2 text-slate-600">When you use in-game voice chat, your voice is transmitted to other players so you can communicate. The full policy is a transparency draft based on reviewed code and requires live-deployment and legal review.</p>
             <details id="policy-full-privacy" open className="mt-4 border-t border-slate-200 pt-3">
               <summary className="cursor-pointer font-medium text-[#0066cc]">Read the complete Privacy Policy</summary>
               <div className="mt-4 space-y-5">
@@ -175,7 +175,7 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
               onChange={(event) => setAgreed(event.target.checked)}
               className="mt-1 size-4 shrink-0 accent-[#0066cc]"
             />
-            <span>I have reviewed and agree to the current OpenWorlds Privacy Policy and Terms of Service.</span>
+            <span>I have reviewed and agree to the current OpenWorlds Privacy Policy and Terms of Service. These are informational drafts; final legal terms and service data practices require operator and deployment review.</span>
           </label>
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
         </div>

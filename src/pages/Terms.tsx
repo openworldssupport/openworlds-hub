@@ -37,8 +37,8 @@ export const termsSections: Section[] = [
   {
     title: "5. Support and careers enquiries",
     body: [
-      "When you open a support ticket, you confirm the information you provide is accurate. Do not include passwords or payment details in forms or email messages.",
-      "Applications and careers questions are submitted through the Careers page and sent by email to the careers inbox. The website does not store their content. The email provider sends an automated receipt confirmation. Any contributor role terms will be stated with the specific opening. An enquiry does not by itself create an employment relationship.",
+      "When you open a support ticket, the website stores its content and emails it to the support inbox. Authorized administrators can access ticket details. A generic ready-for-review notification may be sent to email addresses configured by an administrator. Do not include passwords, payment details, or unnecessary sensitive information.",
+      "Applications and careers questions are sent by email to the careers inbox and are not stored as submissions in the website database. A hashed email and submission timestamp are retained for rate limiting, and configured alert addresses may receive a generic notification. The email provider sends an automated receipt confirmation. Any contributor role terms will be stated with the specific opening. An enquiry does not by itself create an employment relationship.",
       "We may decline or close a support request or careers enquiry at our discretion.",
     ],
   },
@@ -46,7 +46,7 @@ export const termsSections: Section[] = [
     title: "6. Intellectual property",
     body: [
       "The site does not state who owns the OpenWorlds name, logo, or other content. Use the support form before reusing material if you are unsure.",
-      "The rights and permissions applicable to content submitted through this site have not been established in this draft. Avoid submitting material you do not wish the site operator to receive.",
+      "You retain any rights you already have in material you submit. You give OpenWorlds permission to receive, store where the service requires, review, and use that material only to respond to your request, assess an application, provide the service, or enforce these Terms. This does not grant OpenWorlds ownership of your work. Do not submit confidential or third-party material unless you have permission to share it.",
     ],
   },
   {
@@ -77,7 +77,7 @@ export const termsSections: Section[] = [
   {
     title: "11. Governing law",
     body: [
-      "The applicable governing law has not been confirmed in the information available on this site. Obtain appropriate legal advice before relying on these template terms.",
+      "The operator's legal identity and location, and the applicable governing law, have not been provided. The operator must complete this section for the relevant jurisdiction before relying on these Terms.",
     ],
   },
   {
@@ -97,13 +97,13 @@ export default function Terms() {
             <Scale className="size-4" /> Legal
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Terms of Service</h1>
-          <p className="mt-4 text-blue-50">Version {ACTIVE_TERMS_VERSION} · Draft for review</p>
+          <p className="mt-4 text-blue-50">Version {ACTIVE_TERMS_VERSION} · Draft for legal review</p>
         </div>
       </section>
 
       <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          This is an informational draft, not legal advice or a confirmed legal agreement. It contains unresolved policy details and should be reviewed and completed before being relied on.
+          This is an informational draft, not legal advice or a confirmed legal agreement. The operator's legal identity, jurisdiction, age rules, and other service-specific details require review and completion before these Terms can be relied on.
         </p>
 
         <div className="mt-8 space-y-8">
