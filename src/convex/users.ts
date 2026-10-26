@@ -83,6 +83,44 @@ export const publicOfficialCreators = query({
 });
 
 /** Staff creator roster. Private contact emails are not returned. */
+/** Access check and own-profile details for the private Creator Space. */
+export const creatorSpaceAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { allowed: false as const, accessLevel: null, creatorProfile: null };
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.isSiteBanned) return { allowed: false as const, accessLevel: null, creatorProfile: null };
+
+    const isAdmin = user.emailVerificationTime !== undefined &&
+      (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk");
+    const isStaff = user.emailVerificationTime !== undefined &&
+      Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
+    const isCreator = user.role === "user" && user.isOfficialCreator === true;
+    const accessLevel = isAdmin ? "admin" as const : isStaff ? "staff" as const : isCreator ? "creator" as const : null;
+
+    if (!accessLevel) return { allowed: false as const, accessLevel: null, creatorProfile: null };
+
+    const record = isCreator
+      ? await ctx.db.query("officialCreators")
+        .withIndex("by_linked_user", (q) => q.eq("linkedUserId", userId))
+        .first()
+      : null;
+
+    return {
+      allowed: true as const,
+      accessLevel,
+      creatorProfile: record ? {
+        username: record.username,
+        displayName: record.displayName,
+        socialPlatform: record.socialPlatform ?? null,
+        socialUrl: record.socialUrl ?? null,
+      } : null,
+    };
+  },
+});
+
 export const staffOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
@@ -253,6 +291,14 @@ export const currentUser = query({
 
     // Expose only the profile fields needed by the client; never return the raw
     // auth user document (which includes the private sign-in email).
+    const hasCreatorSpaceAccess = !user.isSiteBanned && user.emailVerificationTime !== undefined && (
+      user.isOfficialCreator === true ||
+      user.role === "admin" ||
+      user.email?.trim().toLowerCase() === "support@openworlds.dk" ||
+      user.staffAccess === true ||
+      Boolean(user.department?.trim() || user.position?.trim())
+    );
+
     return {
       userId: user._id,
       name: isEmailAddress(user.name) ? null : user.name ?? null,
@@ -261,6 +307,7 @@ export const currentUser = query({
       position: user.position ?? null,
       publicBadge: user.publicBadge ?? null,
       nickname: isEmailAddress(user.nickname) ? null : user.nickname ?? null,
+      canAccessCreatorSpace: hasCreatorSpaceAccess,
       ...(user.role === "user" ? {
         playerName: user.name ?? "Player",
         isOfficialCreator: user.isOfficialCreator === true,
