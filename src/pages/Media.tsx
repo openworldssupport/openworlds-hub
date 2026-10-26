@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { useMutation } from "convex/react";
-import { ArrowRight, CheckCircle2, Clapperboard, ExternalLink, Star, Youtube } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { ArrowRight, BadgeCheck, CheckCircle2, Clapperboard, ExternalLink, Star, Youtube } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,10 @@ const officialUploadsPlaylist = "UUcEIUqR8lB_siqj1CE0XVjA";
 
 export default function Media() {
   const submitEnquiry = useMutation(api.careerApplications.submitEnquiry);
+  const officialCreators = useQuery(api.users.publicOfficialCreators);
+  const creators = officialCreators ?? [];
+  const creatorLoop = creators.length > 0 ? [...creators, ...creators] : creators;
+  const [creatorApplicationOpen, setCreatorApplicationOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +37,7 @@ export default function Media() {
     try {
       const message = [
         "OpenWorlds content creator application",
-        `OpenWorlds username or creator name: ${String(values.get("creatorName") ?? "").trim()}`,
+        `OpenWorlds username:\n${String(values.get("creatorName") ?? "").trim()}`,
         `Platform: ${String(values.get("platform") ?? "").trim()}`,
         `Public channel URL: ${String(values.get("channelUrl") ?? "").trim()}`,
         `Current subscribers/followers: ${subscriberCount}`,
@@ -42,7 +46,7 @@ export default function Media() {
         String(values.get("about") ?? "").trim(),
       ].join("\n\n");
       const result = await submitEnquiry({
-        type: "question",
+        type: "creator-application",
         name: String(values.get("creatorName") ?? "").trim(),
         email: String(values.get("email") ?? "").trim(),
         message,
@@ -61,18 +65,18 @@ export default function Media() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <SiteNav />
-      <section className="overflow-hidden bg-[#071a30] px-5 py-16 text-white sm:px-8 sm:py-24">
+      <section className="ow-page-hero px-5 py-16 text-white sm:px-8 sm:py-24">
         <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-sky-200"><Clapperboard className="size-4" /> OPENWORLDS MEDIA</p>
+            <p className="inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-blue-100"><Clapperboard className="size-4" /> OPENWORLDS MEDIA</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:text-6xl">Stories from worlds worth exploring.</h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">Watch official OpenWorlds videos, discover community-made content as it’s featured, and apply to join our content creator program.</p>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">Watch official OpenWorlds videos, discover community-made content as it’s featured, and apply to join our content creator program.</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#official" className="inline-flex h-11 items-center gap-2 rounded-md bg-sky-300 px-5 text-sm font-semibold text-[#071a30] transition hover:bg-sky-200">Watch official videos <ArrowRight className="size-4" /></a>
-              <a href="#creator-application" className="inline-flex h-11 items-center rounded-md border border-white/25 px-5 text-sm font-semibold text-white transition hover:bg-white/10">Apply as a creator</a>
+              <a href="#official" className="inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#176b45] transition hover:bg-blue-50">Watch official videos <ArrowRight className="size-4" /></a>
+              <a href="#creator-application" className="inline-flex h-11 items-center rounded-sm border border-white/40 px-5 text-sm font-semibold text-white transition hover:bg-white/10">Apply as a creator</a>
             </div>
           </div>
-          <div className="hidden size-40 items-center justify-center rounded-full border border-sky-200/20 bg-sky-300/10 text-sky-200 md:flex"><Clapperboard className="size-16 stroke-[1.2]" /></div>
+          <div className="hidden size-40 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white md:flex"><Clapperboard className="size-16 stroke-[1.2]" /></div>
         </div>
       </section>
 
@@ -103,7 +107,7 @@ export default function Media() {
       <section className="border-y border-slate-200 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-[#7651c9]">Community made</p>
+            <p className="text-sm font-semibold text-[#176b45]">Community made</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight">Creator videos</h2>
             <p className="mt-3 leading-7 text-slate-600">We’ll feature videos from creators after they’ve been reviewed and selected. Creator channels aren’t automatically synced, and no one is listed here until there’s an approved feature.</p>
           </div>
@@ -112,14 +116,14 @@ export default function Media() {
               <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><Star className="size-5" /></span>
               <div><h3 className="font-semibold">Make something about OpenWorlds?</h3><p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Apply to be considered for an official creator feature. Applications are reviewed by the team; meeting the guidelines doesn’t guarantee selection.</p></div>
             </div>
-            <a href="#creator-application" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-[#0066cc] px-4 text-sm font-medium text-white transition hover:bg-[#004a99]">Creator requirements <ArrowRight className="size-4" /></a>
+            <a href="#creator-application" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-sm bg-[#176b45] px-4 text-sm font-medium text-white transition hover:bg-[#105337]">Creator requirements <ArrowRight className="size-4" /></a>
           </div>
         </div>
       </section>
 
       <section id="creator-application" className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-semibold text-[#0066cc]">Join the creator community</p>
+          <p className="text-sm font-semibold text-[#176b45]">Join the creator community</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight">Apply to be featured</h2>
           <p className="mt-4 leading-7 text-slate-600">We’re looking for creators who make thoughtful, original content about OpenWorlds and help keep the community welcoming.</p>
           <ul className="mt-6 space-y-4">
@@ -128,19 +132,25 @@ export default function Media() {
               "A public channel with original videos; OpenWorlds-related content is a plus.",
               "Content and conduct that follow OpenWorlds community rules.",
               "A consistent, genuine interest in creating—not just a subscriber count.",
-            ].map((requirement) => <li key={requirement} className="flex gap-3 text-sm leading-6 text-slate-700"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-sky-500" />{requirement}</li>)}
+            ].map((requirement) =>            <li key={requirement} className="flex gap-3 text-sm leading-6 text-slate-700"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#176b45]" />{requirement}</li>)}
           </ul>
           <p className="mt-6 text-xs leading-5 text-slate-500">Creator features are voluntary. Selection and any additional program terms are confirmed by the OpenWorlds team. Don’t share passwords or account security details.</p>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
           {sent ? (
             <div role="status" className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 size-5 shrink-0" /><div><h3 className="font-semibold">Application sent to the team</h3><p className="mt-1 leading-6">Your application was sent to the OpenWorlds Careers inbox for review. Check your email for a confirmation. This isn’t an approval or guarantee of a feature.</p></div></div>
+          ) : !creatorApplicationOpen ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 sm:p-8">
+              <h3 className="text-lg font-semibold">Ready to apply?</h3>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Start an application for the team to review. Applying does not automatically award the official creator badge.</p>
+              <Button type="button" className="mt-5" onClick={() => setCreatorApplicationOpen(true)}><Youtube className="size-4" />Start creator application</Button>
+            </div>
           ) : (
             <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
               <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden"><label htmlFor="creator-website">Website</label><input id="creator-website" name="website" tabIndex={-1} autoComplete="off" /></div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="creator-name">Creator name or OpenWorlds username</Label><Input id="creator-name" name="creatorName" required maxLength={100} autoComplete="nickname" /></div>
+                <div className="space-y-2"><Label htmlFor="creator-name">OpenWorlds username</Label><Input id="creator-name" name="creatorName" required minLength={2} maxLength={32} autoComplete="username" /></div>
                 <div className="space-y-2"><Label htmlFor="creator-email">Contact email</Label><Input id="creator-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -152,8 +162,45 @@ export default function Media() {
               <div className="space-y-2"><Label htmlFor="creator-about">Tell us about your content and why you’d like to be featured</Label><Textarea id="creator-about" name="about" required minLength={20} maxLength={4000} rows={5} placeholder="What do you make, and what would you like to create about OpenWorlds?" /></div>
               <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="creatorConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree to have the details above emailed to OpenWorlds Careers for review. My application is not stored in this website. I understand that applying does not guarantee approval or a feature.</span></label>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" disabled={busy}><Youtube className="size-4" />{busy ? "Sending application…" : "Send creator application"}</Button>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="submit" disabled={busy}><Youtube className="size-4" />{busy ? "Sending application…" : "Send creator application"}</Button>
+                <Button type="button" variant="outline" disabled={busy} onClick={() => setCreatorApplicationOpen(false)}>Close application</Button>
+              </div>
             </form>
+          )}
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[#176b45]">Official creators</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">Verified OpenWorlds creators</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Only active player accounts approved by OpenWorlds staff appear here.</p>
+            </div>
+            {officialCreators === undefined ? <span className="text-xs text-slate-500">Loading creator list…</span> : creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
+          </div>
+          {officialCreators === undefined ? (
+            <p className="mt-5 text-sm text-slate-500">Loading official creators…</p>
+          ) : creators.length === 0 ? (
+            <p className="mt-5 rounded-lg border border-dashed border-slate-300 bg-white px-5 py-6 text-center text-sm text-slate-600">No Official Content Creators yet. Approved creators will appear here.</p>
+          ) : (
+            <div className="creator-marquee mt-5 overflow-hidden rounded-lg border border-slate-200 bg-white py-4" aria-label="Official Content Creators, scrolling automatically">
+              <div className="creator-marquee-track flex w-max gap-4 px-4">
+                {creatorLoop.map((creator, index) => (
+                  <div key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-56 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                    {creator.image ? (
+                      <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
+                    ) : (
+                      <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
+                    <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </section>

@@ -95,7 +95,7 @@ export default function Community() {
                         <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
                       )}
                       <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
-                      <span title="Verified Official Content Creator" className="shrink-0 text-[#176b45]"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                      <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
                     </div>
                   ))}
                 </div>

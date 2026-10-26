@@ -11,6 +11,7 @@ import { requireSiteAvailable } from "./siteStatus";
 export const publicOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const creators = await ctx.db.query("users")
       .withIndex("by_official_creator", (q) => q.eq("isOfficialCreator", true))
       .collect();
@@ -42,7 +43,10 @@ export const currentUser = query({
       position: user.position ?? null,
       publicBadge: user.publicBadge ?? null,
       nickname: isEmailAddress(user.nickname) ? null : user.nickname ?? null,
-      ...(user.role === "user" ? { playerName: user.name ?? "Player" } : {}),
+      ...(user.role === "user" ? {
+        playerName: user.name ?? "Player",
+        isOfficialCreator: user.isOfficialCreator === true,
+      } : {}),
     };
   },
 });

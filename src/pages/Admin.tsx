@@ -248,7 +248,7 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <section className="max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify staff-access changes</h2><p className="mt-1 text-sm leading-6 text-slate-600">A separate one-time code from support@openworlds.dk is required before adding, changing, or removing a staff assignment. Verification lasts 15 minutes.</p></div></div>
+        <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-800"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify staff-access changes</h2><p className="mt-1 text-sm leading-6 text-slate-600">A separate one-time code from support@openworlds.dk is required before changing staff access or assigning/removing an Official Content Creator badge. Verification lasts 15 minutes.</p></div></div>
         <Button className="mt-5" variant="outline" onClick={() => void sendPermissionCode()} disabled={permissionBusy || isPermissionVerified}><Mail className="size-4" />{isPermissionVerified ? "Access changes verified" : permissionBusy ? "Sending code..." : "Send code to Support"}</Button>
         {!isPermissionVerified && <form onSubmit={(event) => void verifyPermission(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-permission-code">6-digit Support code</Label><Input id="admin-permission-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={permissionCode} onChange={(event) => setPermissionCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={permissionBusy || permissionCode.length !== 6}><ShieldCheck className="size-4" />{permissionBusy ? "Verifying..." : "Verify access"}</Button></form>}
         {permissionMessage && <p role="status" className="mt-3 text-sm text-slate-600">{permissionMessage}</p>}
@@ -338,7 +338,7 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
       {member.role === "user" && (
         <div className="mt-3 flex flex-wrap items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
           <span className="text-sm font-medium">Official Content Creator</span>
-          {member.isOfficialCreator && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800"><BadgeCheck className="size-3.5" /> Verified creator</span>}
+          {member.isOfficialCreator && <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800"><BadgeCheck className="size-3.5" /> Verified creator</span>}
           <Button
             type="button"
             size="sm"
@@ -347,10 +347,10 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
             onClick={() => void onSetOfficialCreator(member.userId, !member.isOfficialCreator)}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-            {member.isOfficialCreator ? "Remove official status" : "Approve as creator"}
+            {member.isOfficialCreator ? "Remove verified badge" : "Assign verified badge"}
           </Button>
           {!member.playerLogin && <span className="text-xs text-slate-500">No OpenWorlds username on this account</span>}
-          {!canChangeAccess && <span className="text-xs text-slate-500">Verify Support access to change this status</span>}
+          {!canChangeAccess && <span className="text-xs text-slate-500">Verify Support access to change the creator badge</span>}
         </div>
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">

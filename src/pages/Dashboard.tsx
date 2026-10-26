@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, Megaphone, ShieldCheck } from "lucide-react";
+import { ArrowDownToLine, BadgeCheck, Megaphone, ShieldCheck } from "lucide-react";
 import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 
 export default function Dashboard() {
@@ -106,7 +106,7 @@ export default function Dashboard() {
         <div className="mt-9 grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><h2 className="font-semibold tracking-tight">Player profile</h2><p className="mt-1 text-sm text-slate-500">Update the name shown on your player account.</p></div>
+              <div><h2 className="flex items-center gap-2 font-semibold tracking-tight">Player profile{user.isOfficialCreator && <span title="Verified Official Content Creator" className="inline-flex items-center text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>}</h2><p className="mt-1 text-sm text-slate-500">Update the name shown on your player account.</p></div>
               <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void signOut()}>Sign out</Button></div>
             </div>
             <div className="mt-6">
