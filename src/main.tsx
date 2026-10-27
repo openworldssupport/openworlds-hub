@@ -26,6 +26,8 @@ const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Worlds = lazy(() => import("./pages/Worlds.tsx"));
+const PlayerProfile = lazy(() => import("./pages/PlayerProfile.tsx"));
+const WorldDetails = lazy(() => import("./pages/WorldDetails.tsx"));
 const Roadmap = lazy(() => import("./pages/Roadmap.tsx"));
 const Events = lazy(() => import("./pages/Events.tsx"));
 const Rules = lazy(() => import("./pages/Rules.tsx"));
@@ -190,6 +192,8 @@ createRoot(document.getElementById("root")!).render(
               />
               <Route path="/learning" element={<Learning />} />
               <Route path="/worlds" element={<Worlds />} />
+              <Route path="/worlds/:worldId" element={<WorldDetails />} />
+              <Route path="/players/:username" element={<PlayerProfile />} />
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/events" element={<Events />} />
               <Route path="/rules" element={<Rules />} />

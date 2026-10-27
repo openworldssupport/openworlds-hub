@@ -239,6 +239,25 @@ export const removeOfficialCreator = mutation({
   },
 });
 
+export const publicPlayerProfile = query({
+  args: { username: v.string() },
+  handler: async (ctx, { username: rawUsername }) => {
+    await requireSiteAvailable(ctx);
+    const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
+    if (!username || username.length > 32) return null;
+    const user = await ctx.db.query("users")
+      .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
+      .unique();
+    if (!user || user.role !== "user" || user.isSiteBanned || !user.profileDiscoverable || user.recoveryEmailVerifiedAt === undefined) return null;
+    return {
+      username: user.playerLogin?.trim() ?? username,
+      displayName: isEmailAddress(user.name) ? null : user.name?.trim() || null,
+      image: user.image ?? null,
+      isOfficialCreator: user.isOfficialCreator === true,
+    };
+  },
+});
+
 export const searchPlayerProfiles = query({
   args: { search: v.string() },
   handler: async (ctx, { search }) => {

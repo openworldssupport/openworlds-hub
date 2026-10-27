@@ -35,9 +35,28 @@ export const searchPublishedWorlds = query({
         id: world._id,
         title: world.title,
         description: world.description,
-        ownerUsername: owner.profileDiscoverable ? owner.playerLogin ?? null : null,
+        ownerUsername: owner.profileDiscoverable && owner.recoveryEmailVerifiedAt !== undefined ? owner.playerLogin ?? null : null,
       }];
     });
+  },
+});
+
+/** Public details for a single published world. */
+export const publishedWorldDetails = query({
+  args: { worldId: v.id("publishedWorlds") },
+  handler: async (ctx, { worldId }) => {
+    await requireSiteAvailable(ctx);
+    const world = await ctx.db.get(worldId);
+    if (!world) return null;
+    const owner = await ctx.db.get(world.ownerId);
+    if (!owner || owner.isSiteBanned) return null;
+    return {
+      id: world._id,
+      title: world.title,
+      description: world.description,
+      createdAt: world.createdAt,
+      ownerUsername: owner.profileDiscoverable && owner.recoveryEmailVerifiedAt !== undefined ? owner.playerLogin ?? null : null,
+    };
   },
 });
 

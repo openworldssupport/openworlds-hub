@@ -1,6 +1,6 @@
 import { useDeferredValue, useState } from "react";
 import { useQuery } from "convex/react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { api } from "@/convex/_generated/api";
 import { SiteNav } from "@/components/SiteNav";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { ArrowRight, BadgeCheck, Compass, Search, ShieldCheck, Users } from "luc
 export default function Worlds() {
   const [search, setSearch] = useState("");
   const [worldSearch, setWorldSearch] = useState("");
+  const navigate = useNavigate();
   const deferredSearch = useDeferredValue(search.trim().replace(/^@/, ""));
   const deferredWorldSearch = useDeferredValue(worldSearch.trim());
   const profiles = useQuery(api.users.searchPlayerProfiles, { search: deferredSearch });
@@ -49,10 +50,11 @@ export default function Worlds() {
                 {profiles.map((profile) => (
                   <li key={profile.username} className="flex items-center gap-3 px-4 py-3">
                     {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{profile.username.slice(0, 1).toUpperCase()}</span>}
-                    <div className="min-w-0 flex-1">
+                    <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.username)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
                       <p className="flex items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</p>
                       {profile.displayName && profile.displayName !== profile.username && <p className="truncate text-sm text-slate-500">{profile.displayName}</p>}
-                    </div>
+                      <span className="mt-1 inline-block text-xs font-medium text-[#176b45]">View profile</span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -80,10 +82,15 @@ export default function Worlds() {
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {worlds.map((world) => (
-                  <li key={world.id} className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{world.title}</p>
-                    {world.description && <p className="mt-1 text-sm leading-5 text-slate-600">{world.description}</p>}
-                    {world.ownerUsername && <p className="mt-2 text-xs text-slate-500">By {world.ownerUsername}</p>}
+                  <li key={world.id}>
+                    <Link to={`/worlds/${world.id}`} className="block px-4 py-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#176b45]">
+                      <p className="font-medium text-slate-900">{world.title}</p>
+                      {world.description && <p className="mt-1 text-sm leading-5 text-slate-600">{world.description}</p>}
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        {world.ownerUsername ? <p className="text-xs text-slate-500">By {world.ownerUsername}</p> : <span />}
+                        <span className="text-xs font-medium text-[#176b45]">View world details →</span>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
