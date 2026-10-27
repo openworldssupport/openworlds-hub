@@ -1,11 +1,13 @@
 import { Link, useLocation } from "react-router";
+import { LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteStatusNotice } from "@/components/SiteStatusNotice";
 
 export function SiteNav() {
-  const { user } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const location = useLocation();
   const isStaffRoute = location.pathname === "/staff" || location.pathname.startsWith("/staff/");
   const staffInfo = useQuery(api.staff.me, isStaffRoute ? {} : "skip");
@@ -43,16 +45,26 @@ export function SiteNav() {
             <Link to="/staff/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Verify creators</Link>
             {staffInfo.isAdmin && <Link to="/admin" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Admin console</Link>}
           </>}
-          {user?.role === "user" ? (
-            <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>
-          ) : !user ? (
+          {isLoading ? (
+            <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
+          ) : user ? (
+            <>
+              {user.role === "user" && <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>}
+              <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label="You are signed in">
+                {user.role === "user" ? `Signed in${user.playerName ? ` as ${user.playerName}` : ""}` : "Signed in"}
+              </span>
+              <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => void signOut()}>
+                <LogOut className="size-4" />
+                <span className="sr-only sm:not-sr-only">Sign out</span>
+              </Button>
+            </>
+          ) : (
             <>
               <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in</Link>
               <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up</Link>
             </>
-          ) : isStaffRoute && staffInfo?.isStaff ? (
-            <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600">{staffInfo.isAdmin ? "Admin" : "Staff"}</span>
-          ) : null}
+          )}
+          {isStaffRoute && staffInfo?.isStaff && <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600">{staffInfo.isAdmin ? "Admin" : "Staff"}</span>}
         </div>
 
       </nav>
