@@ -89,13 +89,14 @@ export default function CreatorVerification() {
     setNotice("");
     try {
       const result = await saveCreator({ email, username, displayName, socialPlatform, socialUrl });
-      if (!result.linkedToAccount) throw new Error("The verified email and username did not match an eligible player account. No Creator access was granted.");
+      if (!result.linkedToAccount) throw new Error("No Creator access was granted. Confirm that this player has verified the recovery email entered here and that it matches their username exactly.");
       setEmail("");
       setUsername("");
       setDisplayName("");
       setSocialPlatform("");
       setSocialUrl("");
       setFormOpen(false);
+      setPlayerSearch("");
       setNotice("Creator verified. Their player account now has Creator Space access, and their profile appears in the public creator listing.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify this creator.");
@@ -193,6 +194,7 @@ export default function CreatorVerification() {
       <Dialog open={formOpen} onOpenChange={(open) => { if (!busy) setFormOpen(open); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader><DialogTitle>Verify an OpenWorlds creator</DialogTitle><DialogDescription>Enter the player’s verified account identity and public creator details. The account email must already be verified as the recovery email on their OpenWorlds player account.</DialogDescription></DialogHeader>
+          <p className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm leading-5 text-blue-900">If you selected a player from search, their username and public name are filled in. For privacy, search does not reveal their recovery email. Enter the exact recovery email already verified on that same player account; mismatched or unverified details will not grant Creator access.</p>
           <form id="creator-verification-form" onSubmit={(event) => void approveCreator(event)} className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2"><Label htmlFor="verify-player-username">OpenWorlds username</Label><Input id="verify-player-username" required minLength={2} maxLength={32} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Their game username" /></div>
             <div className="space-y-2"><Label htmlFor="verify-player-email">Verified account recovery email</Label><Input id="verify-player-email" type="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email verified on their player account" /></div>
