@@ -142,8 +142,8 @@
   right: 0;
   bottom: -1px;
   left: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
+  height: 2px;
+  background: var(--ow-green);
   content: "";
 }
 
@@ -164,19 +164,11 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: linear-gradient(125deg, #104b35 0%, #176b45 58%, #762333 100%);
+  background: #14583c;
 }
 
 .ow-page-hero::before {
-  position: absolute;
-  top: 1rem;
-  right: clamp(1.25rem, 6vw, 5rem);
-  color: rgb(255 255 255 / 30%);
-  content: "❄";
-  font-size: clamp(6rem, 16vw, 12rem);
-  line-height: 0.9;
-  pointer-events: none;
-  transform: rotate(-12deg);
+  content: none;
 }
 
 .ow-page-hero > div {
@@ -233,15 +225,34 @@ main > footer {
   }
 }
 
-/* Warm winter neutrals unify the site's existing cards and section backgrounds. */
+/* Restrained, square-edged site-wide treatment with a system sans-serif stack. */
+:root {
+  --radius: 0.25rem;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: normal;
+  letter-spacing: normal;
+}
+
 main [class*="bg-gradient-to-"] {
-  background-color: #f8f4e9 !important;
-  background-image: linear-gradient(135deg, #f0f5ee, #fffdf8 55%, #f6e9e6) !important;
+  background-color: #f8f9f8 !important;
+  background-image: none !important;
 }
 
 main [class*="rounded-xl"],
-main [class*="rounded-2xl"] {
-  border-radius: 0.5rem !important;
+main [class*="rounded-2xl"],
+main [class*="rounded-lg"] {
+  border-radius: 0.25rem !important;
+}
+
+main [class*="rounded-md"] {
+  border-radius: 0.2rem !important;
+}
+
+main :is(span, p)[class*="rounded-full"]:not([class*="size-"]) {
+  border-radius: 0.2rem !important;
 }
 
 main [class*="border-t-2"] {
@@ -257,6 +268,7 @@ main :is(div, span).flex[class*="size-"]:has(> svg),
 main :is(div, span).inline-flex[class*="size-"]:has(> svg) {
   background-color: #f1f4ef !important;
   color: var(--ow-green) !important;
+  border-radius: 0.2rem !important;
 }
 
 main .ow-page-hero :is(div, span).flex[class*="size-"]:has(> svg),
@@ -324,4 +336,17 @@ main a[class*="hover:-translate-y-"]:hover,
 main a[class*="hover:shadow-"]:hover {
   box-shadow: none !important;
   transform: none !important;
+}
+
+.site-nav {
+  backdrop-filter: none;
+}
+
+.site-nav nav > div a,
+.site-nav nav > div span {
+  letter-spacing: normal;
+}
+
+main :is(h1, h2, h3, h4) {
+  letter-spacing: normal;
 }
