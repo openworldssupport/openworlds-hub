@@ -164,7 +164,17 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/downloads" element={<Downloads />} />
               <Route path="/about" element={<About />} />
               <Route path="/community" element={<Community />} />
-              <Route path="/creators" element={<Creators />} />
+              <Route
+                path="/creators"
+                element={
+                  <RequireAuth
+                    title="Creator Space"
+                    description="Sign in with an approved creator, staff, or administrator account to continue."
+                  >
+                    <Creators />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/staff/creators"
                 element={
