@@ -89,6 +89,7 @@ export function SiteNav() {
       <div className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em]">
         <span aria-hidden="true">✦</span>
         <span>Merry Christmas from OpenWorlds</span>
+        <span aria-hidden="true">❄</span>
         <span aria-hidden="true">✦</span>
       </div>
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">

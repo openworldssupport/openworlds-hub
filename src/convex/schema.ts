@@ -32,6 +32,9 @@ const schema = defineSchema(
       playerLogin: v.optional(v.string()),
       isOfficialCreator: v.optional(v.boolean()),
       profileDiscoverable: v.optional(v.boolean()),
+      publicBio: v.optional(v.string()),
+      profileFriendsVisible: v.optional(v.boolean()),
+      profileImageStorageId: v.optional(v.id("_storage")),
       pendingRecoveryEmail: v.optional(v.string()),
       recoveryEmail: v.optional(v.string()),
       recoveryEmailVerifiedAt: v.optional(v.number()),
@@ -202,6 +205,7 @@ const schema = defineSchema(
       ownerId: v.id("users"),
       title: v.string(),
       description: v.string(),
+      imageStorageIds: v.optional(v.array(v.id("_storage"))),
       createdAt: v.number(),
     })
       .index("by_owner", ["ownerId"])
@@ -209,6 +213,39 @@ const schema = defineSchema(
         searchField: "title",
         filterFields: [],
       }),
+
+    // Player-uploaded public profile/world images. Ownership is recorded by the
+    // server before an asset can be attached to a public record.
+    playerMedia: defineTable({
+      storageId: v.id("_storage"),
+      ownerId: v.id("users"),
+      kind: v.union(v.literal("profile"), v.literal("world")),
+      worldId: v.optional(v.id("publishedWorlds")),
+      createdAt: v.number(),
+    })
+      .index("by_storage_id", ["storageId"])
+      .index("by_owner_kind", ["ownerId", "kind"]),
+
+    friendRequests: defineTable({
+      senderId: v.id("users"),
+      receiverId: v.id("users"),
+      status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("declined")),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_sender", ["senderId"])
+      .index("by_receiver", ["receiverId"]),
+
+    playerMessages: defineTable({
+      participantA: v.id("users"),
+      participantB: v.id("users"),
+      senderId: v.id("users"),
+      receiverId: v.id("users"),
+      body: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_pair_created", ["participantA", "participantB", "createdAt"])
+      .index("by_sender_created", ["senderId", "createdAt"]),
 
     legalAcceptances: defineTable({
       userId: v.id("users"),

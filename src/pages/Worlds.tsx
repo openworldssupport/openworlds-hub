@@ -83,13 +83,16 @@ export default function Worlds() {
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {worlds.map((world) => (
                   <li key={world.id}>
-                    <Link to={`/worlds/${world.id}`} className="block px-4 py-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#176b45]">
-                      <p className="font-medium text-slate-900">{world.title}</p>
-                      {world.description && <p className="mt-1 text-sm leading-5 text-slate-600">{world.description}</p>}
-                      <div className="mt-2 flex items-center justify-between gap-3">
-                        {world.ownerUsername ? <p className="text-xs text-slate-500">By {world.ownerUsername}</p> : <span />}
-                        <span className="text-xs font-medium text-[#176b45]">View world details →</span>
-                      </div>
+                    <Link to={`/worlds/${world.id}`} className="flex min-h-28 gap-4 px-4 py-3 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#176b45]">
+                      {world.image ? <img src={world.image} alt="" loading="lazy" className="w-28 shrink-0 border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex w-28 shrink-0 items-center justify-center bg-[#e8f3ec] text-[#176b45]"><Compass className="size-7" /></span>}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="font-medium text-slate-900">{world.title}</span>
+                        {world.description && <span className="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{world.description}</span>}
+                        <span className="mt-auto flex items-center justify-between gap-3 pt-2">
+                          {world.ownerUsername ? <span className="text-xs text-slate-500">By {world.ownerUsername}</span> : <span />}
+                          <span className="text-xs font-medium text-[#176b45]">View world details →</span>
+                        </span>
+                      </span>
                     </Link>
                   </li>
                 ))}

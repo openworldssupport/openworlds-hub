@@ -168,7 +168,26 @@
 }
 
 .ow-page-hero::before {
-  content: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle at 80% 22%, rgb(255 255 255 / 22%) 0 1px, transparent 2px), radial-gradient(circle at 92% 74%, rgb(255 255 255 / 18%) 0 1px, transparent 2px), radial-gradient(circle at 12% 86%, rgb(255 255 255 / 16%) 0 1px, transparent 2px);
+  background-size: 28px 28px, 34px 34px, 42px 42px;
+  opacity: 0.65;
+  content: "";
+}
+
+.ow-page-hero::after {
+  position: absolute;
+  top: 1.5rem;
+  right: max(2rem, calc((100vw - 64rem) / 2));
+  color: #dcefdc;
+  font-size: 3.75rem;
+  line-height: 1;
+  opacity: 0.92;
+  text-shadow: 0 0 18px rgb(186 233 244 / 60%);
+  content: "❄";
+  pointer-events: none;
 }
 
 .ow-page-hero > div {

@@ -25,13 +25,15 @@ export default function WorldDetails() {
             <p className="mt-2 text-sm leading-6 text-slate-600">This world could not be found or is no longer available.</p>
           </section>
         ) : (
-          <article className="mt-6 rounded border border-slate-200 bg-white p-6 sm:p-8">
-            <span className="flex size-12 items-center justify-center rounded bg-slate-50 text-[#176b45]"><Compass className="size-6" /></span>
-            <h1 className="mt-5 text-3xl font-semibold tracking-tight">{world.title}</h1>
+          <article className="mt-6 overflow-hidden rounded border border-slate-200 bg-white">
+            {world.images.length > 0 ? <div className="grid gap-1 sm:grid-cols-2">{world.images.map((image, index) => <img key={image} src={image} alt={`${world.title} picture ${index + 1}`} className="max-h-[28rem] min-h-48 w-full bg-slate-100 object-cover" />)}</div> : <div className="flex min-h-36 items-center justify-center bg-[#e8f3ec] text-[#176b45]"><Compass className="size-10" /></div>}
+            <div className="p-6 sm:p-8">
+            <h1 className="text-3xl font-semibold tracking-tight">{world.title}</h1>
             {world.description ? <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-slate-700">{world.description}</p> : <p className="mt-4 text-sm text-slate-500">No description was provided.</p>}
             <div className="mt-7 border-t border-slate-100 pt-4 text-sm text-slate-500">
               {world.ownerUsername ? <p>Published by <Link to={`/players/${encodeURIComponent(world.ownerUsername)}`} className="font-medium text-[#176b45] hover:underline">@{world.ownerUsername}</Link></p> : <p>Publisher name is hidden by their profile settings.</p>}
               <p className="mt-1">Published {new Date(world.createdAt).toLocaleDateString()}</p>
+            </div>
             </div>
           </article>
         )}
