@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, BadgeCheck, Loader2, MessageCircle, UserPlus, UserRound, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, ExternalLink, Loader2, MessageCircle, UserPlus, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
@@ -82,6 +82,7 @@ export default function PlayerProfile() {
                 <p className="mt-1 text-sm text-slate-500">@{profile.username}</p>
               </div>
             </div>
+            {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 border border-slate-200 px-3 py-2 text-sm font-medium text-[#176b45] hover:bg-slate-50">{profile.socialPlatform || "Social profile"}<ExternalLink className="size-4" /></a>}
             {profile.about && <div className="mt-6 border-t border-slate-100 pt-5"><h2 className="text-sm font-semibold">About me</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{profile.about}</p></div>}
             <div className="mt-6 border-t border-slate-100 pt-5">
               <h2 className="flex items-center gap-2 text-sm font-semibold"><Users className="size-4" /> Friends{profile.friendsVisible && profile.friendCount !== null ? ` · ${profile.friendCount}` : ""}</h2>

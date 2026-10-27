@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowRight, BadgeCheck, CheckCircle2, Clapperboard, ExternalLink, Star, Youtube } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
@@ -173,20 +174,29 @@ export default function Media() {
       <section className="border-t border-slate-200 bg-slate-50 px-5 py-12 sm:px-8 sm:py-14">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">Verified Openworlds Creators</h2>
-          {officialCreators !== undefined && creators.length > 0 && (
-            <div className="mt-8 divide-y divide-slate-200">
-              {creators.map((creator) => (
-                <div key={creator.username} className="flex items-center gap-4 px-4 py-4">
-                  {creator.image ? (
-                    <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
-                  ) : (
-                    <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
-                  )}
-                  <span className="min-w-0 flex-1 truncate font-semibold text-slate-900">{creator.username}</span>
-                  <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
-                </div>
-              ))}
+          {officialCreators === undefined ? (
+            <p className="mt-8 text-center text-sm text-slate-500">Loading official creators…</p>
+          ) : creators.length > 0 ? (
+            <div className="creator-marquee mt-8 overflow-hidden border border-slate-200 bg-white py-4" aria-label="Official creators, scrolling automatically">
+              <div className="creator-marquee-track flex w-max gap-4 px-4">
+                {[...creators, ...creators].map((creator, index) => (
+                  <article key={`${creator.username}-${index}`} aria-hidden={index >= creators.length} className="flex min-w-64 items-center gap-3 border border-slate-200 bg-white px-4 py-3">
+                    <Link to={`/players/${encodeURIComponent(creator.username)}`} tabIndex={index >= creators.length ? -1 : undefined} className="flex min-w-0 flex-1 items-center gap-3 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
+                      {creator.image ? (
+                        <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" />
+                      ) : (
+                        <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>
+                      )}
+                      <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-slate-900">{creator.displayName}</span><span className="block truncate text-xs text-slate-500">@{creator.username}</span></span>
+                    </Link>
+                    {creator.socialUrl && <a href={creator.socialUrl} target="_blank" rel="noopener noreferrer" tabIndex={index >= creators.length ? -1 : undefined} aria-label={`${creator.socialPlatform || "Social profile"} for ${creator.displayName}`} title={`${creator.socialPlatform || "Social profile"} profile`} className="shrink-0 text-slate-500 hover:text-[#176b45]"><ExternalLink className="size-4" /></a>}
+                    <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                  </article>
+                ))}
+              </div>
             </div>
+          ) : (
+            <p className="mt-8 rounded border border-dashed border-slate-300 bg-white px-5 py-6 text-center text-sm text-slate-600">No verified creators are listed yet.</p>
           )}
         </div>
       </section>

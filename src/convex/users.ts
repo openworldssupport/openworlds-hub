@@ -57,28 +57,29 @@ export const publicOfficialCreators = query({
     await requireSiteAvailable(ctx);
     const records = await ctx.db.query("officialCreators").collect();
     const linkedUsers = await Promise.all(records.map((record) => record.linkedUserId ? ctx.db.get(record.linkedUserId) : null));
-    const creators = records.flatMap((record, index) => {
+    const creators = await Promise.all(records.map(async (record, index) => {
       const linkedUser = linkedUsers[index];
-      if (linkedUser?.isSiteBanned) return [];
-      return [{
+      if (linkedUser?.isSiteBanned) return null;
+      return {
         username: record.username,
         displayName: record.displayName,
-        image: linkedUser?.image ?? null,
+        image: linkedUser?.profileImageStorageId ? await ctx.storage.getUrl(linkedUser.profileImageStorageId) : linkedUser?.image ?? null,
         socialPlatform: record.socialPlatform ?? null,
         socialUrl: record.socialUrl ?? null,
-      }];
-    });
-    const knownUsernames = new Set(creators.map((creator) => creator.username.toLowerCase()));
+      };
+    }));
+    const visibleCreators = creators.filter((creator) => creator !== null);
+    const knownUsernames = new Set(visibleCreators.map((creator) => creator.username.toLowerCase()));
     const legacyCreators = await ctx.db.query("users")
       .withIndex("by_official_creator", (q) => q.eq("isOfficialCreator", true))
       .collect();
     for (const creator of legacyCreators) {
       const username = creator.playerLogin?.trim();
       if (creator.emailVerificationTime === undefined || creator.isSiteBanned || !username || knownUsernames.has(username.toLowerCase())) continue;
-      creators.push({ username, displayName: username, image: creator.image ?? null, socialPlatform: null, socialUrl: null });
+      visibleCreators.push({ username, displayName: username, image: creator.profileImageStorageId ? await ctx.storage.getUrl(creator.profileImageStorageId) : creator.image ?? null, socialPlatform: null, socialUrl: null });
       knownUsernames.add(username.toLowerCase());
     }
-    return creators.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    return visibleCreators.sort((a, b) => a.displayName.localeCompare(b.displayName));
   },
 });
 
@@ -248,13 +249,19 @@ export const publicPlayerProfile = query({
     const user = await ctx.db.query("users")
       .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
       .unique();
-    if (!user || user.role !== "user" || user.isSiteBanned || !user.profileDiscoverable || user.recoveryEmailVerifiedAt === undefined) return null;
+    if (!user || user.role !== "user" || user.isSiteBanned || user.recoveryEmailVerifiedAt === undefined) return null;
+    const officialCreator = await ctx.db.query("officialCreators")
+      .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
+      .first();
+    if (!user.profileDiscoverable && !officialCreator) return null;
     return {
       username: user.playerLogin?.trim() ?? username,
-      displayName: isEmailAddress(user.name) ? null : user.name?.trim() || null,
+      displayName: isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null,
       image: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
       about: user.publicBio?.trim() ?? "",
-      isOfficialCreator: user.isOfficialCreator === true,
+      socialPlatform: officialCreator?.socialPlatform ?? null,
+      socialUrl: officialCreator?.socialUrl ?? null,
+      isOfficialCreator: Boolean(officialCreator) || user.isOfficialCreator === true,
       friendsVisible: user.profileFriendsVisible === true,
       friendCount: user.profileFriendsVisible === true
         ? new Set([
