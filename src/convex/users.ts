@@ -256,7 +256,7 @@ export const searchPlayerProfiles = query({
     const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
     const normalizedTerm = term.toLowerCase();
     return [...unique.values()]
-      .filter((user) => !user.isSiteBanned && user.profileDiscoverable === true && Boolean(user.playerLogin?.trim()))
+      .filter((user) => !user.isSiteBanned && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()))
       .map((user) => {
         const username = user.playerLogin!.trim();
         const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
@@ -297,7 +297,7 @@ export const searchPlayersForCreatorVerification = query({
     const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
     const normalizedTerm = term.toLowerCase();
     return [...unique.values()]
-      .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned && Boolean(user.playerLogin?.trim()))
+      .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()))
       .map((user) => {
         const username = user.playerLogin!.trim();
         const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
@@ -326,7 +326,7 @@ export const currentProfilePrivacy = query({
     if (!userId) return null;
     const user = await ctx.db.get(userId);
     if (!user || user.role !== "user") return null;
-    return { discoverable: user.profileDiscoverable === true };
+    return { discoverable: user.profileDiscoverable === true, recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined) };
   },
 });
 
@@ -337,6 +337,7 @@ export const setProfileDiscoverability = mutation({
     if (!userId) throw new Error("Sign in to update your profile privacy.");
     const user = await ctx.db.get(userId);
     if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+    if (!user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) throw new Error("Verify your recovery email before changing player profile settings.");
     await ctx.db.patch(userId, { profileDiscoverable: discoverable });
     return { discoverable };
   },
@@ -377,6 +378,7 @@ export const currentUser = query({
       ...(user.role === "user" ? {
         playerName: user.name ?? "Player",
         isOfficialCreator: user.isOfficialCreator === true,
+        recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined),
       } : {}),
     };
   },

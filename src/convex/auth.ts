@@ -58,11 +58,12 @@ export const playerPassword = ConvexCredentials({
       if (password.length < 12) throw new Error("Use a password between 12 and 128 characters.");
       const name = typeof credentials.name === "string" ? credentials.name.trim() : "";
       if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
-      const recoveryEmail = typeof credentials.recoveryEmail === "string" && credentials.recoveryEmail.trim()
+      const recoveryEmail = typeof credentials.recoveryEmail === "string"
         ? credentials.recoveryEmail.trim().toLowerCase()
-        : undefined;
-      if (recoveryEmail && (recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail))) {
-        throw new Error("Enter a valid optional recovery email address.");
+        : "";
+      const usernameEmail = typeof credentials.email === "string" ? credentials.email.trim().toLowerCase() : "";
+      if (!recoveryEmail || recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail) || recoveryEmail === usernameEmail) {
+        throw new Error("Enter a valid recovery email address that is different from your username sign-in address.");
       }
       const created = await createAccount(ctx, {
         provider: "player-password",
@@ -73,7 +74,7 @@ export const playerPassword = ConvexCredentials({
           name,
           role: "user",
           profileDiscoverable: true,
-          ...(recoveryEmail ? { pendingRecoveryEmail: recoveryEmail } : {}),
+          pendingRecoveryEmail: recoveryEmail,
         },
       });
       return { userId: created.user._id };
@@ -84,6 +85,7 @@ export const playerPassword = ConvexCredentials({
     if (!account || account.user.role !== "user" || account.user.isSiteBanned) {
       throw new Error("Username/email or password is incorrect.");
     }
+    const recoveryEmailVerified = Boolean(account.user.recoveryEmail && account.user.recoveryEmailVerifiedAt !== undefined);
     if (flow === "twoFactorSignIn") {
       if (!account.user.twoFactorEnabled || typeof credentials.twoFactorToken !== "string") throw new Error("Two-step verification is not enabled.");
       const consumed = await ctx.runMutation(internal.accountSecurity.consumeVerifiedChallenge, {
@@ -94,7 +96,7 @@ export const playerPassword = ConvexCredentials({
     } else if (account.user.twoFactorEnabled) {
       throw new Error("Two-step verification is required. Sign in again and enter an authenticator code.");
     }
-    return { userId: account.user._id };
+    return { userId: account.user._id, recoveryEmailVerified };
   },
 });
 

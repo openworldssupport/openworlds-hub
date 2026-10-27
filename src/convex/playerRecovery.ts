@@ -50,6 +50,9 @@ export const requestRecoveryEmailCode = mutation({
   handler: async (ctx, { email: rawEmail }) => {
     const user = await requirePlayer(ctx);
     const email = normalizeEmail(rawEmail);
+    if (email === user.email?.trim().toLowerCase()) {
+      throw new Error("Use an email address different from your player sign-in email as your recovery email.");
+    }
     const now = Date.now();
     const windowStart = user.recoveryCodeWindowAt ?? 0;
     const count = windowStart > now - RESEND_WINDOW_MS ? (user.recoveryCodeRequestCount ?? 0) : 0;

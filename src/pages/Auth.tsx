@@ -79,11 +79,16 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     setBusy(true);
     try {
       if (isSignup) {
+        if (!recoveryEmail.trim()) {
+          setError("A recovery email is required. Enter an email address you can access.");
+          setBusy(false);
+          return;
+        }
         const result = await signIn("player-password", {
           flow: "signUp",
           email: login.trim().toLowerCase(),
           name: name.trim(),
-          ...(recoveryEmail.trim() ? { recoveryEmail: recoveryEmail.trim() } : {}),
+          recoveryEmail: recoveryEmail.trim(),
           password,
         });
         if (!result.signingIn) throw new Error("Player account creation did not complete.");
@@ -91,6 +96,16 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         const result = await passwordSignIn({ login: login.trim().toLowerCase(), password });
         if (result.required) {
           setTwoFactorToken(result.token ?? "");
+          if (!result.recoveryEmailVerified) {
+            await signIn("player-password", {
+              flow: "twoFactorSignIn",
+              email: login.trim().toLowerCase(),
+              password,
+              twoFactorToken: result.token ?? "",
+            });
+            navigate("/dashboard", { replace: true });
+            return;
+          }
           setTwoFactorStep(true);
           return;
         }
@@ -101,12 +116,15 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         });
         if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
       }
-      if (isSignup && recoveryEmail.trim()) {
+      if (isSignup) {
         try {
           await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
+          setNotice("Your account is saved. We sent a verification code to your recovery email. Verify it to continue.");
         } catch {
-          setNotice("Account created. You can add or verify a recovery email in your account settings.");
+          setNotice("Your account is saved, but we could not send the verification code. You can correct the email or request another code on the verification screen.");
         }
+        navigate("/dashboard", { replace: true });
+        return;
       }
       navigate(destination, { replace: true });
     } catch {
@@ -180,7 +198,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           <OpenWorldsLogo />
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username and password. Recovery email is optional." : "Sign in to access your player profile and saved game progress."}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username, password, and a recovery email. You’ll need to verify the email before using your player account." : "Sign in to access your player profile and saved game progress. If your recovery email is not verified yet, you’ll be prompted to verify one."}</p>
           {twoFactorStep ? (
             <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
               <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
@@ -210,7 +228,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
             <form onSubmit={submit} className="mt-6 space-y-4">
               {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
               <div className="space-y-2"><Label htmlFor="player-login">Username or email</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={254} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Choose a username" /><p className="text-xs text-slate-500">Username: 3–24 letters, numbers, dots, hyphens or underscores. Email addresses also work.</p></div>
-              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email <span className="font-normal text-slate-500">(optional)</span></Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">You’ll verify it after creating the account to use it for password resets.</p></div>}
+              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email</Label><Input id="player-recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Required. We’ll send a code to verify this address before you can use your player account.</p></div>}
               <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
               {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
               {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}

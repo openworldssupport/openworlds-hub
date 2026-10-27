@@ -11,6 +11,9 @@ async function requirePlayer(ctx: QueryCtx | MutationCtx) {
   if (!userId) throw new Error("Sign in to access player data.");
   const user = await ctx.db.get(userId);
   if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+  if (!user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) {
+    throw new Error("Verify your recovery email to access your player account and saved game data.");
+  }
   return { userId, user };
 }
 

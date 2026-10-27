@@ -72,6 +72,9 @@ async function currentAccount(ctx: any) {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage account security.");
+  if (user.role === "user" && (!user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined)) {
+    throw new Error("Verify your recovery email before managing account security.");
+  }
   return user;
 }
 
@@ -305,12 +308,13 @@ export const passwordSignIn = action({
     try { account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId, secret: password } }); }
     catch { throw new Error("Username/email or password is incorrect."); }
     if (!account || account.user.role !== "user" || account.user.isSiteBanned) throw new Error("Username/email or password is incorrect.");
-    if (!account.user.twoFactorEnabled) return { required: false };
+    const recoveryEmailVerified = Boolean(account.user.recoveryEmail && account.user.recoveryEmailVerifiedAt !== undefined);
+    if (!account.user.twoFactorEnabled) return { required: false, recoveryEmailVerified };
     const random = new Uint8Array(32);
     crypto.getRandomValues(random);
     const token = Array.from(random, (byte) => byte.toString(16).padStart(2, "0")).join("");
     await ctx.runMutation(internal.accountSecurity.createLoginChallenge, { userId: account.user._id, tokenHash: await hashLoginChallenge(token), expiresAt: Date.now() + 5 * 60 * 1000 });
-    return { required: true, token };
+    return { required: true, token, recoveryEmailVerified };
   },
 });
 
@@ -321,6 +325,9 @@ export const completePasswordSignIn = action({
     const accountId = /^[a-z0-9][a-z0-9._-]{2,23}$/.test(login) ? `${login}@players.openworlds.invalid` : login;
     const account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId } }).catch(() => null);
     if (!account || account.user.role !== "user" || account.user.isSiteBanned || !account.user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
+    if (!account.user.recoveryEmail || account.user.recoveryEmailVerifiedAt === undefined) {
+      throw new Error("Verify a recovery email before signing in to your player account.");
+    }
     const tokenHash = await hashLoginChallenge(token);
     const challenge = await ctx.runMutation(internal.accountSecurity.consumeLoginChallenge, { userId: account.user._id, tokenHash, code });
     if (!challenge.ok) throw new Error(challenge.message);
