@@ -183,6 +183,7 @@ function WorkspaceOverview({
           <p className="mt-1 text-xs text-slate-500">Common workspace destinations</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <QuickLink to="/admin" title="Admin console" detail="Tickets, company access & teams" />
+            <QuickLink to="/staff/creators" title="Verify creators" detail="Review profiles and grant Creator Space access" />
             <QuickLink to="/news" title="Public news" detail="View published announcements" />
           </div>
         </section>

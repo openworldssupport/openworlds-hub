@@ -1,4 +1,5 @@
 import { SiteNav } from "@/components/SiteNav";
+import { Link } from "react-router";
 import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useAction, useMutation } from "convex/react";
@@ -255,9 +256,12 @@ function CreatorReviewPanel({
 
   return (
     <section className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-800"><ShieldCheck className="size-5" /></span>
-        <div><h3 className="font-semibold">Staff creator verification</h3><p className="mt-1 text-sm leading-6 text-slate-600">Admins and approved staff can grant verified status after reviewing a creator's public name, OpenWorlds username, account email, and social profile. A code from Support is required. Applications are not automatically approved.</p></div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-800"><ShieldCheck className="size-5" /></span>
+          <div><h3 className="font-semibold">Staff creator verification</h3><p className="mt-1 text-sm leading-6 text-slate-600">Admins and approved staff can grant verified status after reviewing a creator's public name, OpenWorlds username, account email, and social profile. A code from Support is required. Applications are not automatically approved.</p></div>
+        </div>
+        <Button asChild variant="outline"><Link to="/staff/creators">Open creator verification page</Link></Button>
       </div>
       <Button className="mt-4" variant="outline" disabled={busy || verified} onClick={() => void onSendCode()}><Mail className="size-4" />{busy ? "Sending code…" : verified ? "Creator controls verified" : "Send code to Support"}</Button>
       {!verified && <form onSubmit={onVerify} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="community-creator-code">6-digit Support code</Label><Input id="community-creator-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}><ShieldCheck className="size-4" />{busy ? "Verifying…" : "Verify"}</Button></form>}

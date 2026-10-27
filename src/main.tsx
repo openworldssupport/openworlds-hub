@@ -17,6 +17,7 @@ const Media = lazy(() => import("./pages/Media.tsx"));
 const Downloads = lazy(() => import("./pages/Downloads.tsx"));
 const Community = lazy(() => import("./pages/Community.tsx"));
 const Creators = lazy(() => import("./pages/Creators.tsx"));
+const CreatorVerification = lazy(() => import("./pages/CreatorVerification.tsx"));
 const About = lazy(() => import("./pages/About.tsx"));
 const Support = lazy(() => import("./pages/Support.tsx"));
 const TicketStatus = lazy(() => import("./pages/TicketStatus.tsx"));
@@ -164,6 +165,18 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/about" element={<About />} />
               <Route path="/community" element={<Community />} />
               <Route path="/creators" element={<Creators />} />
+              <Route
+                path="/staff/creators"
+                element={
+                  <RequireAuth
+                    title="Staff sign in"
+                    description="Sign in with your approved staff account to verify OpenWorlds creators."
+                    signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff%2Fcreators"
+                  >
+                    <CreatorVerification />
+                  </RequireAuth>
+                }
+              />
               <Route path="/learning" element={<Learning />} />
               <Route path="/worlds" element={<Worlds />} />
               <Route path="/roadmap" element={<Roadmap />} />
