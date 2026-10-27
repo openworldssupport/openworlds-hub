@@ -2,7 +2,9 @@ import { SiteNav } from "@/components/SiteNav";
 import { CareerEnquiryDialog } from "@/components/CareerEnquiryDialog";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { BadgeCheck, Heart, Lightbulb, LockKeyhole, ShieldCheck, Users, Youtube, ExternalLink, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, Heart, Lightbulb, LockKeyhole, Search, ShieldCheck, Users, Youtube, ExternalLink, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const guidelines = [
   { title: "Respect & kindness", description: "Treat all community members with respect. Harassment, discrimination, and hateful content have no place here.", icon: Heart },
@@ -13,8 +15,21 @@ const guidelines = [
 
 export default function Community() {
   const officialCreators = useQuery(api.users.publicOfficialCreators);
+  const [creatorSearch, setCreatorSearch] = useState("");
   const creators = officialCreators ?? [];
   const creatorLoop = creators.length > 0 ? [...creators, ...creators] : creators;
+  const normalizedCreatorSearch = creatorSearch.trim().replace(/^@/, "").toLowerCase();
+  const matchingCreators = normalizedCreatorSearch
+    ? creators
+        .filter((creator) => `${creator.displayName} ${creator.username}`.toLowerCase().includes(normalizedCreatorSearch))
+        .sort((a, b) => {
+          const exactA = a.displayName.toLowerCase() === normalizedCreatorSearch || a.username.toLowerCase() === normalizedCreatorSearch;
+          const exactB = b.displayName.toLowerCase() === normalizedCreatorSearch || b.username.toLowerCase() === normalizedCreatorSearch;
+          const startsA = a.displayName.toLowerCase().startsWith(normalizedCreatorSearch) || a.username.toLowerCase().startsWith(normalizedCreatorSearch);
+          const startsB = b.displayName.toLowerCase().startsWith(normalizedCreatorSearch) || b.username.toLowerCase().startsWith(normalizedCreatorSearch);
+          return Number(!exactA) - Number(!exactB) || Number(!startsA) - Number(!startsB) || a.displayName.localeCompare(b.displayName);
+        })
+    : creators;
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -71,8 +86,7 @@ export default function Community() {
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A home for creators making videos, streams, guides, art, and community stories around OpenWorlds. Approved creators are listed here with a verified badge; applying does not grant official status.</p>
             </div>
             <CareerEnquiryDialog label="Apply to the program" mode="creator-application" />
-          </div>
-          <div className="mt-10 border-t border-slate-200 pt-7">
+          </div>            <div className="mt-10 border-t border-slate-200 pt-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold">Meet the official creators</h3>
@@ -80,10 +94,34 @@ export default function Community() {
               </div>
               {creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
             </div>
+            {creators.length > 0 && (
+              <div className="relative mt-5 max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Input aria-label="Search official creators by name or username" value={creatorSearch} onChange={(event) => setCreatorSearch(event.target.value)} placeholder="Search creator names or usernames…" className="h-11 pl-10" autoComplete="off" />
+              </div>
+            )}
             {officialCreators === undefined ? (
               <p className="mt-5 text-sm text-slate-500">Loading official creators…</p>
             ) : creators.length === 0 ? (
               <p className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-600">No Official Content Creators yet. Approved creators will appear here.</p>
+            ) : normalizedCreatorSearch ? (
+              matchingCreators.length === 0 ? (
+                <p className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center text-sm text-slate-600">No creators match that name. Try a shorter or more exact search.</p>
+              ) : (
+                <ul className="mt-5 divide-y divide-slate-100 rounded-lg border border-slate-200">
+                  {matchingCreators.map((creator) => {
+                    const isExact = creator.displayName.toLowerCase() === normalizedCreatorSearch || creator.username.toLowerCase() === normalizedCreatorSearch;
+                    return (
+                      <li key={creator.username} className="flex items-center gap-3 px-4 py-3">
+                        {creator.image ? <img src={creator.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[#e8f3ec] text-sm font-semibold text-[#176b45]">{creator.username.slice(0, 1).toUpperCase()}</span>}
+                        <span className="min-w-0 flex-1"><span className="flex items-center gap-2 truncate font-semibold text-slate-900">{creator.displayName}{isExact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}</span><span className="block truncate text-xs text-slate-500">@{creator.username}</span></span>
+                        {creator.socialUrl && <a href={creator.socialUrl} target="_blank" rel="noopener noreferrer" title={`Visit ${creator.displayName} on ${creator.socialPlatform || "their social profile"}`} className="shrink-0 text-slate-500 hover:text-[#176b45]"><ExternalLink className="size-4" aria-label="Open creator social profile" /></a>}
+                        <span title="Verified Official Content Creator" className="shrink-0 text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )
             ) : (
               <div className="creator-marquee mt-5 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 py-4" aria-label="Official Content Creators, scrolling automatically">
                 <div className="creator-marquee-track flex w-max gap-4 px-4">

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useDeferredValue, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { BadgeCheck, ExternalLink, Loader2, Mail, ShieldCheck } from "lucide-react";
@@ -31,12 +31,18 @@ export default function CreatorVerification() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [playerSearch, setPlayerSearch] = useState("");
+  const deferredPlayerSearch = useDeferredValue(playerSearch.trim().replace(/^@/, ""));
   const [socialPlatform, setSocialPlatform] = useState("");
   const [socialUrl, setSocialUrl] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
   const verified = Boolean(status?.canManage && (status.verifiedUntil ?? 0) > now);
+  const matchingPlayers = useQuery(
+    api.users.searchPlayersForCreatorVerification,
+    verified && deferredPlayerSearch.length >= 2 ? { search: deferredPlayerSearch } : "skip",
+  );
 
   useEffect(() => {
     if (!status?.verifiedUntil || status.verifiedUntil <= Date.now()) return;
@@ -141,7 +147,35 @@ export default function CreatorVerification() {
               </div>
               <Button className="mt-4" variant="outline" disabled={busy || verified} onClick={() => void sendCode()}><Mail className="size-4" />{busy ? "Sending code…" : verified ? "Creator approvals verified" : "Send code to Support"}</Button>
               {!verified && <form onSubmit={(event) => void confirmCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="staff-creator-support-code">6-digit Support code</Label><Input id="staff-creator-support-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}>{busy ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />} Verify code</Button></form>}
-              {verified && <div className="mt-5"><Button onClick={() => { setError(""); setFormOpen(true); }}><BadgeCheck className="size-4" /> Verify a creator</Button></div>}
+              {verified && (
+                <div className="mt-5 space-y-3">
+                  <Button onClick={() => { setError(""); setFormOpen(true); }}><BadgeCheck className="size-4" /> Verify a creator</Button>
+                  <div className="max-w-xl">
+                    <Label htmlFor="creator-player-search">Find a player by username or name</Label>
+                    <Input id="creator-player-search" className="mt-2" value={playerSearch} onChange={(event) => setPlayerSearch(event.target.value)} placeholder="Search usernames or display names…" autoComplete="off" />
+                    {deferredPlayerSearch.length >= 2 && (
+                      <div className="mt-2" aria-live="polite">
+                        {matchingPlayers === undefined ? (
+                          <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">Searching player accounts…</p>
+                        ) : matchingPlayers.length === 0 ? (
+                          <p className="rounded-lg border border-dashed border-slate-300 p-3 text-sm text-slate-500">No matching player accounts found.</p>
+                        ) : (
+                          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                            {matchingPlayers.map((player) => (
+                              <li key={player.username}>
+                                <button type="button" onClick={() => { setUsername(player.username); setDisplayName(player.displayName || player.username); setFormOpen(true); }} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-slate-50">
+                                  <span className="min-w-0 flex-1"><span className="flex items-center gap-2 truncate font-medium text-slate-900">{player.displayName || player.username}{player.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{player.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</span><span className="block truncate text-xs text-slate-500">@{player.username}</span></span>
+                                  <span className="shrink-0 text-xs font-medium text-[#0066cc]">Select</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {notice && <p role="status" className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
               {error && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
             </section>

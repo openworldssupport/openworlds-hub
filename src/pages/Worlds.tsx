@@ -30,12 +30,12 @@ export default function Worlds() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Users className="size-5" /></span>
-            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Look up players by username. Only profiles made discoverable by their owner are shown.</p></div>
+            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search by username or display name. Only profiles made discoverable by their owner are shown.</p></div>
           </div>
-          <label htmlFor="profile-search" className="sr-only">Search player usernames</label>
+          <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input id="profile-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search usernames…" className="h-11 pl-10" autoComplete="off" />
+            <Input id="profile-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search usernames or names…" className="h-11 pl-10" autoComplete="off" />
           </div>
           <div className="mt-5" aria-live="polite">
             {deferredSearch.length < 2 ? (
@@ -50,7 +50,7 @@ export default function Worlds() {
                   <li key={profile.username} className="flex items-center gap-3 px-4 py-3">
                     {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{profile.username.slice(0, 1).toUpperCase()}</span>}
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</p>
+                      <p className="flex items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</p>
                       {profile.displayName && profile.displayName !== profile.username && <p className="truncate text-sm text-slate-500">{profile.displayName}</p>}
                     </div>
                   </li>

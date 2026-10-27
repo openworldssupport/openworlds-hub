@@ -243,19 +243,79 @@ export const searchPlayerProfiles = query({
   args: { search: v.string() },
   handler: async (ctx, { search }) => {
     await requireSiteAvailable(ctx);
-    const term = search.trim().replace(/^@/, "");
+    const term = search.trim().replace(/^@/, "").slice(0, 80);
     if (term.length < 2) return [];
-    const matches = await ctx.db.query("users")
-      .withSearchIndex("search_player_profiles", (q) => q.search("playerLogin", term).eq("role", "user").eq("profileDiscoverable", true))
-      .take(15);
-    return matches
-      .filter((user) => !user.isSiteBanned && user.profileDiscoverable !== false && Boolean(user.playerLogin?.trim()))
-      .map((user) => ({
-        username: user.playerLogin!.trim(),
-        displayName: isEmailAddress(user.name) ? null : user.name ?? null,
-        image: user.image ?? null,
-        isOfficialCreator: user.isOfficialCreator === true,
-      }));
+    const [usernameMatches, nameMatches] = await Promise.all([
+      ctx.db.query("users")
+        .withSearchIndex("search_player_profiles", (q) => q.search("playerLogin", term).eq("role", "user").eq("profileDiscoverable", true))
+        .take(50),
+      ctx.db.query("users")
+        .withSearchIndex("search_player_display_names", (q) => q.search("name", term).eq("role", "user").eq("profileDiscoverable", true))
+        .take(50),
+    ]);
+    const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
+    const normalizedTerm = term.toLowerCase();
+    return [...unique.values()]
+      .filter((user) => !user.isSiteBanned && user.profileDiscoverable === true && Boolean(user.playerLogin?.trim()))
+      .map((user) => {
+        const username = user.playerLogin!.trim();
+        const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const normalizedUsername = username.toLowerCase();
+        const normalizedName = displayName?.toLowerCase() ?? "";
+        const exact = normalizedUsername === normalizedTerm || normalizedName === normalizedTerm;
+        const startsWith = normalizedUsername.startsWith(normalizedTerm) || normalizedName.startsWith(normalizedTerm);
+        return {
+          username,
+          displayName,
+          image: user.image ?? null,
+          isOfficialCreator: user.isOfficialCreator === true,
+          exact,
+          rank: exact ? 0 : startsWith ? 1 : 2,
+        };
+      })
+      .sort((a, b) => a.rank - b.rank || a.username.localeCompare(b.username))
+      .slice(0, 40)
+      .map(({ rank: _rank, ...profile }) => profile);
+  },
+});
+
+/** Search player accounts for staff creator verification; never returns private emails. */
+export const searchPlayersForCreatorVerification = query({
+  args: { search: v.string() },
+  handler: async (ctx, { search }) => {
+    await requireCreatorVerification(ctx);
+    const term = search.trim().replace(/^@/, "").slice(0, 80);
+    if (term.length < 2) return [];
+    const [usernameMatches, nameMatches] = await Promise.all([
+      ctx.db.query("users")
+        .withSearchIndex("search_players_by_username", (q) => q.search("playerLogin", term).eq("role", "user"))
+        .take(50),
+      ctx.db.query("users")
+        .withSearchIndex("search_players_by_name", (q) => q.search("name", term).eq("role", "user"))
+        .take(50),
+    ]);
+    const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
+    const normalizedTerm = term.toLowerCase();
+    return [...unique.values()]
+      .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned && Boolean(user.playerLogin?.trim()))
+      .map((user) => {
+        const username = user.playerLogin!.trim();
+        const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const normalizedUsername = username.toLowerCase();
+        const normalizedName = displayName?.toLowerCase() ?? "";
+        const exact = normalizedUsername === normalizedTerm || normalizedName === normalizedTerm;
+        const startsWith = normalizedUsername.startsWith(normalizedTerm) || normalizedName.startsWith(normalizedTerm);
+        return {
+          username,
+          displayName,
+          isOfficialCreator: user.isOfficialCreator === true,
+          exact,
+          rank: exact ? 0 : startsWith ? 1 : 2,
+        };
+      })
+      .sort((a, b) => a.rank - b.rank || a.username.localeCompare(b.username))
+      .slice(0, 40)
+      .map(({ rank: _rank, ...player }) => player);
   },
 });
 

@@ -81,6 +81,18 @@ const schema = defineSchema(
       .searchIndex("search_player_profiles", {
         searchField: "playerLogin",
         filterFields: ["role", "profileDiscoverable"],
+      })
+      .searchIndex("search_player_display_names", {
+        searchField: "name",
+        filterFields: ["role", "profileDiscoverable"],
+      })
+      .searchIndex("search_players_by_username", {
+        searchField: "playerLogin",
+        filterFields: ["role"],
+      })
+      .searchIndex("search_players_by_name", {
+        searchField: "name",
+        filterFields: ["role"],
       }),
 
     // Emails explicitly approved for private company OTP sign-in.
