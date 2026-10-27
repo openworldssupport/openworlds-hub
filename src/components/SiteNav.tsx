@@ -8,9 +8,8 @@ import { SiteStatusNotice } from "@/components/SiteStatusNotice";
 
 export function SiteNav() {
   const { user, isLoading, signOut } = useAuth();
-  const location = useLocation();
-  const isStaffRoute = location.pathname === "/staff" || location.pathname.startsWith("/staff/");
-  const staffInfo = useQuery(api.staff.me, isStaffRoute ? {} : "skip");
+  const staffInfo = useQuery(api.staff.me, user && user.role !== "user" ? {} : "skip");
+  const isStaffAccount = Boolean(staffInfo?.isStaff);
 
   return (
     <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -40,18 +39,24 @@ export function SiteNav() {
           <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
-          {isStaffRoute && staffInfo?.isStaff && <>
+          {isStaffAccount && <>
             <Link to="/staff" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Staff workspace</Link>
             <Link to="/staff/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Verify creators</Link>
-            {staffInfo.isAdmin && <Link to="/admin" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Admin console</Link>}
+            {staffInfo?.isAdmin && <Link to="/admin" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Admin console</Link>}
           </>}
           {isLoading ? (
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
           ) : user ? (
             <>
               {user.role === "user" && <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>}
-              <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label="You are signed in">
-                {user.role === "user" ? `Signed in${user.playerName ? ` as ${user.playerName}` : ""}` : "Signed in"}
+              <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label={isStaffAccount ? `Signed in as company ${staffInfo?.isAdmin ? "administrator" : "staff"}` : "You are signed in"}>
+                {user.role === "user"
+                  ? `Signed in${user.playerName ? ` as ${user.playerName}` : ""}`
+                  : isLoading || staffInfo === undefined
+                    ? "Checking company account…"
+                    : isStaffAccount
+                      ? staffInfo.isAdmin ? "Company admin" : "Company staff"
+                      : "Signed in"}
               </span>
               <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => void signOut()}>
                 <LogOut className="size-4" />
@@ -64,7 +69,6 @@ export function SiteNav() {
               <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up</Link>
             </>
           )}
-          {isStaffRoute && staffInfo?.isStaff && <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600">{staffInfo.isAdmin ? "Admin" : "Staff"}</span>}
         </div>
 
       </nav>
