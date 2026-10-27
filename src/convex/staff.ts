@@ -64,6 +64,7 @@ export const me = query({
         position: null as string | null,
         badge: null as PublicBadge | null,
         memberStatus: null as "volunteer-thank-you" | null,
+        welcome: null as { department: string; position: string; isAdmin: boolean } | null,
       };
     }
 
@@ -84,7 +85,30 @@ export const me = query({
       department: staff ? department : null,
       position: staff ? position : null,
       badge: staff ? (user.publicBadge ?? deriveBadge(department, position)) : null,
+      welcome: staff && user.staffWelcomeShownAt === undefined
+        ? {
+            department: department ?? "OpenWorlds",
+            position: position ?? (admin ? "Administrator" : "Staff member"),
+            isAdmin: admin,
+          }
+        : null,
     };
+  },
+});
+
+/** Record that the signed-in staff member has seen their one-time welcome. */
+export const markWelcomeShown = mutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isStaff(ctx))) throw new Error("Verified staff access is required.");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authorized.");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("Account not found.");
+    if (user.staffWelcomeShownAt === undefined) {
+      await ctx.db.patch(userId, { staffWelcomeShownAt: Date.now() });
+    }
+    return { ok: true };
   },
 });
 
@@ -277,6 +301,8 @@ export const setAssignment = mutation({
     const currentTarget = await ctx.db.get(args.userId);
     if (!currentTarget) throw new Error("Account not found.");
     const nextLevel = args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
+    const wasStaff = Boolean(currentTarget.emailVerificationTime !== undefined && !currentTarget.isSiteBanned &&
+      (currentTarget.role === "admin" || currentTarget.staffAccess || currentTarget.department?.trim() || currentTarget.position?.trim()));
     if (currentTarget.role === "admin" && args.accessLevel === "staff" && !department && !position) {
       throw new Error("Add a department and position before changing this account to staff.");
     }
@@ -326,6 +352,7 @@ export const setAssignment = mutation({
         position: position || undefined,
         publicBadge: args.badge,
         staffAccess: true,
+        staffWelcomeShownAt: wasStaff ? target.staffWelcomeShownAt : undefined,
         role: nextLevel === "admin" ? "admin" : "member",
         memberStatus: finalStatus === "none" ? undefined : finalStatus,
         isSiteBanned: isBanned ? true : undefined,

@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { Link, useLocation } from "react-router";
 import { api } from "@/convex/_generated/api";
@@ -30,6 +30,8 @@ import {
 import { displayNameFor, displayInitials } from "@/lib/staff";
 import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
 import { AccountSecuritySettings } from "@/pages/AccountSecurity";
+import { careerBranches, careerRoles } from "@/lib/careers";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const MAX_MESSAGE_LENGTH = 2000;
 type AnnouncementCategory = "announcement" | "development" | "release" | "event";
@@ -61,6 +63,31 @@ function formatTime(timestamp: number) {
 }
 
 type StaffSection = "overview" | "announcements" | "messages";
+
+const POSITION_JOB_DESCRIPTIONS: Record<string, string> = {
+  "chief executive officer": "Set OpenWorlds’ direction, make key leadership decisions, and keep the organization focused on its goals.",
+  "chief technology officer": "Guide the technical direction, architecture, security, and reliability of OpenWorlds.",
+  "chief design officer": "Guide the product and experience design direction across OpenWorlds.",
+  "chief marketing officer": "Lead OpenWorlds’ messaging, marketing plans, and audience growth.",
+  "chief people officer": "Support the team, coordinate people practices, and help contributors do their best work.",
+  "chief finance officer": "Oversee budgeting, financial planning, and clear reporting on project resources.",
+  "chief legal officer": "Help the organization identify legal risks and keep policies and agreements in good order.",
+  "head of community": "Guide community programs and help keep OpenWorlds spaces welcoming and useful to players.",
+  "lead game designer": "Lead gameplay and systems design, turning ideas and player feedback into clear, balanced features.",
+  "lead programmer": "Guide software implementation, review engineering work, and help keep the codebase reliable.",
+  "lead artist": "Guide the visual direction and coordinate art production across OpenWorlds.",
+  "senior developer": "Build and maintain platform features, review technical work, and support other developers.",
+  developer: "Build, test, and maintain software features for OpenWorlds with the rest of the development team.",
+  producer: "Coordinate schedules, priorities, and communication so project work moves forward smoothly.",
+  "community manager": "Support community conversations, share useful updates, and help players feel welcome.",
+  "customer support lead": "Coordinate player support, help resolve complex requests, and improve support processes.",
+  "senior qa engineer": "Plan and lead quality checks, find and document defects, and help prevent regressions.",
+  "data analyst": "Analyze project data and communicate clear, evidence-based findings to the team.",
+  "ai researcher": "Explore and evaluate AI approaches that could support OpenWorlds’ goals.",
+  "ai engineer": "Build, integrate, and maintain AI-powered systems for OpenWorlds.",
+  "art director": "Set and maintain the visual style, reviewing artwork for consistency and quality.",
+  "technical writer": "Write and maintain clear technical guides and documentation for the team and users.",
+};
 
 function WorkspaceOverview({
   isAdmin,
@@ -1033,6 +1060,20 @@ type SafeStaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId | undefin
 const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId }) => {
   const location = useLocation();
   const me = useQuery(api.staff.me);
+  const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeBusy, setWelcomeBusy] = useState(false);
+  const [welcomeError, setWelcomeError] = useState("");
+  const welcomeDetails = me?.welcome;
+  const matchedRole = welcomeDetails
+    ? careerRoles.find((role) => role.title.trim().toLowerCase() === welcomeDetails.position.trim().toLowerCase())
+    : undefined;
+  const matchedDepartment = welcomeDetails
+    ? careerBranches.find((branch) => branch.title.trim().toLowerCase() === welcomeDetails.department.trim().toLowerCase())
+    : undefined;
+  useEffect(() => {
+    if (welcomeDetails) setWelcomeOpen(true);
+  }, [me?.userId, welcomeDetails?.department, welcomeDetails?.position, welcomeDetails?.isAdmin]);
   const tabs = [
     { id: "overview" as const, label: "Workspace", icon: Building2 },
     { id: "announcements" as const, label: "Announcements", icon: Megaphone },
@@ -1044,6 +1085,60 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
 
   return (
     <div className="min-w-0">
+      <Dialog
+        open={welcomeOpen && Boolean(welcomeDetails)}
+        onOpenChange={(open) => {
+          if (!open && welcomeDetails && !welcomeBusy) {
+            setWelcomeBusy(true);
+            setWelcomeError("");
+            void markWelcomeShown()
+              .then(() => setWelcomeOpen(false))
+              .catch(() => setWelcomeError("We could not save that you have seen this welcome. Please close it again to retry."))
+              .finally(() => setWelcomeBusy(false));
+          } else if (open) {
+            setWelcomeOpen(true);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={!welcomeBusy}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Welcome to the team!</DialogTitle>
+            <DialogDescription>
+              We’re glad to have you with OpenWorlds. Here’s a quick look at your role.
+            </DialogDescription>
+          </DialogHeader>
+          {welcomeDetails && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Position</p>
+                <p className="mt-1 font-semibold text-slate-900">{welcomeDetails.position}</p>
+                <p className="text-sm text-slate-600">{welcomeDetails.department}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">What you’ll do</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  {matchedRole?.summary ?? POSITION_JOB_DESCRIPTIONS[welcomeDetails.position.trim().toLowerCase()] ?? matchedDepartment?.summary ?? (welcomeDetails.isAdmin
+                    ? "Help guide OpenWorlds, support the team, and oversee platform operations."
+                    : `As ${welcomeDetails.position} in ${welcomeDetails.department}, you’ll contribute to your department’s work and collaborate with the OpenWorlds team.`)}
+                </p>
+                {matchedRole && <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">{matchedRole.responsibilities.map((responsibility) => <li key={responsibility}>{responsibility}</li>)}</ul>}
+              </div>
+              {welcomeError && <p role="alert" className="text-sm text-red-700">{welcomeError}</p>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" disabled={welcomeBusy} onClick={() => {
+              setWelcomeBusy(true);
+              setWelcomeError("");
+              void markWelcomeShown()
+                .then(() => setWelcomeOpen(false))
+                .catch(() => setWelcomeError("We could not save that you have seen this welcome. Please try again."))
+                .finally(() => setWelcomeBusy(false));
+            }}>{welcomeBusy ? <Loader2 className="size-4 animate-spin" /> : null}{welcomeBusy ? "Saving…" : "Thanks, let’s go"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-200" role="tablist" aria-label="Staff workspace">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Link
