@@ -49,13 +49,13 @@ export function SiteNav() {
           ) : user ? (
             <>
               {user.role === "user" && <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>}
-              <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label={isStaffAccount ? `Signed in as company ${staffInfo?.isAdmin ? "administrator" : "staff"}` : "You are signed in"}>
+              <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label={isStaffAccount ? "Signed in as company staff" : "You are signed in"}>
                 {user.role === "user"
                   ? `Signed in${user.playerName ? ` as ${user.playerName}` : ""}`
                   : isLoading || staffInfo === undefined
                     ? "Checking company account…"
                     : isStaffAccount
-                      ? staffInfo.isAdmin ? "Company admin" : "Company staff"
+                      ? "Company Staff"
                       : "Signed in"}
               </span>
               <Button type="button" size="sm" variant="ghost" className="h-8 px-2" onClick={() => void signOut()}>
