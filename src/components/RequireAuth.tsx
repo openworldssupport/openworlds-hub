@@ -8,6 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
 import { Loader2, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
@@ -27,6 +29,7 @@ export function RequireAuth({
   description = "This page is only available to signed-in users.",
   redirectImmediately = false,
   signUpHref,
+  accessLevel,
 }: {
   children: ReactNode;
   /** Headline on the blocked screen. */
@@ -37,8 +40,11 @@ export function RequireAuth({
   redirectImmediately?: boolean;
   /** Optional alternate account request link shown on the sign-in required card. */
   signUpHref?: string;
+  /** Require the authenticated account to have server-verified staff or admin access. */
+  accessLevel?: "staff" | "admin";
 }) {
   const { isLoading, isAuthenticated } = useAuth();
+  const staffUser = useQuery(api.staff.me, accessLevel && isAuthenticated ? {} : "skip");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -93,6 +99,19 @@ export function RequireAuth({
         </Card>
       </main>
     );
+  }
+
+  if (accessLevel) {
+    if (staffUser === undefined) {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        </main>
+      );
+    }
+    if (!staffUser.isStaff || (accessLevel === "admin" && !staffUser.isAdmin)) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;

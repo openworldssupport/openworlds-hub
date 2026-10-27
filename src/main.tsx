@@ -182,6 +182,7 @@ createRoot(document.getElementById("root")!).render(
                     title="Staff sign in"
                     description="Sign in with your approved staff account to verify OpenWorlds creators."
                     signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff%2Fcreators"
+                    accessLevel="staff"
                   >
                     <CreatorVerification />
                   </RequireAuth>
@@ -203,6 +204,7 @@ createRoot(document.getElementById("root")!).render(
                     title="Admin sign in"
                     description="Sign in with your approved OpenWorlds admin email to access the admin console."
                     redirectImmediately
+                    accessLevel="admin"
                   >
                     <Admin />
                   </RequireAuth>
@@ -224,14 +226,15 @@ createRoot(document.getElementById("root")!).render(
                     title="Staff sign in"
                     description="The OpenWorlds company portal is for approved staff accounts."
                     signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff"
+                    accessLevel="staff"
                   >
                     <Staff isAdmin={false} userId={undefined as any} />
                   </RequireAuth>
                 }
               />
-              <Route path="/staff/overview" element={<StaffOverview />} />
-              <Route path="/staff/announcements" element={<StaffAnnouncements />} />
-              <Route path="/staff/messages" element={<StaffMessages />} />
+              <Route path="/staff/overview" element={<RequireAuth accessLevel="staff"><StaffOverview /></RequireAuth>} />
+              <Route path="/staff/announcements" element={<RequireAuth accessLevel="staff"><StaffAnnouncements /></RequireAuth>} />
+              <Route path="/staff/messages" element={<RequireAuth accessLevel="staff"><StaffMessages /></RequireAuth>} />
               <Route path="*" element={<NotFound />} />                </Routes>
               </Suspense>
             </LegalPolicyGate>
