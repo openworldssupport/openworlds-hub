@@ -29,7 +29,7 @@ export default function Creators() {
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Creator</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
-            A private space for verified creators and authorized OpenWorlds team members.
+            A private space for verified OpenWorlds creators.
           </p>
         </div>
       </section>
@@ -42,13 +42,11 @@ export default function Creators() {
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-800">
-                {access.accessLevel === "creator" ? "Verified creator" : "Authorized team access"}
+                Verified creator
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight">Welcome to Creator Space</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                {access.accessLevel === "creator"
-                  ? "Your OpenWorlds creator account is verified."
-                  : "Your verified OpenWorlds account has access to Creator Space."}
+                Your OpenWorlds creator account is verified.
               </p>
             </div>
           </div>
