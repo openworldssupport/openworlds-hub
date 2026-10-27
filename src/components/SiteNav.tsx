@@ -1,19 +1,91 @@
-import { Link, useLocation } from "react-router";
-import { LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteStatusNotice } from "@/components/SiteStatusNotice";
+import { careerBranches, careerRoles } from "@/lib/careers";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function SiteNav() {
   const { user, isLoading, signOut } = useAuth();
   const staffInfo = useQuery(api.staff.me, user && user.role !== "user" ? {} : "skip");
+  const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
   const isStaffAccount = Boolean(staffInfo?.isStaff);
+  const welcomeDetails = isStaffAccount ? staffInfo?.welcome : null;
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeBusy, setWelcomeBusy] = useState(false);
+  const [welcomeError, setWelcomeError] = useState("");
+  const matchedRole = welcomeDetails
+    ? careerRoles.find((role) => role.title.trim().toLowerCase() === welcomeDetails.position.trim().toLowerCase())
+    : undefined;
+  const matchedDepartment = welcomeDetails
+    ? careerBranches.find((branch) => branch.title.trim().toLowerCase() === welcomeDetails.department.trim().toLowerCase())
+    : undefined;
+
+  useEffect(() => {
+    if (welcomeDetails) setWelcomeOpen(true);
+  }, [staffInfo?.userId, welcomeDetails?.department, welcomeDetails?.position, welcomeDetails?.isAdmin]);
+
+  async function acknowledgeWelcome() {
+    setWelcomeBusy(true);
+    setWelcomeError("");
+    try {
+      await markWelcomeShown();
+      setWelcomeOpen(false);
+    } catch {
+      setWelcomeError("We could not save that you have seen this welcome. Please try again.");
+    } finally {
+      setWelcomeBusy(false);
+    }
+  }
 
   return (
     <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <SiteStatusNotice />
+      <Dialog
+        open={welcomeOpen && Boolean(welcomeDetails)}
+        onOpenChange={(open) => {
+          if (!open && welcomeDetails && !welcomeBusy) void acknowledgeWelcome();
+          if (open) setWelcomeOpen(true);
+        }}
+      >
+        <DialogContent showCloseButton={!welcomeBusy}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Welcome to the team!</DialogTitle>
+            <DialogDescription>
+              We’re glad to have you with OpenWorlds. Here’s a quick look at your role.
+            </DialogDescription>
+          </DialogHeader>
+          {welcomeDetails && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Position</p>
+                <p className="mt-1 font-semibold text-slate-900">{welcomeDetails.position}</p>
+                <p className="text-sm text-slate-600">{welcomeDetails.department}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">What you’ll do</p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  {matchedRole?.summary ?? matchedDepartment?.summary ?? (welcomeDetails.isAdmin
+                    ? "Help guide OpenWorlds, support the team, and oversee platform operations."
+                    : `As ${welcomeDetails.position} in ${welcomeDetails.department}, you’ll contribute to your department’s work and collaborate with the OpenWorlds team.`)}
+                </p>
+                {matchedRole && <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">{matchedRole.responsibilities.map((responsibility) => <li key={responsibility}>{responsibility}</li>)}</ul>}
+              </div>
+              {welcomeError && <p role="alert" className="text-sm text-red-700">{welcomeError}</p>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" disabled={welcomeBusy} onClick={() => void acknowledgeWelcome()}>
+              {welcomeBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+              {welcomeBusy ? "Saving…" : "Thanks, let’s go"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-[11px] font-semibold uppercase tracking-[0.18em]">
         <span aria-hidden="true">✦</span>
         <span>Merry Christmas from OpenWorlds</span>

@@ -48,6 +48,8 @@ export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
 }
 
 /** The portal header data: who you are, your department/position, your badge. */
+const CURRENT_STAFF_WELCOME_VERSION = 2;
+
 export const me = query({
   args: {},
   handler: async (ctx) => {
@@ -85,7 +87,7 @@ export const me = query({
       department: staff ? department : null,
       position: staff ? position : null,
       badge: staff ? (user.publicBadge ?? deriveBadge(department, position)) : null,
-      welcome: staff && user.staffWelcomeShownAt === undefined
+      welcome: staff && (user.staffWelcomeVersion ?? 0) < CURRENT_STAFF_WELCOME_VERSION
         ? {
             department: department ?? "OpenWorlds",
             position: position ?? (admin ? "Administrator" : "Staff member"),
@@ -105,9 +107,10 @@ export const markWelcomeShown = mutation({
     if (!userId) throw new Error("Not authorized.");
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("Account not found.");
-    if (user.staffWelcomeShownAt === undefined) {
-      await ctx.db.patch(userId, { staffWelcomeShownAt: Date.now() });
+    if ((user.staffWelcomeVersion ?? 0) < CURRENT_STAFF_WELCOME_VERSION) {
+      await ctx.db.patch(userId, { staffWelcomeVersion: CURRENT_STAFF_WELCOME_VERSION });
     }
+
     return { ok: true };
   },
 });
@@ -352,7 +355,7 @@ export const setAssignment = mutation({
         position: position || undefined,
         publicBadge: args.badge,
         staffAccess: true,
-        staffWelcomeShownAt: wasStaff ? target.staffWelcomeShownAt : undefined,
+        staffWelcomeVersion: wasStaff ? target.staffWelcomeVersion : undefined,
         role: nextLevel === "admin" ? "admin" : "member",
         memberStatus: finalStatus === "none" ? undefined : finalStatus,
         isSiteBanned: isBanned ? true : undefined,

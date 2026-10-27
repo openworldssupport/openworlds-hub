@@ -56,8 +56,8 @@ const schema = defineSchema(
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
       // Granted after a verified OTP for an invited or assigned staff account.
       staffAccess: v.optional(v.boolean()),
-      // Server-side one-time acknowledgement for the staff welcome dialog.
-      staffWelcomeShownAt: v.optional(v.number()),
+      // Versioned server-side acknowledgement for staff welcome notices.
+      staffWelcomeVersion: v.optional(v.number()),
       // Staff-chosen public name used across /staff and public team pages.
       // Preferred over name; emails are never shown as display names.
       nickname: v.optional(v.string()),
