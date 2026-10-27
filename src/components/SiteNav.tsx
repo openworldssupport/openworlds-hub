@@ -10,8 +10,8 @@ import { careerBranches, careerRoles } from "@/lib/careers";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function SiteNav() {
-  const { user, isLoading, signOut } = useAuth();
-  const staffInfo = useQuery(api.staff.me, user && user.role !== "user" ? {} : "skip");
+  const { user, isLoading, isAuthenticated, signOut } = useAuth();
+  const staffInfo = useQuery(api.staff.me, isAuthenticated ? {} : "skip");
   const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
   const isStaffAccount = Boolean(staffInfo?.isStaff);
   const welcomeDetails = isStaffAccount ? staffInfo?.welcome : null;
@@ -137,6 +137,7 @@ export function SiteNav() {
             </>
           ) : (
             <>
+              <Link to="/auth?returnTo=%2Fstaff" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Company Staff log in</Link>
               <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in</Link>
               <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up</Link>
             </>
