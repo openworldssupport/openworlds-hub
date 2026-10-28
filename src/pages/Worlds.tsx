@@ -32,7 +32,7 @@ export default function Worlds() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Users className="size-5" /></span>
-            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search by username or display name. Only profiles made discoverable by their owner are shown.</p></div>
+            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts and public company staff by username or display name.</p></div>
           </div>
           <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
@@ -45,15 +45,15 @@ export default function Worlds() {
             ) : profiles === undefined ? (
               <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Searching player profiles…</p>
             ) : profiles.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No discoverable players found. Check the spelling or try another username.</p>
+              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No public accounts found. Try a username or display name.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {profiles.map((profile) => (
-                  <li key={profile.username} className="flex items-center gap-3 px-4 py-3">
-                    {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{profile.username.slice(0, 1).toUpperCase()}</span>}
-                    <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.username)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
-                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
-                      {profile.displayName && profile.displayName !== profile.username && <p className="truncate text-sm text-slate-500">{profile.displayName}</p>}
+                  <li key={profile.profileKey} className="flex items-center gap-3 px-4 py-3">
+                    {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{(profile.displayName || profile.username || "O").slice(0, 1).toUpperCase()}</span>}
+                    <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.profileKey)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
+                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.displayName || profile.username || "OpenWorlds team member"}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
+                      {profile.username && <p className="truncate text-sm text-slate-500">@{profile.username}</p>}
                       <span className="mt-1 inline-block text-xs font-medium text-[#176b45]">View profile</span>
                     </button>
                   </li>

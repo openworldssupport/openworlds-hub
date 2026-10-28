@@ -83,16 +83,16 @@ export default function PlayerProfile() {
                   <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">{profile.displayName || profile.username}{profile.isOfficialCreator && <BadgeCheck className="size-5 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</h1>
                   {profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}
                 </div>
-                <p className="mt-1 text-sm text-slate-500">@{profile.username}</p>
+                <p className="mt-1 text-sm text-slate-500">{profile.username ? `@${profile.username}` : "OpenWorlds company account"}</p>
               </div>
             </div>
             {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 border border-slate-200 px-3 py-2 text-sm font-medium text-[#176b45] hover:bg-slate-50">{profile.socialPlatform || "Social profile"}<ExternalLink className="size-4" /></a>}
             {profile.about && <div className="mt-6 border-t border-slate-100 pt-5"><h2 className="text-sm font-semibold">About me</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">{profile.about}</p></div>}
-            <div className="mt-6 border-t border-slate-100 pt-5">
+            {profile.hasPlayerAccount && <div className="mt-6 border-t border-slate-100 pt-5">
               <h2 className="flex items-center gap-2 text-sm font-semibold"><Users className="size-4" /> Friends{profile.friendsVisible && profile.friendCount !== null ? ` · ${profile.friendCount}` : ""}</h2>
               {!profile.friendsVisible ? <p className="mt-2 text-sm text-slate-500">This player keeps their friends list private.</p> : friends === undefined ? <p className="mt-2 text-sm text-slate-500">Loading friends…</p> : friends.length ? <ul className="mt-3 flex flex-wrap gap-3">{friends.map((friend) => <li key={friend.username}><Link to={`/players/${encodeURIComponent(friend.username)}`} className="flex items-center gap-2 border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">{friend.image ? <img src={friend.image} alt="" className="size-8 object-cover" /> : <span className="size-8 bg-slate-100" />}<span>{friend.displayName || friend.username}<span className="block text-xs text-slate-500">@{friend.username}</span></span></Link></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No friends to show yet.</p>}
-            </div>
-            {user?.role === "user" && friendStatus && !["self", "unavailable", "signed-out"].includes(friendStatus.status) && (
+            </div>}
+            {profile.hasPlayerAccount && user?.role === "user" && friendStatus && !["self", "unavailable", "signed-out"].includes(friendStatus.status) && (
               <div className="mt-6 border-t border-slate-100 pt-5">
                 <div className="flex flex-wrap gap-2">
                   {friendStatus.status === "none" && <Button type="button" disabled={busy} onClick={() => void addFriend()}><UserPlus className="size-4" /> Add friend</Button>}

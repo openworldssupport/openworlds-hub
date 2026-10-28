@@ -256,11 +256,17 @@ export const publicPlayerProfile = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
     await requireSiteAvailable(ctx);
-    const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
-    if (!username || username.length > 32) return null;
-    const user = await ctx.db.query("users")
-      .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
-      .unique();
+    const identifier = rawUsername.trim().replace(/^@/, "");
+    if (!identifier || identifier.length > 64) return null;
+    const staffProfileId = identifier.startsWith("staff-")
+      ? ctx.db.normalizeId("users", identifier.slice("staff-".length))
+      : null;
+    const username = identifier.toLowerCase();
+    const user = staffProfileId
+      ? await ctx.db.get(staffProfileId)
+      : await ctx.db.query("users")
+        .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
+        .unique();
     if (!user || user.isSiteBanned) return null;
     const isCompanyStaff = isPublicCompanyStaff(user);
     const isVerifiedPlayer = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined;
@@ -273,7 +279,9 @@ export const publicPlayerProfile = query({
       ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
       : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
     return {
-      username: user.playerLogin?.trim() ?? username,
+      username: user.playerLogin?.trim() ?? null,
+      profileKey: user.playerLogin?.trim() ?? `staff-${user._id}`,
+      hasPlayerAccount: user.role === "user" && Boolean(user.playerLogin?.trim()),
       displayName: publicName,
       image: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
       about: user.publicBio?.trim() ?? "",
@@ -502,22 +510,23 @@ export const searchPlayerProfiles = query({
     const normalizedTerm = term.toLowerCase();
     const matches = [...unique.values()]
       .filter((user) => {
-        if (user.isSiteBanned || !user.playerLogin?.trim()) return false;
-        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined);
+        if (user.isSiteBanned) return false;
+        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()));
       })
       .map((user) => {
-        const username = user.playerLogin!.trim();
+        const username = user.playerLogin?.trim() ?? null;
         const isCompanyStaff = isPublicCompanyStaff(user);
-        const publicName = isCompanyStaff
+        const displayName = isCompanyStaff
           ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
           : isEmailAddress(user.name) ? null : user.name?.trim() || null;
-        const displayName = publicName;
-        const normalizedUsername = username.toLowerCase();
+        const normalizedUsername = username?.toLowerCase() ?? "";
         const normalizedName = displayName?.toLowerCase() ?? "";
         const exact = normalizedUsername === normalizedTerm || normalizedName === normalizedTerm;
         const startsWith = normalizedUsername.startsWith(normalizedTerm) || normalizedName.startsWith(normalizedTerm);
         return {
           username,
+          profileKey: username ?? `staff-${user._id}`,
+          hasPlayerAccount: user.role === "user" && Boolean(username),
           displayName,
           imageStorageId: user.profileImageStorageId,
           fallbackImage: user.image ?? null,
@@ -528,7 +537,7 @@ export const searchPlayerProfiles = query({
           rank: exact ? 0 : startsWith ? 1 : 2,
         };
       })
-      .sort((a, b) => a.rank - b.rank || a.username.localeCompare(b.username))
+      .sort((a, b) => a.rank - b.rank || (a.displayName ?? a.username ?? a.profileKey).localeCompare(b.displayName ?? b.username ?? b.profileKey))
       .slice(0, 40);
     return await Promise.all(matches.map(async ({ rank: _rank, imageStorageId, fallbackImage, ...profile }) => ({
       ...profile,
