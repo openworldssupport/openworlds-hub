@@ -112,11 +112,7 @@ export function SiteNav() {
           <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
           <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
           <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
-          {isStaffAccount && <>
-            <Link to="/staff" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Staff workspace</Link>
-            <Link to="/staff/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Verify creators</Link>
-            {staffInfo?.isAdmin && <Link to="/admin" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Admin console</Link>}
-          </>}
+          {isStaffAccount && <Link to="/staff" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Company Staff</Link>}
           {isLoading ? (
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
           ) : user ? (

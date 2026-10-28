@@ -62,6 +62,33 @@ function formatTime(timestamp: number) {
 
 type StaffSection = "overview" | "announcements" | "messages";
 
+function MoreStaffTools({ isAdmin }: { isAdmin: boolean }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="mb-5 rounded-xl border border-slate-200 bg-white">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 p-4 text-left"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>
+          <span className="block text-sm font-semibold">More staff tools</span>
+          <span className="mt-1 block text-xs text-slate-500">Website status and account access reviews</span>
+        </span>
+        <span aria-hidden="true" className="text-slate-500">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="space-y-4 border-t border-slate-100 p-4">
+          <SiteStatusControl />
+          {isAdmin && <StaffSecurityPanel />}
+        </div>
+      )}
+    </section>
+  );
+}
+
 const POSITION_JOB_DESCRIPTIONS: Record<string, string> = {
   "chief executive officer": "Set OpenWorlds’ direction, make key leadership decisions, and keep the organization focused on its goals.",
   "chief technology officer": "Guide the technical direction, architecture, security, and reliability of OpenWorlds.",
@@ -139,8 +166,17 @@ function WorkspaceOverview({
       )}
 
       {/* Nickname settings: first-login pick + always-change control. */}
-      {me && me.signedIn && me.isStaff && <NicknameSettings me={me} />}
-      {me && me.signedIn && <AccountSecuritySettings />}
+      {me && me.signedIn && (
+        <details className="rounded-xl border border-slate-200 bg-white">
+          <summary className="cursor-pointer list-none p-4 text-sm font-semibold marker:hidden">
+            Account settings <span className="ml-2 text-xs font-normal text-slate-500">Nickname and security</span>
+          </summary>
+          <div className="space-y-4 border-t border-slate-100 p-4">
+            {me.isStaff && <NicknameSettings me={me} />}
+            <AccountSecuritySettings />
+          </div>
+        </details>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Stat label="Announcements" value={announcements?.length ?? "—"} detail="Drafts and published updates" />
@@ -177,11 +213,13 @@ function WorkspaceOverview({
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold">Quick links</h2>
-          <p className="mt-1 text-xs text-slate-500">Common workspace destinations</p>
+          <h2 className="font-semibold">Staff links</h2>
+          <p className="mt-1 text-xs text-slate-500">Choose the area you need.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <QuickLink to="/admin" title="Admin console" detail="Tickets, company access & teams" />
-            <QuickLink to="/staff/creators" title="Verify creators" detail="Review profiles and grant Creator Space access" />
+            <QuickLink to="/staff/announcements" title="Announcements" detail="Draft and publish updates" />
+            <QuickLink to="/staff/messages" title="Team board" detail="Read and share internal updates" />
+            <QuickLink to="/staff/creators" title="Creator verification" detail="Review creator applications" />
+            {isAdmin && <QuickLink to="/admin" title="Admin console" detail="Manage company access and operations" />}
             <QuickLink to="/news" title="Public news" detail="View published announcements" />
           </div>
         </section>
@@ -1067,6 +1105,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
 
   const selectedTab: StaffSection =
     tabs.find((tab) => location.pathname.endsWith("/staff/" + tab.id))?.id ?? "overview";
+  const adminView = isAdmin || me?.isAdmin === true;
 
   return (
     <div className="min-w-0">
@@ -1087,15 +1126,14 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         ))}
       </div>
 
-      {me?.isStaff && <SiteStatusControl />}
-      {me?.isStaff && <StaffSecurityPanel />}
+      {selectedTab === "overview" && me?.isStaff && <MoreStaffTools isAdmin={adminView} />}
 
       {selectedTab === "overview" ? (
-        <WorkspaceOverview isAdmin={isAdmin} me={me} onAnnouncements={() => {}} />
+        <WorkspaceOverview isAdmin={adminView} me={me} onAnnouncements={() => {}} />
       ) : selectedTab === "announcements" ? (
-        <AnnouncementsPanel isAdmin={isAdmin} userId={userId ?? (me?.userId ?? "")} />
+        <AnnouncementsPanel isAdmin={adminView} userId={userId ?? (me?.userId ?? "")} />
       ) : (
-        <StaffBoard canDeleteAny={isAdmin} userId={userId ?? (me?.userId ?? "")} />
+        <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}
     </div>
   );
@@ -1145,7 +1183,7 @@ function SiteStatusControl() {
 
   const statusLabel = status === "unavailable" ? "The site is under construction or currently unavailable" : status === "available" ? "Default" : "Loading…";
   return (
-    <section className="mb-5 rounded-xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800"><Construction className="size-5" /></span>
         <div className="min-w-0 flex-1">
@@ -1187,7 +1225,7 @@ function StaffSecurityPanel() {
 
   if (!data) return null;
   return (
-    <section className="mb-5 rounded-xl border border-amber-200 bg-white p-5">
+    <section className="rounded-xl border border-amber-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Review active restrictions and player appeals. Remove a ban or approve an appeal to restore access.</p></div>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">{data.bans.length} active · {data.appeals.length} appeals</span>
