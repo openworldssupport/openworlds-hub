@@ -89,6 +89,10 @@ const schema = defineSchema(
         searchField: "name",
         filterFields: ["role", "profileDiscoverable"],
       })
+      .searchIndex("search_public_nicknames", {
+        searchField: "nickname",
+        filterFields: [],
+      })
       .searchIndex("search_players_by_username", {
         searchField: "playerLogin",
         filterFields: ["role"],

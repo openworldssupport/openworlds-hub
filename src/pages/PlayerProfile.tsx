@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { SiteNav } from "@/components/SiteNav";
+import { RoleBadge } from "@/components/RoleBadge";
 
 export default function PlayerProfile() {
   const { username = "" } = useParams();
@@ -78,7 +79,10 @@ export default function PlayerProfile() {
             <div className="flex items-center gap-4">
               {profile.image ? <img src={profile.image} alt="" className="size-16 rounded-full border border-slate-200 object-cover" /> : <span className="flex size-16 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-500"><UserRound className="size-7" /></span>}
               <div className="min-w-0">
-                <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">{profile.displayName || profile.username}{profile.isOfficialCreator && <BadgeCheck className="size-5 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">{profile.displayName || profile.username}{profile.isOfficialCreator && <BadgeCheck className="size-5 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</h1>
+                  {profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}
+                </div>
                 <p className="mt-1 text-sm text-slate-500">@{profile.username}</p>
               </div>
             </div>

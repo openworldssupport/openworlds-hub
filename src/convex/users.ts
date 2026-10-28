@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { isEmailAddress } from "../lib/staff";
+import { deriveBadge, isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
@@ -240,6 +240,18 @@ export const removeOfficialCreator = mutation({
   },
 });
 
+function isPublicCompanyStaff(user: {
+  emailVerificationTime?: number;
+  isSiteBanned?: boolean;
+  role?: string;
+  staffAccess?: boolean;
+  department?: string;
+  position?: string;
+}) {
+  return user.emailVerificationTime !== undefined && !user.isSiteBanned &&
+    (user.role === "admin" || user.staffAccess === true || Boolean(user.department?.trim() || user.position?.trim()));
+}
+
 export const publicPlayerProfile = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
@@ -249,19 +261,27 @@ export const publicPlayerProfile = query({
     const user = await ctx.db.query("users")
       .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
       .unique();
-    if (!user || user.role !== "user" || user.isSiteBanned || user.recoveryEmailVerifiedAt === undefined) return null;
+    if (!user || user.isSiteBanned) return null;
+    const isCompanyStaff = isPublicCompanyStaff(user);
+    const isVerifiedPlayer = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined;
+    if (!isCompanyStaff && !isVerifiedPlayer) return null;
     const officialCreator = await ctx.db.query("officialCreators")
       .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
       .first();
-    if (!user.profileDiscoverable && !officialCreator) return null;
+    if (!user.profileDiscoverable && !officialCreator && !isCompanyStaff) return null;
+    const publicName = isCompanyStaff
+      ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
+      : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
     return {
       username: user.playerLogin?.trim() ?? username,
-      displayName: isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null,
+      displayName: publicName,
       image: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
       about: user.publicBio?.trim() ?? "",
       socialPlatform: officialCreator?.socialPlatform ?? null,
       socialUrl: officialCreator?.socialUrl ?? null,
       isOfficialCreator: Boolean(officialCreator) || user.isOfficialCreator === true,
+      isCompanyStaff,
+      publicBadge: isCompanyStaff ? user.publicBadge ?? deriveBadge(user.department, user.position) : null,
       friendsVisible: user.profileFriendsVisible === true,
       friendCount: user.profileFriendsVisible === true
         ? new Set([
@@ -467,21 +487,31 @@ export const searchPlayerProfiles = query({
     await requireSiteAvailable(ctx);
     const term = search.trim().replace(/^@/, "").slice(0, 80);
     if (term.length < 2) return [];
-    const [usernameMatches, nameMatches] = await Promise.all([
+    const [usernameMatches, nameMatches, nicknameMatches] = await Promise.all([
       ctx.db.query("users")
-        .withSearchIndex("search_player_profiles", (q) => q.search("playerLogin", term).eq("role", "user").eq("profileDiscoverable", true))
+        .withSearchIndex("search_player_profiles", (q) => q.search("playerLogin", term))
         .take(50),
       ctx.db.query("users")
-        .withSearchIndex("search_player_display_names", (q) => q.search("name", term).eq("role", "user").eq("profileDiscoverable", true))
+        .withSearchIndex("search_player_display_names", (q) => q.search("name", term))
+        .take(50),
+      ctx.db.query("users")
+        .withSearchIndex("search_public_nicknames", (q) => q.search("nickname", term))
         .take(50),
     ]);
-    const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
+    const unique = new Map([...usernameMatches, ...nameMatches, ...nicknameMatches].map((user) => [user._id, user]));
     const normalizedTerm = term.toLowerCase();
     const matches = [...unique.values()]
-      .filter((user) => !user.isSiteBanned && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()))
+      .filter((user) => {
+        if (user.isSiteBanned || !user.playerLogin?.trim()) return false;
+        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined);
+      })
       .map((user) => {
         const username = user.playerLogin!.trim();
-        const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const isCompanyStaff = isPublicCompanyStaff(user);
+        const publicName = isCompanyStaff
+          ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
+          : isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const displayName = publicName;
         const normalizedUsername = username.toLowerCase();
         const normalizedName = displayName?.toLowerCase() ?? "";
         const exact = normalizedUsername === normalizedTerm || normalizedName === normalizedTerm;
@@ -492,6 +522,8 @@ export const searchPlayerProfiles = query({
           imageStorageId: user.profileImageStorageId,
           fallbackImage: user.image ?? null,
           isOfficialCreator: user.isOfficialCreator === true,
+          isCompanyStaff,
+          publicBadge: isCompanyStaff ? user.publicBadge ?? deriveBadge(user.department, user.position) : null,
           exact,
           rank: exact ? 0 : startsWith ? 1 : 2,
         };

@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { Link, useNavigate } from "react-router";
 import { api } from "@/convex/_generated/api";
 import { SiteNav } from "@/components/SiteNav";
+import { RoleBadge } from "@/components/RoleBadge";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, BadgeCheck, Compass, Search, ShieldCheck, Users } from "lucide-react";
 
@@ -51,7 +52,7 @@ export default function Worlds() {
                   <li key={profile.username} className="flex items-center gap-3 px-4 py-3">
                     {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{profile.username.slice(0, 1).toUpperCase()}</span>}
                     <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.username)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
-                      <p className="flex items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}</p>
+                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.username}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
                       {profile.displayName && profile.displayName !== profile.username && <p className="truncate text-sm text-slate-500">{profile.displayName}</p>}
                       <span className="mt-1 inline-block text-xs font-medium text-[#176b45]">View profile</span>
                     </button>
@@ -106,7 +107,7 @@ export default function Worlds() {
           <span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#0066cc] ring-1 ring-slate-200"><ShieldCheck className="size-5" /></span>
           <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Privacy-respecting discovery</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight">You choose what’s visible</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Player searches include only accounts that have opted into discovery. Search results never expose sign-in emails or private account details.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Player accounts appear only when they opt into discovery. Active company staff profiles are public and show their assigned Staff or Developer badge. Sign-in emails and private account details are never shown.</p>
           <Link to="/community" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100">Visit community <ArrowRight className="size-4" /></Link>
         </aside>
       </section>
