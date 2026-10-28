@@ -1106,10 +1106,32 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const selectedTab: StaffSection =
     tabs.find((tab) => location.pathname.endsWith("/staff/" + tab.id))?.id ?? "overview";
   const adminView = isAdmin || me?.isAdmin === true;
+  const welcomePosition = me?.position?.trim() || (adminView ? "Company admin" : "Company staff");
+  const welcomeJob = POSITION_JOB_DESCRIPTIONS[welcomePosition.toLowerCase()] || "Work with the OpenWorlds team to support players and help the project move forward.";
 
   return (
-    <div className="min-w-0">
-      <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-200" role="tablist" aria-label="Staff workspace">
+    <div className="min-h-[calc(100vh-8rem)] bg-[#f5f7f6] px-4 pb-12 pt-6 sm:px-8">
+      <div className="mx-auto max-w-6xl">
+      <section className="relative mb-6 overflow-hidden rounded-xl bg-[#104b35] px-5 py-6 text-white shadow-sm sm:px-8 sm:py-8">
+        <div aria-hidden="true" className="absolute -right-8 -top-16 size-56 rounded-full border-[28px] border-white/10" />
+        <div aria-hidden="true" className="absolute -bottom-20 right-36 size-44 rounded-full border border-white/10" />
+        <div className="relative flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">OpenWorlds · Company</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Staff workspace</h1>
+            <p className="mt-2 text-sm text-emerald-50/90">Your team hub for updates, announcements, and useful tools.</p>
+            {me?.signedIn && <p className="mt-4 max-w-xl text-sm leading-6 text-emerald-50"><span className="font-semibold text-white">Your role: {welcomePosition}.</span> {welcomeJob}</p>}
+          </div>
+          {me?.signedIn && (
+            <div className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
+              <span className="flex size-10 items-center justify-center rounded-md bg-[#f7e7bd] text-sm font-bold text-[#104b35]">{displayInitials(me)}</span>
+              <div><p className="text-sm font-semibold">{displayNameFor(me)}</p><p className="text-xs text-emerald-100">{me.isAdmin ? "Company admin" : "Company staff"}</p></div>
+            </div>
+          )}
+        </div>
+      </section>
+      <div className="min-w-0">
+      <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-200 bg-white px-2" role="tablist" aria-label="Staff workspace">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Link
             key={id}
@@ -1135,6 +1157,8 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
       ) : (
         <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}
+      </div>
+      </div>
     </div>
   );
 };
@@ -1239,7 +1263,7 @@ function StaffSecurityPanel() {
 
 export function StaffOverview() {
   return (
-    <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
+    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
@@ -1248,7 +1272,7 @@ export function StaffOverview() {
 
 export function StaffAnnouncements() {
   return (
-    <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
+    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
@@ -1257,7 +1281,7 @@ export function StaffAnnouncements() {
 
 export function StaffMessages() {
   return (
-    <div className="min-h-screen bg-[#f6f7f8] text-slate-900">
+    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
