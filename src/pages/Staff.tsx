@@ -1108,38 +1108,31 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const adminView = isAdmin || me?.isAdmin === true;
   const welcomePosition = me?.position?.trim() || (adminView ? "Company admin" : "Company staff");
   const welcomeJob = POSITION_JOB_DESCRIPTIONS[welcomePosition.toLowerCase()] || "Work with the OpenWorlds team to support players and help the project move forward.";
+  const selectedLabel = tabs.find((tab) => tab.id === selectedTab)?.label ?? "Workspace";
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] bg-[#f5f7f6] px-4 pb-12 pt-6 sm:px-8">
+    <div className="min-h-[calc(100vh-8rem)] bg-[#f4f5f2] px-4 pb-12 pt-6 sm:px-8">
       <div className="mx-auto max-w-6xl">
-      <section className="relative mb-6 overflow-hidden rounded-xl bg-[#104b35] px-5 py-6 text-white shadow-sm sm:px-8 sm:py-8">
-        <div aria-hidden="true" className="absolute -right-8 -top-16 size-56 rounded-full border-[28px] border-white/10" />
-        <div aria-hidden="true" className="absolute -bottom-20 right-36 size-44 rounded-full border border-white/10" />
-        <div className="relative flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">OpenWorlds · Company</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Staff workspace</h1>
-            <p className="mt-2 text-sm text-emerald-50/90">Your team hub for updates, announcements, and useful tools.</p>
-            {me?.signedIn && <p className="mt-4 max-w-xl text-sm leading-6 text-emerald-50"><span className="font-semibold text-white">Your role: {welcomePosition}.</span> {welcomeJob}</p>}
-          </div>
-          {me?.signedIn && (
-            <div className="flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <span className="flex size-10 items-center justify-center rounded-md bg-[#f7e7bd] text-sm font-bold text-[#104b35]">{displayInitials(me)}</span>
-              <div><p className="text-sm font-semibold">{displayNameFor(me)}</p><p className="text-xs text-emerald-100">{me.isAdmin ? "Company admin" : "Company staff"}</p></div>
+        <header className="mb-7 border-b-2 border-[#176b45] pb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#176b45]">OpenWorlds / Company Staff</p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Staff workspace</h1>
+              <p className="mt-1 text-sm text-slate-600">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Team updates and tools."} {selectedLabel}</p>
             </div>
-          )}
-        </div>
-      </section>
-      <div className="min-w-0">
-      <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-200 bg-white px-2" role="tablist" aria-label="Staff workspace">
+            {me?.signedIn && <p className="max-w-xl text-sm leading-6 text-slate-600"><span className="font-semibold text-slate-900">{welcomePosition}:</span> {welcomeJob}</p>}
+          </div>
+        </header>
+        <div className="min-w-0">
+          <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-300" role="tablist" aria-label="Staff workspace">
         {tabs.map(({ id, label, icon: Icon }) => (
           <Link
             key={id}
             to={`/staff/${id}`}
             className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${
-              location.pathname.endsWith("/staff/" + id)
-                ? "border-[#0066cc] text-[#0052a3]"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+              selectedTab === id
+                ? "border-[#176b45] text-[#14583c]"
+                : "border-transparent text-slate-500 hover:border-slate-400 hover:text-slate-800"
             }`}
           >
             <Icon className="size-4" />
@@ -1157,7 +1150,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
       ) : (
         <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}
-      </div>
+        </div>
       </div>
     </div>
   );
