@@ -52,7 +52,7 @@ export function SiteNav() {
           if (open) setWelcomeOpen(true);
         }}
       >
-        <DialogContent showCloseButton={!welcomeBusy}>
+        <DialogContent className={isStaffAccount ? "staff-welcome-dialog" : undefined} showCloseButton={!welcomeBusy}>
           <DialogHeader>
             <DialogTitle className="text-2xl">Welcome to the team!</DialogTitle>
             <DialogDescription>

@@ -369,3 +369,113 @@ main a[class*="hover:shadow-"]:hover {
 main :is(h1, h2, h3, h4) {
   letter-spacing: normal;
 }
+
+/* Private OpenWorlds staff office: cinematic noir styling, scoped to staff only. */
+.staff-portal {
+  --staff-ink: #07111f;
+  --staff-panel: #0c1a2b;
+  --staff-panel-raised: #10243a;
+  --staff-line: #1c3c5d;
+  --staff-blue: #73baff;
+  --staff-white: #f5f9ff;
+  background:
+    radial-gradient(ellipse at 50% -25%, rgb(30 93 151 / 34%), transparent 52%),
+    linear-gradient(145deg, #050b14, #091525 54%, #07111f);
+  color: var(--staff-white);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.staff-portal :is(h1, h2, h3, h4, strong, label, summary, button, a, p, span, li, time, small, svg) {
+  color: var(--staff-white);
+}
+
+.staff-portal :is(a:hover, button:hover:not(:disabled)) {
+  color: var(--staff-blue);
+}
+
+.staff-portal .staff-workspace {
+  background: transparent;
+  color: var(--staff-white);
+}
+
+.staff-portal :is(section, article, details, [class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"]) {
+  border-color: var(--staff-line);
+  background-color: var(--staff-panel);
+  color: var(--staff-white);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 18%);
+}
+
+.staff-portal :is([class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-amber-50"], [class*="bg-emerald-50"], [class*="bg-red-50"], [class*="bg-violet-50"]) {
+  background-color: var(--staff-panel-raised);
+}
+
+.staff-portal :is([class*="text-slate-900"], [class*="text-slate-800"], [class*="text-slate-700"], [class*="text-slate-600"], [class*="text-slate-500"], [class*="text-slate-400"], [class*="text-slate-300"], [class*="text-amber-900"], [class*="text-amber-800"], [class*="text-amber-700"], [class*="text-emerald-800"], [class*="text-red-800"], [class*="text-red-700"], [class*="text-violet-"], [class*="text-[#7651c9]"], [class*="text-[#176b45]"], [class*="text-[#14583c]"]) {
+  color: var(--staff-blue) !important;
+}
+
+.staff-portal .staff-workspace-header {
+  border-bottom-color: rgb(115 186 255 / 52%);
+}
+
+.staff-portal :is(input, textarea, select) {
+  border-color: var(--staff-line);
+  background-color: #071321;
+  color: var(--staff-white);
+}
+
+.staff-portal :is(input, textarea, select)::placeholder {
+  color: #9bbce0;
+}
+
+.staff-portal :is(input, textarea, select):focus-visible,
+.staff-portal :is(a, button):focus-visible {
+  outline-color: var(--staff-blue);
+}
+
+.staff-portal [role="tablist"] {
+  border-color: var(--staff-line);
+}
+
+.staff-portal [role="tablist"] a[aria-current="page"],
+.staff-portal [role="tablist"] a:hover {
+  border-color: var(--staff-blue);
+}
+
+.staff-portal .site-nav {
+  border-color: var(--staff-line);
+  background: #07111f;
+}
+
+.staff-portal .site-nav::after {
+  background: var(--staff-blue);
+}
+
+.staff-portal .site-nav nav > div a,
+.staff-portal .site-nav nav > div span {
+  color: var(--staff-white);
+}
+
+.staff-portal .holiday-greeting {
+  background: #0c1a2b;
+  color: var(--staff-blue);
+}
+
+.staff-welcome-dialog {
+  border-color: #1c3c5d;
+  background: #0c1a2b;
+  color: #f5f9ff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.staff-welcome-dialog :is(h1, h2, h3, h4, p, span, li, button, svg) {
+  color: #f5f9ff;
+}
+
+.staff-welcome-dialog :is([class*="text-slate-500"], [class*="text-slate-600"], [class*="text-slate-700"], [class*="text-slate-900"]) {
+  color: #9bcaff !important;
+}
+
+.staff-welcome-dialog :is([class*="bg-slate-50"], [class*="bg-white"]) {
+  border-color: #1c3c5d;
+  background: #10243a;
+}

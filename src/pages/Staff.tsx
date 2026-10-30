@@ -1111,14 +1111,14 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const selectedLabel = tabs.find((tab) => tab.id === selectedTab)?.label ?? "Workspace";
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] bg-[#f4f5f2] px-4 pb-12 pt-6 sm:px-8">
+    <div className="staff-workspace min-h-[calc(100vh-8rem)] px-4 pb-12 pt-6 sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-7 border-b-2 border-[#176b45] pb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#176b45]">OpenWorlds / Company Staff</p>
+        <header className="staff-workspace-header mb-7 border-b-2 border-blue-500/50 pb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-300">OpenWorlds / Private Staff Office · Employees &amp; Volunteers</p>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Staff workspace</h1>
-              <p className="mt-1 text-sm text-slate-600">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Team updates and tools."} {selectedLabel}</p>
+              <h1 className="text-3xl font-bold tracking-tight text-white">Private staff office</h1>
+              <p className="mt-1 text-sm text-slate-300">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Private workspace for OpenWorlds employees and volunteers."} {selectedLabel}</p>
             </div>
             {me?.signedIn && <p className="max-w-xl text-sm leading-6 text-slate-600"><span className="font-semibold text-slate-900">{welcomePosition}:</span> {welcomeJob}</p>}
           </div>
@@ -1256,7 +1256,7 @@ function StaffSecurityPanel() {
 
 export function StaffOverview() {
   return (
-    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
+    <div className="staff-portal min-h-screen">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
@@ -1265,7 +1265,7 @@ export function StaffOverview() {
 
 export function StaffAnnouncements() {
   return (
-    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
+    <div className="staff-portal min-h-screen">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
@@ -1274,7 +1274,7 @@ export function StaffAnnouncements() {
 
 export function StaffMessages() {
   return (
-    <div className="min-h-screen bg-[#f5f7f6] text-slate-900">
+    <div className="staff-portal min-h-screen">
       <SiteNav />
       <SafeStaffWorkspace isAdmin={false} userId={undefined} />
     </div>
@@ -1284,5 +1284,9 @@ export function StaffMessages() {
 type StaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId };
 
 export function StaffWorkspace({ isAdmin, userId }: StaffWorkspaceProps) {
-  return <SafeStaffWorkspace isAdmin={isAdmin} userId={userId} />;
+  return (
+    <div className="staff-portal min-h-screen">
+      <SafeStaffWorkspace isAdmin={isAdmin} userId={userId} />
+    </div>
+  );
 }
