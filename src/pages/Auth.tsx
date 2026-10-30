@@ -247,6 +247,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
 
 function StaffAuthPage({ mode = "login" }: AuthProps) {
   const { signIn } = useAuthActions();
+  const prepareStaffSignIn = useAction(api.accountSecurity.prepareStaffSignIn);
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -256,7 +257,9 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
   const isStaffSignup = params.get("mode") === "staff-signup" && destination === "/staff";
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [authenticatorCode, setAuthenticatorCode] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
+  const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -279,10 +282,38 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
     setBusy(true);
     setError("");
     try {
-      await signIn("email-otp", { email: email.trim().toLowerCase(), code: code.trim() });
+      const result = await prepareStaffSignIn({ email: email.trim().toLowerCase(), emailCode: code.trim() });
+      if (result.needsTwoFactor) {
+        setTwoFactorStep(true);
+        return;
+      }
+      const signInResult = await signIn("email-otp", { email: email.trim().toLowerCase(), code: code.trim() });
+      if (!signInResult.signingIn) throw new Error("Staff sign-in did not complete.");
       navigate(destination, { replace: true });
     } catch (err) {
-      setError("That code could not be verified. Check it and try again.");
+      setError(err instanceof Error ? err.message : "That code could not be verified. Check it and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishStaffTwoFactor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const result = await prepareStaffSignIn({
+        email: normalizedEmail,
+        emailCode: code.trim(),
+        authenticatorCode: authenticatorCode.trim(),
+      });
+      if (result.needsTwoFactor) throw new Error("Enter a valid authenticator or recovery code.");
+      const signInResult = await signIn("email-otp", { email: normalizedEmail, code: code.trim() });
+      if (!signInResult.signingIn) throw new Error("Staff sign-in did not complete.");
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Two-step verification failed. Check the code and try again.");
     } finally {
       setBusy(false);
     }
@@ -345,6 +376,28 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? "Sending code…" : "Email me a code"}
               </Button>
+            </form>
+          ) : twoFactorStep ? (
+            <form onSubmit={finishStaffTwoFactor} className="mt-6 space-y-4">
+              <p className="text-sm text-slate-600">Enter a current authenticator code or an unused recovery code.</p>
+              <div className="space-y-2">
+                <label htmlFor="staff-authenticator-code" className="text-sm font-medium">Authenticator or recovery code</label>
+                <Input
+                  id="staff-authenticator-code"
+                  autoComplete="one-time-code"
+                  required
+                  value={authenticatorCode}
+                  onChange={(event) => setAuthenticatorCode(event.target.value.trim().toUpperCase())}
+                  placeholder="Code"
+                />
+              </div>
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy || !authenticatorCode.trim()}>
+                {busy ? "Verifying…" : "Verify and sign in"}
+              </Button>
+              <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setTwoFactorStep(false); setAuthenticatorCode(""); setError(""); }}>
+                Back to email code
+              </button>
             </form>
           ) : (
             <form onSubmit={verifyCode} className="mt-6 space-y-4">

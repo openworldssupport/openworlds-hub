@@ -280,8 +280,6 @@ export const prepareStaffSignIn = action({
       if (!result.ok) throw new Error(result.message);
     }
     if (account.twoFactorEnabled) await ctx.runMutation(internal.accountSecurity.authorizeStaffTwoFactor, { userId: account.userId });
-    const signedIn = await ctx.runAction(internal.accountSecurity.completeStaffSignIn, { email, code: emailCode.trim() });
-    if (!signedIn.ok) throw new Error("The sign-in code could not be verified. Request a new code.");
     return { needsTwoFactor: false };
   },
 });
