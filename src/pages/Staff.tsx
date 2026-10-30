@@ -1114,11 +1114,11 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
     <div className="staff-workspace min-h-[calc(100vh-8rem)] px-4 pb-12 pt-6 sm:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="staff-workspace-header mb-7 border-b-2 border-blue-500/50 pb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-300">OpenWorlds / Private Staff Office · Employees &amp; Volunteers</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-300">OpenWorlds / Back Office · Employees &amp; Volunteers</p>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Private staff office</h1>
-              <p className="mt-1 text-sm text-slate-300">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Private workspace for OpenWorlds employees and volunteers."} {selectedLabel}</p>
+              <h1 className="text-3xl font-bold tracking-tight text-white">The Back Office</h1>
+              <p className="mt-1 text-sm text-slate-300">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Staff workspace for OpenWorlds employees and volunteers."} {selectedLabel}</p>
             </div>
             {me?.signedIn && <p className="max-w-xl text-sm leading-6 text-slate-600"><span className="font-semibold text-slate-900">{welcomePosition}:</span> {welcomeJob}</p>}
           </div>

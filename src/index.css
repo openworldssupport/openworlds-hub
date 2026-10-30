@@ -385,12 +385,13 @@ main :is(h1, h2, h3, h4) {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.staff-portal :is(h1, h2, h3, h4, strong, label, summary, button, a, p, span, li, time, small, svg) {
-  color: var(--staff-white);
+.staff-portal,
+.staff-portal * {
+  color: var(--staff-white) !important;
 }
 
 .staff-portal :is(a:hover, button:hover:not(:disabled)) {
-  color: var(--staff-blue);
+  color: var(--staff-blue) !important;
 }
 
 .staff-portal .staff-workspace {
@@ -467,12 +468,9 @@ main :is(h1, h2, h3, h4) {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.staff-welcome-dialog :is(h1, h2, h3, h4, p, span, li, button, svg) {
-  color: #f5f9ff;
-}
-
-.staff-welcome-dialog :is([class*="text-slate-500"], [class*="text-slate-600"], [class*="text-slate-700"], [class*="text-slate-900"]) {
-  color: #9bcaff !important;
+.staff-welcome-dialog,
+.staff-welcome-dialog * {
+  color: #f5f9ff !important;
 }
 
 .staff-welcome-dialog :is([class*="bg-slate-50"], [class*="bg-white"]) {
