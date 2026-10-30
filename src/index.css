@@ -370,186 +370,81 @@ main :is(h1, h2, h3, h4) {
   letter-spacing: normal;
 }
 
-/* Private OpenWorlds staff office: cinematic noir styling, scoped to staff only. */
+/* Staff pages use the same light OpenWorlds palette as the public site. */
 .staff-portal {
-  --staff-ink: #07111f;
-  --staff-panel: #0b1a2b;
-  --staff-panel-raised: #10243a;
-  --staff-line: #1c3c5d;
-  --staff-blue: #79b8ff;
-  --staff-white: #f5f9ff;
-  background:
-    radial-gradient(ellipse at 50% -25%, rgb(30 93 151 / 20%), transparent 52%),
-    linear-gradient(145deg, #050b14, #091525 54%, #07111f);
-  color: var(--staff-white);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+  background: #f8f9f8;
+  color: #111827;
 }
 
-.staff-portal,
-.staff-portal * {
-  color: var(--staff-white) !important;
-}
-
-.staff-portal :is(a:hover, button:hover:not(:disabled)) {
-  color: var(--staff-blue) !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="default"] {
-  border: 1px solid #347ab8 !important;
-  background-color: #1763a6 !important;
-  color: #ffffff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="default"]:hover:not(:disabled) {
-  border-color: #5aa4e8 !important;
-  background-color: #2479bd !important;
-  color: #ffffff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="outline"] {
-  border: 1px solid #426487 !important;
-  background-color: #10243a !important;
-  color: #f5f9ff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="outline"]:hover:not(:disabled) {
-  border-color: #79b8ff !important;
-  background-color: #193653 !important;
-  color: #ffffff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="secondary"] {
-  border: 1px solid #35516e !important;
-  background-color: #18314b !important;
-  color: #f5f9ff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="secondary"]:hover:not(:disabled) {
-  background-color: #244767 !important;
-  color: #ffffff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="ghost"] {
-  background-color: transparent !important;
-  color: #c6dcf4 !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="ghost"]:hover:not(:disabled) {
-  background-color: #18314b !important;
-  color: #ffffff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="link"] {
-  background-color: transparent !important;
-  color: #79b8ff !important;
-}
-
-.staff-portal [data-slot="button"][data-variant="destructive"] {
-  border: 1px solid #a94151 !important;
-  background-color: #8f2635 !important;
-  color: #ffffff !important;
-}
-
-.staff-portal .staff-workspace {
-  background: transparent;
-  color: var(--staff-white);
-}
-
-.staff-portal :is(section, article, details, [class*="bg-white"], [class*="bg-slate-50"], [class*="bg-slate-100"]) {
-  border-color: var(--staff-line);
-  background-color: var(--staff-panel);
-  color: var(--staff-white);
-  border-radius: 0.5rem;
+.staff-portal :is(section, article, details) {
+  border-color: #e2e8f0;
+  border-radius: 0.25rem;
+  background-color: #fff;
   box-shadow: none;
 }
 
-.staff-portal :is([class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-amber-50"], [class*="bg-emerald-50"], [class*="bg-red-50"], [class*="bg-violet-50"]) {
-  background-color: var(--staff-panel-raised);
-}
-
-.staff-portal :is([class*="text-slate-900"], [class*="text-slate-800"], [class*="text-slate-700"], [class*="text-slate-600"], [class*="text-slate-500"], [class*="text-slate-400"], [class*="text-slate-300"], [class*="text-amber-900"], [class*="text-amber-800"], [class*="text-amber-700"], [class*="text-emerald-800"], [class*="text-red-800"], [class*="text-red-700"], [class*="text-violet-"], [class*="text-[#7651c9]"], [class*="text-[#176b45]"], [class*="text-[#14583c]"]) {
-  color: var(--staff-blue) !important;
-}
-
 .staff-portal .staff-workspace-header {
-  border-bottom-color: rgb(115 186 255 / 52%);
+  border-bottom-color: rgb(23 107 69 / 35%);
+}
+
+.staff-portal .staff-workspace-header > p:first-child,
+.staff-portal [class*="text-blue-300"],
+.staff-portal [class*="text-[#7651c9]"],
+.staff-portal [class*="text-[#0066cc]"] {
+  color: var(--ow-green) !important;
+}
+
+.staff-portal .staff-workspace-header h1 {
+  color: #111827 !important;
+}
+
+.staff-portal .staff-workspace-header > div > div > p {
+  color: #64748b !important;
 }
 
 .staff-portal [class*="bg-[#eef2ff]"] {
-  color: var(--staff-blue) !important;
+  background-color: #e8f3ec !important;
+  color: var(--ow-green) !important;
 }
 
-.staff-portal .site-nav nav > div > a {
-  border-radius: 0.2rem;
-  background-color: var(--staff-panel);
-  color: var(--staff-blue) !important;
+.staff-portal [role="tablist"] {
+  border-color: #cbd5e1;
 }
 
-.staff-portal .site-nav nav > div > a:hover {
-  background-color: var(--staff-panel-raised);
-  color: var(--staff-white) !important;
+.staff-portal [role="tablist"] a[aria-current="page"] {
+  border-color: var(--ow-green);
+  color: var(--ow-green) !important;
 }
 
 .staff-portal :is(input, textarea, select) {
-  border-color: var(--staff-line);
-  background-color: #071321;
-  color: var(--staff-white);
+  border-color: #e2e8f0;
+  background-color: #fff;
+  color: #111827;
 }
 
 .staff-portal :is(input, textarea, select)::placeholder {
-  color: #9bbce0;
+  color: #94a3b8;
 }
 
 .staff-portal :is(input, textarea, select):focus-visible,
 .staff-portal :is(a, button):focus-visible {
-  outline-color: var(--staff-blue);
-}
-
-.staff-portal [role="tablist"] {
-  border-color: var(--staff-line);
-}
-
-.staff-portal [role="tablist"] a[aria-current="page"],
-.staff-portal [role="tablist"] a:hover {
-  border-color: var(--staff-blue);
-}
-
-.staff-portal .site-nav {
-  border-color: var(--staff-line);
-  background: #07111f;
-}
-
-.staff-portal .site-nav::after {
-  background: var(--staff-blue);
-}
-
-.staff-portal .site-nav nav > div span {
-  color: var(--staff-white);
-}
-
-.staff-portal [role="tablist"] a[aria-current="page"] {
-  border-color: #176b45;
-  color: var(--staff-blue) !important;
-}
-
-.staff-portal .holiday-greeting {
-  background: #0c1a2b;
-  color: var(--staff-blue);
+  outline-color: var(--ow-green);
 }
 
 .staff-welcome-dialog {
-  border-color: #1c3c5d;
-  background: #0c1a2b;
-  color: #f5f9ff;
+  border-color: #e2e8f0;
+  background: #fff;
+  color: #111827;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .staff-welcome-dialog,
 .staff-welcome-dialog * {
-  color: #f5f9ff !important;
+  color: #111827 !important;
 }
 
 .staff-welcome-dialog :is([class*="bg-slate-50"], [class*="bg-white"]) {
-  border-color: #1c3c5d;
-  background: #10243a;
+  border-color: #e2e8f0;
+  background: #f8fafc;
 }
