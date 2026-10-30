@@ -62,7 +62,7 @@ function formatTime(timestamp: number) {
 
 type StaffSection = "overview" | "announcements" | "messages";
 
-function MoreStaffTools({ isAdmin }: { isAdmin: boolean }) {
+function MoreStaffTools() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -82,7 +82,7 @@ function MoreStaffTools({ isAdmin }: { isAdmin: boolean }) {
       {open && (
         <div className="space-y-4 border-t border-slate-100 p-4">
           <SiteStatusControl />
-          {isAdmin && <StaffSecurityPanel />}
+          <StaffSecurityPanel />
         </div>
       )}
     </section>
@@ -1141,7 +1141,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         ))}
       </div>
 
-      {selectedTab === "overview" && me?.isStaff && <MoreStaffTools isAdmin={adminView} />}
+      {selectedTab === "overview" && me?.isStaff && <MoreStaffTools />}
 
       {selectedTab === "overview" ? (
         <WorkspaceOverview isAdmin={adminView} me={me} onAnnouncements={() => {}} />
