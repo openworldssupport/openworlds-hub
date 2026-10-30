@@ -373,13 +373,13 @@ main :is(h1, h2, h3, h4) {
 /* Private OpenWorlds staff office: cinematic noir styling, scoped to staff only. */
 .staff-portal {
   --staff-ink: #07111f;
-  --staff-panel: #0c1a2b;
+  --staff-panel: #0b1a2b;
   --staff-panel-raised: #10243a;
   --staff-line: #1c3c5d;
-  --staff-blue: #73baff;
+  --staff-blue: #79b8ff;
   --staff-white: #f5f9ff;
   background:
-    radial-gradient(ellipse at 50% -25%, rgb(30 93 151 / 34%), transparent 52%),
+    radial-gradient(ellipse at 50% -25%, rgb(30 93 151 / 20%), transparent 52%),
     linear-gradient(145deg, #050b14, #091525 54%, #07111f);
   color: var(--staff-white);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -403,7 +403,8 @@ main :is(h1, h2, h3, h4) {
   border-color: var(--staff-line);
   background-color: var(--staff-panel);
   color: var(--staff-white);
-  box-shadow: 0 14px 34px rgb(0 0 0 / 18%);
+  border-radius: 0.5rem;
+  box-shadow: none;
 }
 
 .staff-portal :is([class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-amber-50"], [class*="bg-emerald-50"], [class*="bg-red-50"], [class*="bg-violet-50"]) {
@@ -416,6 +417,21 @@ main :is(h1, h2, h3, h4) {
 
 .staff-portal .staff-workspace-header {
   border-bottom-color: rgb(115 186 255 / 52%);
+}
+
+.staff-portal [class*="bg-[#eef2ff]"] {
+  color: var(--staff-blue) !important;
+}
+
+.staff-portal .site-nav nav > div > a {
+  border-radius: 0.2rem;
+  background-color: var(--staff-panel);
+  color: var(--staff-blue) !important;
+}
+
+.staff-portal .site-nav nav > div > a:hover {
+  background-color: var(--staff-panel-raised);
+  color: var(--staff-white) !important;
 }
 
 .staff-portal :is(input, textarea, select) {
@@ -451,9 +467,13 @@ main :is(h1, h2, h3, h4) {
   background: var(--staff-blue);
 }
 
-.staff-portal .site-nav nav > div a,
 .staff-portal .site-nav nav > div span {
   color: var(--staff-white);
+}
+
+.staff-portal [role="tablist"] a[aria-current="page"] {
+  border-color: #176b45;
+  color: var(--staff-blue) !important;
 }
 
 .staff-portal .holiday-greeting {
