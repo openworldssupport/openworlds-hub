@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { action, internalMutation, internalQuery, mutation, query, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { linkVerifiedCreatorAccount } from "./users";
+import { requireSiteAvailable } from "./siteStatus";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -17,6 +18,7 @@ function normalizeEmail(value: string) {
 }
 
 async function requirePlayer(ctx: MutationCtx) {
+  await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
@@ -38,6 +40,7 @@ function newCode() {
 export const recoveryStatus = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
@@ -98,6 +101,7 @@ export const verifyRecoveryEmail = mutation({
 export const findResetAccount = internalQuery({
   args: { login: v.string() },
   handler: async (ctx, { login }) => {
+    await requireSiteAvailable(ctx);
     const normalized = login.trim().toLowerCase();
     const user = await ctx.db.query("users").filter((q) => q.or(q.eq(q.field("email"), normalized), q.eq(q.field("playerLogin"), normalized))).first();
     if (!user || user.role !== "user" || !user.recoveryEmail || !user.recoveryEmailVerifiedAt) return null;

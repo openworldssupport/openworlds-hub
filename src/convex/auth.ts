@@ -8,6 +8,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { emailOtp } from "./auth/emailOtp";
 import { SUPPORT_EMAIL } from "./admin";
 import { internal } from "./_generated/api";
+import { requireSiteAvailableForUser } from "./siteStatus";
 
 const PLAYER_LOGIN_DOMAIN = "players.openworlds.invalid";
 
@@ -107,8 +108,15 @@ export const playerPassword = ConvexCredentials({
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [emailOtp, playerPassword],
   callbacks: {
+    async beforeSessionCreation(ctx, { userId }) {
+      await requireSiteAvailableForUser(ctx, userId);
+    },
     async createOrUpdateUser(ctx, { existingUserId, profile, type, provider }) {
       const email = typeof profile.email === "string" ? profile.email.trim().toLowerCase() : "";
+      const accountUserId = existingUserId ?? (email
+        ? (await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first())?._id
+        : undefined);
+      await requireSiteAvailableForUser(ctx, accountUserId);
       if (provider.type === "credentials") {
         if (provider.id !== "player-password") throw new Error("This credentials provider is not available.");
         const linkedUser = existingUserId ? await ctx.db.get(existingUserId) : null;

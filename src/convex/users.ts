@@ -88,6 +88,7 @@ export const publicOfficialCreators = query({
 export const creatorSpaceAccess = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) return { allowed: false as const, accessLevel: null, creatorProfile: null };
 
@@ -308,6 +309,7 @@ async function findPlayerByUsername(ctx: MutationCtx, rawUsername: string) {
 }
 
 async function requireVerifiedPlayer(ctx: MutationCtx) {
+  await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user || user.role !== "user" || user.isSiteBanned || !user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) {
@@ -324,6 +326,7 @@ function acceptedFriendship(a: string, b: string, requests: Array<{ senderId: st
 export const friendStatus = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
+    await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const target = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
     if (!target || target.role !== "user" || target.isSiteBanned || !target.profileDiscoverable || !target.recoveryEmail || target.recoveryEmailVerifiedAt === undefined) return { status: "unavailable" as const };
@@ -399,6 +402,7 @@ export const removeFriend = mutation({
 export const myFriends = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || user.role !== "user" || user.isSiteBanned || !user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) return null;
@@ -434,6 +438,7 @@ export const myFriends = query({
 export const publicFriendList = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
+    await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const owner = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
     if (!owner || owner.role !== "user" || owner.isSiteBanned || !owner.profileDiscoverable || owner.profileFriendsVisible !== true || !owner.recoveryEmail || owner.recoveryEmailVerifiedAt === undefined) return [];
@@ -473,6 +478,7 @@ export const sendPlayerMessage = mutation({
 export const playerConversation = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     const other = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", rawUsername.trim().replace(/^@/, "").toLowerCase())).unique();
@@ -589,6 +595,7 @@ export const searchPlayersForCreatorVerification = query({
 export const currentProfilePrivacy = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     const user = await ctx.db.get(userId);
@@ -607,6 +614,7 @@ export const currentProfilePrivacy = query({
 export const updatePublicProfile = mutation({
   args: { displayName: v.string(), about: v.string(), friendsVisible: v.boolean() },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to update your profile.");
     const user = await ctx.db.get(userId);
@@ -626,6 +634,7 @@ export const updatePublicProfile = mutation({
 export const setProfileDiscoverability = mutation({
   args: { discoverable: v.boolean() },
   handler: async (ctx, { discoverable }) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to update your profile privacy.");
     const user = await ctx.db.get(userId);

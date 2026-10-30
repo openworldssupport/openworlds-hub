@@ -12,6 +12,7 @@ export const sendCode = action({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in first.");
+    await ctx.runQuery(internal.siteStatus.requireAuthAccess, { userId });
     const bytes = new Uint32Array(1);
     crypto.getRandomValues(bytes);
     const code = String(bytes[0]! % 1_000_000).padStart(6, "0");

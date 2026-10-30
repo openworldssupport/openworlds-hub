@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
+import { requireSiteAvailable } from "./siteStatus";
 
 async function requireSecurityStaff(ctx: QueryCtx | MutationCtx, verifyAdminPermission = true) {
   const userId = await getAuthUserId(ctx);
@@ -81,6 +82,7 @@ export const newsPostingStatus = query({
 export const verifyNewsPostingCode = mutation({
   args: { code: v.string() },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!userId || !user || user.emailVerificationTime === undefined || user.isSiteBanned || !(user.staffAccess || user.department?.trim() || user.position?.trim())) throw new Error("Not authorized.");
@@ -131,6 +133,7 @@ export const accessStatus = query({
 export const submitAppeal = mutation({
   args: { message: v.string() },
   handler: async (ctx, args) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to submit an appeal.");
     const user = await ctx.db.get(userId);

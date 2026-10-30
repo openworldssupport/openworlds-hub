@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { action, internalMutation, internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 
@@ -31,14 +32,25 @@ function isAuthorizedStaff(user: { email?: string; emailVerificationTime?: numbe
     (isAuthorizedAdmin(user) || user.staffAccess || user.department?.trim() || user.position?.trim()));
 }
 
-/** Reject public requests while the site is offline; only a verified admin can continue. */
-export async function requireSiteAvailable(ctx: QueryCtx | MutationCtx) {
+/** Reject public requests while offline; only a verified admin can continue. */
+export async function requireSiteAvailableForUser(ctx: QueryCtx | MutationCtx, userId?: Id<"users"> | null) {
   const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
   if (!setting || setting.status === "available") return;
-  const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user || !isAuthorizedAdmin(user)) throw new Error("The website is temporarily offline. Please try again later.");
 }
+
+export async function requireSiteAvailable(ctx: QueryCtx | MutationCtx) {
+  await requireSiteAvailableForUser(ctx, await getAuthUserId(ctx));
+}
+
+export const requireAuthAccess = internalQuery({
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, { userId }) => {
+    await requireSiteAvailableForUser(ctx, userId);
+    return true;
+  },
+});
 
 export const publicStatus = query({
   args: {},

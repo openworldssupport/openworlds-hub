@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { requireSiteAvailable } from "./siteStatus";
 import { action, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
@@ -395,6 +396,7 @@ export const clearCode = internalMutation({
 });
 
 export async function requireCreatorManagementAuthorization(ctx: QueryCtx | MutationCtx) {
+  await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const isAdmin = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
@@ -411,6 +413,7 @@ export async function requireCreatorManagementAuthorization(ctx: QueryCtx | Muta
 }
 
 export async function requireCreatorVerification(ctx: QueryCtx | MutationCtx) {
+  await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const canManageCreators = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&

@@ -8,6 +8,7 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
 import { linkVerifiedCreatorAccount } from "./users";
+import { requireSiteAvailable } from "./siteStatus";
 
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -38,6 +39,7 @@ async function currentUser(ctx: QueryCtx | MutationCtx) {
  * department/position. Mirrors `isStaffUser` in `src/lib/staff.ts`.
  */
 export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
+  await requireSiteAvailable(ctx);
   if (await isAdmin(ctx)) {
     const user = await currentUser(ctx);
     return Boolean(user && !user.isSiteBanned);
@@ -432,6 +434,7 @@ const announcementStatus = v.union(v.literal("draft"), v.literal("published"));
 export const publicAnnouncements = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const rows = await ctx.db
       .query("gameAnnouncements")
       .withIndex("by_status_published_at", (q) => q.eq("status", "published"))

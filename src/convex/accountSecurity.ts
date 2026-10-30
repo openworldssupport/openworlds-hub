@@ -2,6 +2,7 @@ import { getAuthSessionId, getAuthUserId, retrieveAccount, signInViaProvider } f
 import { internal } from "./_generated/api";
 import { action, internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireSiteAvailable } from "./siteStatus";
 
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 8;
@@ -69,6 +70,7 @@ function makeRecoveryCodes() {
 }
 
 async function currentAccount(ctx: any) {
+  await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage account security.");
@@ -81,6 +83,7 @@ async function currentAccount(ctx: any) {
 export const status = query({
   args: {},
   handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const sessionId = await getAuthSessionId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
@@ -300,6 +303,7 @@ export const consumeStaffSignInCode = internalMutation({
 export const passwordSignIn = action({
   args: { login: v.string(), password: v.string() },
   handler: async (ctx, { login: rawLogin, password }) => {
+    await ctx.runQuery(internal.siteStatus.requireAuthAccess, {});
     const login = rawLogin.trim().toLowerCase();
     const accountId = /^[a-z0-9][a-z0-9._-]{2,23}$/.test(login) ? `${login}@players.openworlds.invalid` : login;
     let account;
@@ -319,6 +323,7 @@ export const passwordSignIn = action({
 export const completePasswordSignIn = action({
   args: { login: v.string(), token: v.string(), code: v.string() },
   handler: async (ctx, { login: rawLogin, token, code }) => {
+    await ctx.runQuery(internal.siteStatus.requireAuthAccess, {});
     const login = rawLogin.trim().toLowerCase();
     const accountId = /^[a-z0-9][a-z0-9._-]{2,23}$/.test(login) ? `${login}@players.openworlds.invalid` : login;
     const account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId } }).catch(() => null);
