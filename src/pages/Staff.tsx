@@ -89,31 +89,6 @@ function MoreStaffTools() {
   );
 }
 
-const POSITION_JOB_DESCRIPTIONS: Record<string, string> = {
-  "chief executive officer": "Set OpenWorlds’ direction, make key leadership decisions, and keep the organization focused on its goals.",
-  "chief technology officer": "Guide the technical direction, architecture, security, and reliability of OpenWorlds.",
-  "chief design officer": "Guide the product and experience design direction across OpenWorlds.",
-  "chief marketing officer": "Lead OpenWorlds’ messaging, marketing plans, and audience growth.",
-  "chief people officer": "Support the team, coordinate people practices, and help contributors do their best work.",
-  "chief finance officer": "Oversee budgeting, financial planning, and clear reporting on project resources.",
-  "chief legal officer": "Help the organization identify legal risks and keep policies and agreements in good order.",
-  "head of community": "Guide community programs and help keep OpenWorlds spaces welcoming and useful to players.",
-  "lead game designer": "Lead gameplay and systems design, turning ideas and player feedback into clear, balanced features.",
-  "lead programmer": "Guide software implementation, review engineering work, and help keep the codebase reliable.",
-  "lead artist": "Guide the visual direction and coordinate art production across OpenWorlds.",
-  "senior developer": "Build and maintain platform features, review technical work, and support other developers.",
-  developer: "Build, test, and maintain software features for OpenWorlds with the rest of the development team.",
-  producer: "Coordinate schedules, priorities, and communication so project work moves forward smoothly.",
-  "community manager": "Support community conversations, share useful updates, and help players feel welcome.",
-  "customer support lead": "Coordinate player support, help resolve complex requests, and improve support processes.",
-  "senior qa engineer": "Plan and lead quality checks, find and document defects, and help prevent regressions.",
-  "data analyst": "Analyze project data and communicate clear, evidence-based findings to the team.",
-  "ai researcher": "Explore and evaluate AI approaches that could support OpenWorlds’ goals.",
-  "ai engineer": "Build, integrate, and maintain AI-powered systems for OpenWorlds.",
-  "art director": "Set and maintain the visual style, reviewing artwork for consistency and quality.",
-  "technical writer": "Write and maintain clear technical guides and documentation for the team and users.",
-};
-
 function WorkspaceOverview({
   isAdmin,
   me,
@@ -178,11 +153,6 @@ function WorkspaceOverview({
         </details>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat label="Announcements" value={announcements?.length ?? "—"} detail="Drafts and published updates" />
-        <Stat label="Published" value={announcements?.filter((item) => item.status === "published").length ?? "—"} detail="Live on public News" />
-      </div>
-
       <div className="grid gap-5 xl:grid-cols-2">
         <section className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between gap-3">
@@ -224,16 +194,6 @@ function WorkspaceOverview({
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, detail }: { label: string; value: string | number; detail: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold">{value}</p>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
     </div>
   );
 }
@@ -1106,23 +1066,18 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const selectedTab: StaffSection =
     tabs.find((tab) => location.pathname.endsWith("/staff/" + tab.id))?.id ?? "overview";
   const adminView = isAdmin || me?.isAdmin === true;
-  const welcomePosition = me?.position?.trim() || (adminView ? "Company admin" : "Company staff");
-  const welcomeJob = POSITION_JOB_DESCRIPTIONS[welcomePosition.toLowerCase()] || "Work with the OpenWorlds team to support players and help the project move forward.";
-  const selectedLabel = tabs.find((tab) => tab.id === selectedTab)?.label ?? "Workspace";
-
   return (
-    <div className="staff-workspace min-h-[calc(100vh-8rem)] px-4 pb-12 pt-6 sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <header className="staff-workspace-header mb-7 border-b-2 border-blue-500/50 pb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-300">OpenWorlds Staff · Employees &amp; Volunteers</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Staff Workspace</h1>
-              <p className="mt-1 text-sm text-slate-300">{me?.signedIn ? `Welcome, ${displayNameFor(me)}.` : "Staff workspace for OpenWorlds employees and volunteers."} {selectedLabel}</p>
-            </div>
-            {me?.signedIn && <p className="max-w-xl text-sm leading-6 text-slate-600"><span className="font-semibold text-slate-900">{welcomePosition}:</span> {welcomeJob}</p>}
-          </div>
-        </header>
+    <div className="staff-workspace min-h-screen bg-[#f8f9f8] pb-12">
+      <header className="ow-page-hero px-5 py-10 text-white sm:px-8 sm:py-12">
+        <div className="mx-auto max-w-6xl">
+          <p className="text-sm font-medium text-blue-100">OpenWorlds · Staff</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Staff workspace</h1>
+          <p className="mt-4 text-base leading-7 text-blue-50">
+            {me?.signedIn ? `Welcome back, ${displayNameFor(me)}.` : "For OpenWorlds employees and volunteers."}
+          </p>
+        </div>
+      </header>
+      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-8">
         <div className="min-w-0">
           <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-300" role="tablist" aria-label="Staff workspace">
         {tabs.map(({ id, label, icon: Icon }) => (
