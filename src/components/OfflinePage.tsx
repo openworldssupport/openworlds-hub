@@ -18,11 +18,8 @@ export function OfflinePage({ children }: { children: ReactNode }) {
   return (
     <main className="fixed inset-0 z-[9999] flex min-h-screen items-center justify-center overflow-auto bg-[#f7f8fa] px-5 py-12 text-slate-900">
       <section className="w-full max-w-xl text-center">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm">
-          <Wrench className="size-5" aria-hidden="true" />
-        </span>
-        <p className="mt-7 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">OpenWorlds service notice</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <Wrench className="mx-auto size-6 text-slate-500" aria-hidden="true" />
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
           The site is under construction or currently unavailable.
         </h1>
         <p className="mt-7 text-sm text-slate-500">

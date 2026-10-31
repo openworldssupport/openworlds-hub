@@ -61,7 +61,7 @@ export default function PlatformInfoPage({ page = "about" }: PlatformInfoPagePro
       <SiteNav />
       <section className="ow-page-hero px-5 py-14 text-white sm:px-8 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <div className="flex size-11 items-center justify-center rounded-xl bg-white/15 text-amber-200"><Icon className="size-5" /></div>
+          <Icon className="size-5 text-amber-200" />
           <p className="mt-6 text-sm font-medium text-blue-100">{content.eyebrow}</p>
           <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">{content.title}</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">{content.description}</p>

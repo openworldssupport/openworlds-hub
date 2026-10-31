@@ -19,27 +19,18 @@ export default function About() {
 
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="grid gap-8 sm:grid-cols-3">
-          <article className="rounded-xl border border-slate-200 p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-              <Globe2 className="size-5" />
-            </div>
-            <h2 className="mt-4 font-semibold">Create</h2>
+          <article className="border-t-2 border-slate-900 pt-4">
+            <h2 className="font-semibold">Create</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">Information about creation tools will be shared when they are available.</p>
           </article>
 
-          <article className="rounded-xl border border-slate-200 p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-violet-50 text-[#7651c9]">
-              <Share2 className="size-5" />
-            </div>
-            <h2 className="mt-4 font-semibold">Share</h2>
+          <article className="border-t-2 border-slate-900 pt-4">
+            <h2 className="font-semibold">Share</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">World sharing details have not been published yet.</p>
           </article>
 
-          <article className="rounded-xl border border-slate-200 p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]">
-              <Heart className="size-5" />
-            </div>
-            <h2 className="mt-4 font-semibold">Connect</h2>
+          <article className="border-t-2 border-slate-900 pt-4">
+            <h2 className="font-semibold">Connect</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">Use the community links or support page to contact the project.</p>
           </article>
         </div>

@@ -29,11 +29,9 @@ export default function Worlds() {
 
       <section className="mx-auto grid max-w-6xl gap-6 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-[1.3fr_0.7fr]">
         <div className="space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-          <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Users className="size-5" /></span>
-            <div><h2 className="text-xl font-semibold tracking-tight">Player profiles</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts and public company staff by username or display name.</p></div>
-          </div>
+        <div className="border-t-2 border-slate-900 pt-5">
+          <h2 className="text-xl font-semibold tracking-tight">Player profiles</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts and public company staff by username or display name.</p>
           <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -41,18 +39,18 @@ export default function Worlds() {
           </div>
           <div className="mt-5" aria-live="polite">
             {deferredSearch.length < 2 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Enter at least 2 characters to search.</p>
+              <p className="py-6 text-sm text-slate-500">Enter at least 2 characters to search.</p>
             ) : profiles === undefined ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Searching player profiles…</p>
+              <p className="py-6 text-sm text-slate-500">Searching player profiles…</p>
             ) : profiles.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No public accounts found. Try a username or display name.</p>
+              <p className="py-6 text-sm text-slate-500">No public accounts found. Try a username or display name.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {profiles.map((profile) => (
                   <li key={profile.profileKey} className="flex items-center gap-3 px-4 py-3">
-                    {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#0066cc]">{(profile.displayName || profile.username || "O").slice(0, 1).toUpperCase()}</span>}
+                    {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">{(profile.displayName || profile.username || "O").slice(0, 1).toUpperCase()}</span>}
                     <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.profileKey)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
-                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.displayName || profile.username || "OpenWorlds team member"}{profile.exact && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
+                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.displayName || profile.username || "OpenWorlds team member"}{profile.exact && <span className="text-[10px] text-slate-500">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
                       {profile.username && <p className="truncate text-sm text-slate-500">@{profile.username}</p>}
                       <span className="mt-1 inline-block text-xs font-medium text-[#176b45]">View profile</span>
                     </button>
@@ -63,11 +61,9 @@ export default function Worlds() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8">
-          <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]"><Compass className="size-5" /></span>
-            <div><h2 className="text-xl font-semibold tracking-tight">Worlds</h2><p className="mt-1 text-sm leading-6 text-slate-600">Search real worlds that have been published to OpenWorlds.</p></div>
-          </div>
+        <div className="border-t-2 border-slate-900 pt-5">
+          <h2 className="text-xl font-semibold tracking-tight">Worlds</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Search real worlds that have been published to OpenWorlds.</p>
           <label htmlFor="world-search" className="sr-only">Search published worlds</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -75,11 +71,11 @@ export default function Worlds() {
           </div>
           <div className="mt-5" aria-live="polite">
             {deferredWorldSearch.length < 2 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Enter at least 2 characters to search published worlds.</p>
+              <p className="py-6 text-sm text-slate-500">Enter at least 2 characters to search published worlds.</p>
             ) : worlds === undefined ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">Searching published worlds…</p>
+              <p className="py-6 text-sm text-slate-500">Searching published worlds…</p>
             ) : worlds.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">No published worlds found. Worlds will appear once the game’s publishing feed is connected.</p>
+              <p className="py-6 text-sm text-slate-500">No published worlds found. Worlds will appear once the game’s publishing feed is connected.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {worlds.map((world) => (
@@ -103,12 +99,10 @@ export default function Worlds() {
         </div>
         </div>
 
-        <aside className="h-fit rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#0066cc] ring-1 ring-slate-200"><ShieldCheck className="size-5" /></span>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Privacy-respecting discovery</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight">You choose what’s visible</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Player accounts appear only when they opt into discovery. Active company staff profiles are public and show their assigned Staff or Developer badge. Sign-in emails and private account details are never shown.</p>
-          <Link to="/community" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-100">Visit community <ArrowRight className="size-4" /></Link>
+        <aside className="h-fit border-t-2 border-slate-900 pt-5">
+          <h2 className="text-xl font-semibold tracking-tight">You choose what’s visible</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Player accounts appear only when they opt into discovery. Sign-in emails and private account details are never shown.</p>
+          <Link to="/community" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#176b45] hover:underline">Visit community <ArrowRight className="size-4" /></Link>
         </aside>
       </section>
       <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Find discoverable players and published worlds.</footer>

@@ -52,8 +52,7 @@ export default function Support() {
 
       <section id="faq" className="scroll-mt-24 border-b border-slate-100">
         <div className="mx-auto max-w-4xl px-5 py-14 sm:px-8 sm:py-16">
-          <p className="text-sm font-medium text-[#7651c9]">Common questions</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Frequently asked</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Frequently asked</h2>
           <p className="mt-3 max-w-2xl leading-7 text-slate-600">Information about the website and how to contact the team.</p>
 
           <Accordion type="single" collapsible className="mt-8 rounded-xl border border-slate-200 bg-white px-5 sm:px-6">
@@ -76,8 +75,7 @@ export default function Support() {
         <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <p className="text-sm font-medium text-[#7651c9]">Support ticket</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Open a ticket</h2>
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Open a ticket</h2>
               <p className="mt-4 leading-7 text-slate-600">
                 Describe your issue and include an email address where we can reach you.
               </p>

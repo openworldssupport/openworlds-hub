@@ -123,8 +123,7 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
         className="flex max-h-[94vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl"
       >
         <DialogHeader className="border-b border-slate-200 px-5 py-5 text-left sm:px-7">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0066cc]">OpenWorlds · Privacy &amp; terms</p>
-          <DialogTitle className="mt-2 text-2xl">Please review and agree</DialogTitle>
+          <DialogTitle className="text-2xl">Please review and agree</DialogTitle>
           <DialogDescription className="mt-2 text-sm leading-6">
             Review the current policies below before continuing. Returning visitors will be asked again only when a policy version changes.
           </DialogDescription>

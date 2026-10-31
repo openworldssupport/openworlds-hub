@@ -48,12 +48,9 @@ export default function Downloads() {
 
       <section id="builds" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="grid gap-4 sm:grid-cols-3">
-          {platforms.map(({ name, detail, icon: Icon, tone, accent }) => (
-            <article key={name} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent}`}>
-              <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
-                <Icon className="size-5" />
-              </div>
-              <h2 className="mt-4 flex items-center justify-between gap-2 font-semibold">
+          {platforms.map(({ name, detail }) => (
+            <article key={name} className="border-t-2 border-slate-900 pt-4">
+              <h2 className="flex items-center justify-between gap-2 font-semibold">
                 {name}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>

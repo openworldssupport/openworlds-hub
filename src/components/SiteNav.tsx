@@ -55,26 +55,12 @@ export function SiteNav() {
         <DialogContent className={isStaffAccount ? "staff-welcome-dialog" : undefined} showCloseButton={!welcomeBusy}>
           <DialogHeader>
             <DialogTitle className="text-2xl">Welcome to the team!</DialogTitle>
-            <DialogDescription>
-              We’re glad to have you with OpenWorlds. Here’s a quick look at your role.
-            </DialogDescription>
+            <DialogDescription>We’re glad to have you with OpenWorlds.</DialogDescription>
           </DialogHeader>
           {welcomeDetails && (
-            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Position</p>
-                <p className="mt-1 font-semibold text-slate-900">{welcomeDetails.position}</p>
-                <p className="text-sm text-slate-600">{welcomeDetails.department}</p>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">What you’ll do</p>
-                <p className="mt-1 text-sm leading-6 text-slate-700">
-                  {matchedRole?.summary ?? matchedDepartment?.summary ?? (welcomeDetails.isAdmin
-                    ? "Help guide OpenWorlds, support the team, and oversee platform operations."
-                    : `As ${welcomeDetails.position} in ${welcomeDetails.department}, you’ll contribute to your department’s work and collaborate with the OpenWorlds team.`)}
-                </p>
-                {matchedRole && <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-700">{matchedRole.responsibilities.map((responsibility) => <li key={responsibility}>{responsibility}</li>)}</ul>}
-              </div>
+            <div className="space-y-2">
+              <p className="font-semibold text-slate-900">{welcomeDetails.position}</p>
+              <p className="text-sm text-slate-600">{welcomeDetails.department}</p>
               {welcomeError && <p role="alert" className="text-sm text-red-700">{welcomeError}</p>}
             </div>
           )}

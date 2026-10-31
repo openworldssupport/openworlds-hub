@@ -193,8 +193,7 @@ export default function Dashboard() {
       {!recoveryEmailIsVerified ? (
         <div className="mx-auto max-w-3xl px-5 py-10 sm:px-8">
           <section className="rounded-2xl border border-amber-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-800">One more step</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Verify your recovery email</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Verify your recovery email</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">You need to verify a recovery email before accessing your player profile and saved game data. Your account has been created and is safe; verification unlocks the player hub.</p>
             <form onSubmit={sendRecoveryCode} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="min-w-0 flex-1 space-y-2"><Label htmlFor="required-recovery-email">Recovery email</Label><Input id="required-recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder={recoveryStatus?.pendingEmail ?? "you@example.com"} /></div>
@@ -213,8 +212,7 @@ export default function Dashboard() {
       ) : (
       <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12 lg:px-12">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7651c9]"><Megaphone className="size-4" /> Player account</div>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your OpenWorlds hub</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your OpenWorlds hub</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Manage your public profile, friends, and worlds. Signed in as @{user.playerUsername ?? "player"}.</p>
         </motion.div>
 
@@ -283,10 +281,7 @@ export default function Dashboard() {
             {myPublishedWorlds?.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{myPublishedWorlds.map((world) => <li key={world.id} className="flex gap-3 border border-slate-200 p-3 text-sm">{world.image && <img src={world.image} alt="" className="size-14 object-cover" />}<div><Link to={`/worlds/${world.id}`} className="font-medium text-[#176b45] hover:underline">{world.title}</Link><p className="mt-1 line-clamp-2 text-slate-500">{world.description}</p></div></li>)}</ul> : null}
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8">
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-violet-50 text-[#7651c9]"><ArrowDownToLine className="size-5" /></span>
-              <div><h2 className="font-semibold tracking-tight">Downloads</h2><p className="text-xs text-slate-400">Official builds only</p></div>
-            </div>
+            <div><h2 className="font-semibold tracking-tight">Downloads</h2><p className="text-xs text-slate-500">Official builds only</p></div>
             <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50/70 px-5 py-6 text-center sm:px-8">
               <p className="text-sm font-medium text-slate-700">Windows launcher available</p>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Download the official OpenWorlds Launcher from the Downloads page.</p>

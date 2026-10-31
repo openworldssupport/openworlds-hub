@@ -72,12 +72,9 @@ export default function Rules() {
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">The four rules that matter most</h2>
         </div>
         <div className="mt-7 grid gap-4 sm:grid-cols-2">
-          {goldenRules.map(({ title, text, icon: Icon, tone, bar }) => (
-            <article key={title} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 sm:p-6 ${bar}`}>
-              <div className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
-                <Icon className="size-5" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+          {goldenRules.map(({ title, text }) => (
+            <article key={title} className="border-t-2 border-slate-900 pt-4">
+              <h3 className="text-lg font-semibold">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
             </article>
           ))}

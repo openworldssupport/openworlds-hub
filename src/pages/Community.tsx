@@ -46,15 +46,13 @@ export default function Community() {
         <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">External channels</h2>
         <p className="mx-auto mt-3 max-w-2xl text-center leading-7 text-slate-600">These links lead to third-party services. Their availability and content are managed outside this website.</p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <article className="rounded-xl border border-slate-200 p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-violet-50 text-[#7651c9]"><Users className="size-5" /></div>
-            <h3 className="mt-4 text-lg font-semibold">Discord</h3>
+          <article className="border-t-2 border-slate-900 pt-4">
+            <h3 className="text-lg font-semibold">Discord</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">Open the listed Discord invite. Community activity and support availability are managed on Discord.</p>
             <a href="https://discord.gg/JWq5hEsKRX" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg bg-[#0066cc] px-4 text-sm font-medium text-white hover:bg-[#004a99]">Join Discord</a>
           </article>
-          <article className="rounded-xl border border-slate-200 p-6">
-            <div className="flex size-11 items-center justify-center rounded-lg bg-amber-50 text-[#987000]"><Youtube className="size-5" /></div>
-            <h3 className="mt-4 text-lg font-semibold">YouTube</h3>
+          <article className="border-t-2 border-slate-900 pt-4">
+            <h3 className="text-lg font-semibold">YouTube</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">Open the listed YouTube channel.</p>
             <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-10 items-center rounded-lg border border-violet-200 bg-violet-50/40 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Visit YouTube</a>
           </article>
@@ -81,8 +79,7 @@ export default function Community() {
           <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
             <div>
-              <p className="text-sm font-medium text-[#7651c9]">Create with OpenWorlds</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds Creator Program</h2>
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">OpenWorlds Creator Program</h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">A home for creators making videos, streams, guides, art, and community stories around OpenWorlds. Approved creators are listed here with a verified badge; applying does not grant official status.</p>
             </div>
             <CareerEnquiryDialog label="Apply to the program" mode="creator-application" />
@@ -92,7 +89,7 @@ export default function Community() {
                 <h3 className="text-lg font-semibold">Meet the official creators</h3>
                 <p className="mt-1 text-sm text-slate-600">Creators reviewed and approved by the OpenWorlds team.</p>
               </div>
-              {creators.length > 0 && <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
+              {creators.length > 0 && <span className="text-xs text-slate-500">{creators.length} {creators.length === 1 ? "creator" : "creators"}</span>}
             </div>
             {creators.length > 0 && (
               <div className="relative mt-5 max-w-md">

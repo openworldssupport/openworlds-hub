@@ -43,17 +43,12 @@ function PublishedUpdates() {
 
   if (updates.length === 0) {
     return (
-      <div className="flex max-w-3xl items-start gap-4 rounded-xl border border-slate-200 bg-white p-6">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-[#987000]">
-          <Newspaper className="size-5" />
-        </span>
-        <div>
-          <h2 className="font-semibold">No announcements yet</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            The OpenWorlds team will publish official game updates here. Check back for release notes,
-            development posts, event announcements, and news from the team.
-          </p>
-        </div>
+      <div className="max-w-3xl border-t-2 border-slate-900 pt-5">
+        <h2 className="font-semibold">No announcements yet</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          The OpenWorlds team will publish official game updates here. Check back for release notes,
+          development posts, event announcements, and news from the team.
+        </p>
       </div>
     );
   }
@@ -61,9 +56,9 @@ function PublishedUpdates() {
   return (
     <div className="space-y-4">
       {updates.map((update) => (
-        <article key={update._id} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-7">
+        <article key={update._id} className="border-t border-slate-200 pt-5">
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold capitalize text-[#0052a3]">
+            <span className="font-medium capitalize text-slate-600">
               {update.category === "development" ? "Development update" : update.category === "release" ? "Release notes" : update.category}
             </span>
             <time className="text-slate-400" dateTime={new Date(update.publishedAt).toISOString()}>
@@ -105,16 +100,12 @@ export default function News() {
 
       <section id="publish" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="mb-7">
-          <p className="text-sm font-medium text-[#7651c9]">What shows up here</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Update categories</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Update categories</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
-          {publishTypes.map(({ icon: Icon, tone, accent, title, text }) => (
-            <article key={title} className={`rounded-xl border border-slate-200 border-t-2 bg-white p-5 ${accent}`}>
-              <span className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
-                <Icon className="size-5" />
-              </span>
-              <h3 className="mt-4 font-semibold">{title}</h3>
+          {publishTypes.map(({ title, text }) => (
+            <article key={title} className="border-t-2 border-slate-900 pt-4">
+              <h3 className="font-semibold">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
             </article>
           ))}
@@ -125,21 +116,17 @@ export default function News() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-7 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-[#7651c9]">From the team</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Latest updates</h2>
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Latest updates</h2>
             </div>
             <span className="hidden text-xs text-slate-400 sm:inline">Official OpenWorlds news</span>
           </div>
           <PublishedUpdates />
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {follow.map(({ label, href, to, text, icon: Icon, tone }) => {
+            {follow.map(({ label, href, to, text }) => {
               const body = (
                 <>
-                  <span className={`flex size-11 items-center justify-center rounded-lg ${tone}`}>
-                    <Icon className="size-5" />
-                  </span>
-                  <h3 className="mt-4 flex items-center gap-1.5 font-semibold">
+                  <h3 className="flex items-center gap-1.5 font-semibold">
                     {label} <ArrowRight className="size-4" />
                   </h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>

@@ -392,14 +392,6 @@ main :is(h1, h2, h3, h4) {
   content: "";
 }
 
-.staff-portal .staff-kicker {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
 .staff-portal .staff-section-title {
   display: flex;
   align-items: center;

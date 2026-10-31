@@ -46,10 +46,9 @@ export default function Landing() {
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
             A community built together.
           </h1>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-black/5 bg-[#f5f7fb] px-4 py-3 sm:px-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7651c9]">Site news</p>
-            <p className="text-sm font-medium text-slate-700">OpenWorlds downloads are temporarily unavailable.</p>
-          </div>
+          <p className="mt-6 max-w-2xl border-l-2 border-white/40 pl-3 text-sm text-blue-50">
+            Site news: OpenWorlds downloads are temporarily unavailable.
+          </p>
           <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
             OpenWorlds is in development. Follow official project updates and find the current status of public resources.
           </p>
@@ -88,8 +87,7 @@ export default function Landing() {
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#7651c9]">Explore</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
           </div>
           <Link to="/about" className="inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
             About OpenWorlds <ArrowRight className="size-4" />

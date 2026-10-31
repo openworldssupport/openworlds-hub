@@ -318,9 +318,7 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
           <p className="flex items-center gap-2 text-sm font-semibold">
             {member.nickname || member.name || member.playerLogin || "Unnamed account"}
             {member.isAdmin ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">
-                Admin
-              </span>
+              <span className="text-xs font-medium text-slate-500">Admin</span>
             ) : member.isStaff && (
               <RoleBadge badge={member.badge ?? defaultBadge} />
             )}
@@ -794,8 +792,7 @@ export default function AdminPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">OpenWorlds - Company operations</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">Admin console</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Admin console</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Manage the private account directory and generic submission-alert recipients. Only verified admins can access these controls. Viewing account records requires a Careers email code; changing staff/admin permissions or alert recipients requires a separate Support email code. The directory includes player and staff account emails and role/restriction details, so use it only for legitimate administration.</p>
         <TeamPanel />
         <SubmissionNotificationPanel />

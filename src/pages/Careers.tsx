@@ -59,8 +59,7 @@ export default function Careers() {
       <section id="positions" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-12 sm:px-8 sm:py-16">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-[#7651c9]">Open positions</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Current positions</h2>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Current positions</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Select a role to read its details and submit a role-specific application by email.</p>
           </div>
           <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />

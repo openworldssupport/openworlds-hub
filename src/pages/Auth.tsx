@@ -196,8 +196,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">OpenWorlds player account</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username, password, and a recovery email. You’ll need to verify the email before using your player account." : "Sign in to access your player profile and saved game progress. If your recovery email is not verified yet, you’ll be prompted to verify one."}</p>
           {twoFactorStep ? (
             <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
@@ -325,10 +324,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#7651c9]">
-            OpenWorlds company
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">
             {isCreate
               ? "Public sign-up is closed"
               : isStaffSignup

@@ -990,8 +990,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
     <div className="staff-workspace min-h-screen bg-white pb-12">
       <header className="staff-masthead px-5 py-6 sm:px-8">
         <div className="mx-auto max-w-4xl">
-          <p className="staff-kicker">OpenWorlds · Staff office</p>
-          <h1 className="mt-1 text-2xl font-semibold">Staff workspace</h1>
+          <h1 className="text-2xl font-semibold">Staff workspace</h1>
           <p className="mt-1 text-sm text-slate-600">
             {me?.signedIn ? `Signed in as ${displayNameFor(me)}.` : "For OpenWorlds employees and volunteers."}
           </p>

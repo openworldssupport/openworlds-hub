@@ -15,9 +15,8 @@ export default function Learning() {
       </header>
 
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <span className="flex size-11 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]"><GraduationCap className="size-5" /></span>
-          <h2 className="mt-4 text-xl font-semibold">No lessons published yet</h2>
+        <div className="border-t-2 border-slate-900 pt-5">
+          <h2 className="text-xl font-semibold">No lessons published yet</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">There are no finished learning guides to browse right now. We’ll publish lesson links here when real materials are available.</p>
           <Link to="/news" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">Check official updates <ArrowRight className="size-4" /></Link>
         </div>

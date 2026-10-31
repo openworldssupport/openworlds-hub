@@ -35,21 +35,9 @@ export default function Creators() {
       </section>
 
       <section className="mx-auto max-w-4xl px-5 py-10 sm:px-8 sm:py-14">
-        <section className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-              <BadgeCheck className="size-6" />
-            </span>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-800">
-                Verified creator
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Welcome to Creator Space</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Your OpenWorlds creator account is verified.
-              </p>
-            </div>
-          </div>
+        <section className="border-y border-slate-200 py-6">
+          <h2 className="text-2xl font-semibold tracking-tight">Welcome to Creator Space</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Your OpenWorlds creator account is verified.</p>
           {access.creatorProfile && (
             <div className="mt-7 rounded-lg border border-slate-200 bg-slate-50 p-5">
               <h3 className="font-semibold">Your verified creator profile</h3>

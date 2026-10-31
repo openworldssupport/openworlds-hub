@@ -15,11 +15,8 @@ function ConfirmedEvents() {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-7 text-center sm:p-10">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-amber-50 text-[#987000]">
-          <PartyPopper className="size-6" />
-        </span>
-        <h2 className="mt-4 text-xl font-semibold tracking-tight">No confirmed events announced</h2>
+      <div className="border-t-2 border-slate-900 pt-5">
+        <h2 className="text-xl font-semibold tracking-tight">No confirmed events announced</h2>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
           There are no official OpenWorlds events published right now. We’ll list an event here only after
           the team has confirmed its details.
