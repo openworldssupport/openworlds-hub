@@ -184,7 +184,6 @@ createRoot(document.getElementById("root")!).render(
                   <RequireAuth
                     title="Staff sign in"
                     description="Sign in with your approved staff account to verify OpenWorlds creators."
-                    signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff%2Fcreators"
                     accessLevel="staff"
                   >
                     <CreatorVerification />
@@ -230,7 +229,6 @@ createRoot(document.getElementById("root")!).render(
                   <RequireAuth
                     title="Staff sign in"
                     description="The OpenWorlds company portal is for approved staff accounts."
-                    signUpHref="/auth?mode=staff-signup&returnTo=%2Fstaff"
                     accessLevel="staff"
                   >
                     <Staff isAdmin={false} userId={undefined as any} />

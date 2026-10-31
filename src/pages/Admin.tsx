@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -170,6 +170,7 @@ function TeamPanel() {
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
+      <StaffInvitePanel canChange={isPermissionVerified} />
       {members.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p>
       ) : (
@@ -199,6 +200,170 @@ function TeamPanel() {
       {status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(50)}>Load more accounts</Button>}
       {status === "LoadingMore" && <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-slate-400" /></div>}
     </div>
+  );
+}
+
+function StaffInvitePanel({ canChange }: { canChange: boolean }) {
+  const invites = useQuery(api.admin.listCompanyAccess, canChange ? {} : "skip");
+  const invite = useMutation(api.admin.inviteCompanyAccount);
+  const revoke = useMutation(api.admin.revokeCompanyAccount);
+  const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("");
+  const [position, setPosition] = useState("");
+  const [badge, setBadge] = useState<"staff" | "dev">("staff");
+  const [accessLevel, setAccessLevel] = useState<"staff" | "admin">("staff");
+  const [busy, setBusy] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState("");
+
+  async function handleAdd(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSaved("");
+    setBusy(true);
+    const normalizedEmail = email.trim().toLowerCase();
+    try {
+      await invite({
+        email: normalizedEmail,
+        department: department.trim(),
+        position: position.trim(),
+        publicBadge: badge,
+        accessLevel,
+      });
+      setSaved(`${normalizedEmail} can now sign in with a staff code.`);
+      setEmail("");
+      setDepartment("");
+      setPosition("");
+      setBadge("staff");
+      setAccessLevel("staff");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add that staff account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRevoke(accountId: Id<"companyAccess">) {
+    setError("");
+    setSaved("");
+    setRevokingId(accountId);
+    try {
+      await revoke({ accountId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove that staff account.");
+    } finally {
+      setRevokingId(null);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <h2 className="font-semibold">Add a staff account</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-600">
+        Staff accounts are created here only. The person signs in with a one-time code sent to this email; there is no public staff sign-up.
+      </p>
+      <form onSubmit={handleAdd} className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor="staff-invite-email">Staff email</Label>
+          <Input
+            id="staff-invite-email"
+            type="email"
+            required
+            maxLength={254}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="name@company.com"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="staff-invite-department">Department</Label>
+          <Input
+            id="staff-invite-department"
+            list="ow-departments"
+            required
+            maxLength={80}
+            value={department}
+            onChange={(event) => setDepartment(event.target.value)}
+            placeholder="Engineering"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="staff-invite-position">Position</Label>
+          <Input
+            id="staff-invite-position"
+            list="ow-positions"
+            required
+            maxLength={100}
+            value={position}
+            onChange={(event) => setPosition(event.target.value)}
+            placeholder="Developer"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="staff-invite-badge">Badge</Label>
+          <select
+            id="staff-invite-badge"
+            value={badge}
+            onChange={(event) => setBadge(event.target.value as "staff" | "dev")}
+            className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+          >
+            <option value="staff">Staff</option>
+            <option value="dev">Dev</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="staff-invite-level">Access level</Label>
+          <select
+            id="staff-invite-level"
+            value={accessLevel}
+            onChange={(event) => setAccessLevel(event.target.value as "staff" | "admin")}
+            className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+          >
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <Button type="submit" disabled={!canChange || busy || !email.trim()}>
+            {busy ? "Adding…" : "Add staff account"}
+          </Button>
+        </div>
+      </form>
+      {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {saved && <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{saved}</p>}
+      {(invites?.length ?? 0) > 0 && (
+        <div className="mt-5 border-t border-slate-100 pt-4">
+          <p className="text-sm font-medium">Staff accounts added</p>
+          <ul className="mt-2 space-y-2">
+            {invites!.map((account) => (
+              <li
+                key={account._id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              >
+                <span>
+                  <span className="font-medium">{account.email}</span>
+                  <span className="text-slate-500">
+                    {" — "}
+                    {account.department} / {account.position}
+                    {account.accessLevel === "admin" ? " / admin" : ""}
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!canChange || revokingId === account._id}
+                  onClick={() => void handleRevoke(account._id)}
+                >
+                  {revokingId === account._id ? "Removing…" : "Remove"}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
 

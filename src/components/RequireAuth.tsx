@@ -28,7 +28,6 @@ export function RequireAuth({
   title = "Sign in to continue",
   description = "This page is only available to signed-in users.",
   redirectImmediately = false,
-  signUpHref,
   accessLevel,
 }: {
   children: ReactNode;
@@ -38,8 +37,6 @@ export function RequireAuth({
   description?: string;
   /** Skip the explanation and go straight to `/auth`. */
   redirectImmediately?: boolean;
-  /** Optional alternate account request link shown on the sign-in required card. */
-  signUpHref?: string;
   /** Require the authenticated account to have server-verified staff or admin access. */
   accessLevel?: "staff" | "admin";
 }) {
@@ -80,14 +77,12 @@ export function RequireAuth({
             You'll come straight back to this page once you're signed in.
           </CardContent>
           <CardFooter className="flex flex-col gap-2">
-            <Button className="w-full" onClick={() => navigate(signUpHref?.startsWith("/player-signup") ? `/player-login?returnTo=${encodeURIComponent(returnTo)}` : signInHref)}>
+            <Button className="w-full" onClick={() => navigate(signInHref)}>
               Sign in
             </Button>
-            {signUpHref && (
-              <Button variant="outline" className="w-full" onClick={() => navigate(signUpHref)}>
-                {signUpHref.startsWith("/player-signup") ? "Create player account" : "Staff sign up"}
-              </Button>
-            )}
+            <p className="text-xs leading-5 text-muted-foreground">
+              Staff accounts are added by an OpenWorlds administrator.
+            </p>
             <Button
               variant="ghost"
               className="w-full"

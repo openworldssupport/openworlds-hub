@@ -251,7 +251,6 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
   const returnTo = params.get("returnTo");
   const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
   const isCreate = mode === "create";
-  const isStaffSignup = params.get("mode") === "staff-signup" && destination === "/staff";
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [authenticatorCode, setAuthenticatorCode] = useState("");
@@ -342,19 +341,15 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">
             {isCreate
               ? "Public sign-up is closed"
-              : isStaffSignup
-                ? "Staff account sign up"
-                : step === "email"
-                  ? "Staff account sign in"
-                  : "Check your email"}
+              : step === "email"
+                ? "Staff account sign in"
+                : "Check your email"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             {isCreate
-              ? "Public player accounts and sign-up are coming soon. Company staff accounts sign in with a verified staff email and one-time code."
+              ? "Public player accounts and sign-up are coming soon. Staff accounts are added by an administrator, then sign in with a verified staff email and one-time code."
               : step === "email"
-                ? isStaffSignup
-                  ? "Use your company-approved email. We’ll check its staff eligibility and send a one-time code."
-                  : "Enter your staff email. We’ll send a one-time code."
+                ? "Enter the staff email an administrator added for you. We’ll send a one-time code."
                 : deliveryNote || `A one-time code was sent to the email address you entered. The code expires after 15 minutes.`}
           </p>
 
@@ -444,7 +439,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
                 className="w-full"
                 disabled={busy || code.length !== 6}
               >
-                {busy ? "Verifying…" : isStaffSignup ? "Create staff access" : "Sign in"}
+                {busy ? "Verifying…" : "Sign in"}
               </Button>
               <button
                 type="button"
@@ -470,14 +465,6 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               <Link to="/create-account" className="hover:underline">
                 Public sign-up unavailable
               </Link>
-            )}
-            {!isCreate && !isStaffSignup && <span className="mx-2">·</span>}
-            {!isCreate && !isStaffSignup && (                <Link
-                  to="/auth?mode=staff-signup&returnTo=%2Fstaff"
-                  className="hover:underline"
-                >
-                  Staff sign up
-                </Link>
             )}
             {isCreate && <span className="mx-2">·</span>}
             {isCreate && (
