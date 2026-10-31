@@ -185,12 +185,14 @@ export default function Dashboard() {
   }
 
   const recoveryEmailIsVerified = Boolean(recoveryStatus?.isVerified);
+  // Recovery email is optional: only block the hub while a supplied email is unverified.
+  const needsRecoveryVerification = !recoveryEmailIsVerified && Boolean(recoveryStatus?.recoveryEmail || recoveryStatus?.pendingEmail);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <SiteNav />
 
-      {!recoveryEmailIsVerified ? (
+      {needsRecoveryVerification ? (
         <div className="mx-auto max-w-3xl px-5 py-10 sm:px-8">
           <section className="rounded-2xl border border-amber-200 bg-white p-6 shadow-sm sm:p-8">
             <h1 className="text-2xl font-semibold tracking-tight">Verify your recovery email</h1>

@@ -63,7 +63,8 @@ export const playerPassword = ConvexCredentials({
         ? credentials.recoveryEmail.trim().toLowerCase()
         : "";
       const usernameEmail = typeof credentials.email === "string" ? credentials.email.trim().toLowerCase() : "";
-      if (!recoveryEmail || recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail) || recoveryEmail === usernameEmail) {
+      // A recovery email is optional. When one is supplied it must be valid.
+      if (recoveryEmail && (recoveryEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail) || recoveryEmail === usernameEmail)) {
         throw new Error("Enter a valid recovery email address that is different from your username sign-in address.");
       }
       const created = await createAccount(ctx, {
@@ -75,7 +76,7 @@ export const playerPassword = ConvexCredentials({
           name,
           role: "user",
           profileDiscoverable: true,
-          pendingRecoveryEmail: recoveryEmail,
+          ...(recoveryEmail ? { pendingRecoveryEmail: recoveryEmail } : {}),
         },
       });
       return { userId: created.user._id };

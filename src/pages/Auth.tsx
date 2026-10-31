@@ -79,11 +79,6 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     setBusy(true);
     try {
       if (isSignup) {
-        if (!recoveryEmail.trim()) {
-          setError("A recovery email is required. Enter an email address you can access.");
-          setBusy(false);
-          return;
-        }
         const result = await signIn("player-password", {
           flow: "signUp",
           email: login.trim().toLowerCase(),
@@ -117,11 +112,13 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
       }
       if (isSignup) {
-        try {
-          await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
-          setNotice("Your account is saved. We sent a verification code to your recovery email. Verify it to continue.");
-        } catch {
-          setNotice("Your account is saved, but we could not send the verification code. You can correct the email or request another code on the verification screen.");
+        if (recoveryEmail.trim()) {
+          try {
+            await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
+            setNotice("Your account is saved. We sent a verification code to your recovery email. Verify it to continue.");
+          } catch {
+            setNotice("Your account is saved, but we could not send the verification code. You can add or correct the email on your dashboard.");
+          }
         }
         navigate("/dashboard", { replace: true });
         return;
@@ -208,7 +205,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
             </form>
           ) : resetStep === "request" ? (
             <form onSubmit={requestReset} className="mt-6 space-y-4">
-              <div className="space-y-2"><Label htmlFor="reset-login">Username or email</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="reset-login">Username</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} /></div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>{busy ? "Requesting…" : "Send recovery code"}</Button>
               <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("closed"); setError(""); }}>Back to sign in</button>
@@ -226,8 +223,8 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4">
               {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
-              <div className="space-y-2"><Label htmlFor="player-login">Username or email</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={254} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Choose a username" /><p className="text-xs text-slate-500">Username: 3–24 letters, numbers, dots, hyphens or underscores. Email addresses also work.</p></div>
-              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email</Label><Input id="player-recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Required. We’ll send a code to verify this address before you can use your player account.</p></div>}
+              <div className="space-y-2"><Label htmlFor="player-login">Username</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={24} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username" /><p className="text-xs text-slate-500">3–24 letters, numbers, dots, hyphens or underscores.</p></div>
+              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email (optional)</Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Only used to recover your account. You can add it later.</p></div>}
               <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
               {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
               {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
