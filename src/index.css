@@ -370,66 +370,10 @@ main :is(h1, h2, h3, h4) {
   letter-spacing: normal;
 }
 
-/* Staff pages use the same light OpenWorlds palette as the public site. */
+/* Staff pages use the same plain light theme as the rest of the site. */
 .staff-portal {
-  min-height: 100vh;
-  background: #f8f9f8;
+  background: #fff;
   color: #111827;
-}
-
-.staff-portal :is(section, article, details) {
-  border-color: #e2e8f0;
-  border-radius: 0.25rem;
-  background-color: #fff;
-  box-shadow: none;
-}
-
-.staff-portal .staff-workspace-header {
-  border-bottom-color: rgb(23 107 69 / 35%);
-}
-
-.staff-portal .staff-workspace-header > p:first-child,
-.staff-portal [class*="text-blue-300"],
-.staff-portal [class*="text-[#7651c9]"],
-.staff-portal [class*="text-[#0066cc]"] {
-  color: var(--ow-green) !important;
-}
-
-.staff-portal .staff-workspace-header h1 {
-  color: #111827 !important;
-}
-
-.staff-portal .staff-workspace-header > div > div > p {
-  color: #64748b !important;
-}
-
-.staff-portal [class*="bg-[#eef2ff]"] {
-  background-color: #e8f3ec !important;
-  color: var(--ow-green) !important;
-}
-
-.staff-portal [role="tablist"] {
-  border-color: #cbd5e1;
-}
-
-.staff-portal [role="tablist"] a[aria-current="page"] {
-  border-color: var(--ow-green);
-  color: var(--ow-green) !important;
-}
-
-.staff-portal :is(input, textarea, select) {
-  border-color: #e2e8f0;
-  background-color: #fff;
-  color: #111827;
-}
-
-.staff-portal :is(input, textarea, select)::placeholder {
-  color: #94a3b8;
-}
-
-.staff-portal :is(input, textarea, select):focus-visible,
-.staff-portal :is(a, button):focus-visible {
-  outline-color: var(--ow-green);
 }
 
 .staff-welcome-dialog {
@@ -442,9 +386,4 @@ main :is(h1, h2, h3, h4) {
 .staff-welcome-dialog,
 .staff-welcome-dialog * {
   color: #111827 !important;
-}
-
-.staff-welcome-dialog :is([class*="bg-slate-50"], [class*="bg-white"]) {
-  border-color: #e2e8f0;
-  background: #f8fafc;
 }

@@ -10,19 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Bell,
-  Building2,
   FileText,
   ImagePlus,
   Loader2,
-  Megaphone,
   Pencil,
   Send,
   ShieldCheck,
   Trash2,
   XCircle,
-  Users,
-  UserCircle,
   Check,
   AlertTriangle,
 } from "lucide-react";
@@ -51,10 +46,6 @@ const categories: Array<[AnnouncementCategory, string]> = [
   ["event", "Event"],
 ];
 
-function initials(name: string) {
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]!.toUpperCase()).join("") || "?";
-}
-
 function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
@@ -62,75 +53,43 @@ function formatTime(timestamp: number) {
 type StaffSection = "overview" | "announcements" | "messages";
 
 function MoreStaffTools() {
-  const [open, setOpen] = useState(false);
-
   return (
-    <section className="mb-5 rounded-xl border border-slate-200 bg-white">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between gap-3 p-4 text-left"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span>
-          <span className="block text-sm font-semibold">More staff tools</span>
-          <span className="mt-1 block text-xs text-slate-500">Website status and account access reviews</span>
-        </span>
-        <span aria-hidden="true" className="text-slate-500">{open ? "−" : "+"}</span>
-      </button>
-      {open && (
-        <div className="space-y-4 border-t border-slate-100 p-4">
-          <SiteStatusControl />
-          <StaffSecurityPanel />
-        </div>
-      )}
-    </section>
+    <details className="mb-6 border-y border-slate-200">
+      <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools</summary>
+      <div className="space-y-6 border-t border-slate-200 py-4">
+        <SiteStatusControl />
+        <StaffSecurityPanel />
+      </div>
+    </details>
   );
 }
 
 function WorkspaceOverview({
   isAdmin,
   me,
-  onAnnouncements,
 }: {
   isAdmin: boolean;
   me: ReturnType<typeof useQuery<typeof api.staff.me>>;
-  onAnnouncements: () => void;
 }) {
   const announcements = useQuery(api.staff.announcements);
   const recent = (announcements ?? []).slice(0, 3);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       {/* Signed-in staff header: nickname first, never the email. */}
       {me && me.signedIn && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-start justify-between gap-4">
+        <section>
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-[#14583c]">
-                  {displayInitials(me)}
-                </span>
-                <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold">{displayNameFor(me)}</h2>
-                  <p className="text-xs text-slate-500">
-                    {me.isAdmin ? "Company admin" : me.isStaff ? "Company staff" : "Signed in"}
-                    {me.department || me.position ? ` · ${[me.department, me.position].filter(Boolean).join(" · ")}` : ""}
-                  </p>
-                  {me.memberStatus === "volunteer-thank-you" && <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Volunteer</span>}
-                </div>
-              </div>
-              {me.nickname ? (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
-                  <UserCircle className="size-3.5 text-slate-400" />
-                  Public nickname set · email stays private
-                </p>
-              ) : (
-                <p className="mt-2 flex items-center gap-1.5 text-xs text-amber-700">
-                  <UserCircle className="size-3.5 text-amber-600" />
-                  Pick a nickname to replace your name on the staff portal
-                </p>
-              )}
+              <h2 className="truncate text-lg font-semibold">{displayNameFor(me)}</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {me.isAdmin ? "Company admin" : me.isStaff ? "Company staff" : "Signed in"}
+                {me.department || me.position ? ` · ${[me.department, me.position].filter(Boolean).join(" · ")}` : ""}
+                {me.memberStatus === "volunteer-thank-you" ? " · Volunteer" : ""}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                {me.nickname ? "Public nickname set · email stays private" : "Pick a nickname to replace your name on the staff portal"}
+              </p>
             </div>
             {me.badge && (
               <RoleBadge badge={me.badge} className="shrink-0" />
@@ -141,68 +100,63 @@ function WorkspaceOverview({
 
       {/* Nickname settings: first-login pick + always-change control. */}
       {me && me.signedIn && (
-        <details className="rounded-xl border border-slate-200 bg-white">
-          <summary className="cursor-pointer list-none p-4 text-sm font-semibold marker:hidden">
+        <details className="border-t border-slate-200 pt-3">
+          <summary className="cursor-pointer text-sm font-medium">
             Account settings <span className="ml-2 text-xs font-normal text-slate-500">Nickname and security</span>
           </summary>
-          <div className="space-y-4 border-t border-slate-100 p-4">
+          <div className="space-y-4 pt-4">
             {me.isStaff && <NicknameSettings me={me} />}
             <AccountSecuritySettings />
           </div>
         </details>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="font-semibold">Recent announcements</h2>
-              <p className="mt-1 text-xs text-slate-500">Latest workspace activity</p>
-            </div>
-            <Button size="sm" variant="outline" onClick={onAnnouncements}>Manage posts</Button>
-          </div>
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
+          <h2 className="font-semibold">Recent announcements</h2>
+          <Link to="/staff/announcements" className="text-sm text-[#14583c] hover:underline">Manage posts</Link>
+        </div>
 
-          {announcements === undefined ? (
-            <p className="mt-5 text-sm text-slate-500">Loading…</p>
-          ) : recent.length === 0 ? (
-            <p className="mt-5 text-sm text-slate-500">No posts yet. Start with an announcement draft.</p>
-          ) : (
-            <div className="mt-4 divide-y divide-slate-100">
-              {recent.map((item) => (
-                <article key={item._id} className="py-3 first:pt-0">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-medium">{item.title}</h3>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] capitalize text-slate-600">{item.status}</span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-500">{item.summary}</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        {announcements === undefined ? (
+          <p className="mt-3 text-sm text-slate-500">Loading…</p>
+        ) : recent.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">No posts yet.</p>
+        ) : (
+          <ul className="divide-y divide-slate-200">
+            {recent.map((item) => (
+              <li key={item._id} className="py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-medium">{item.title}</h3>
+                  <span className="text-xs capitalize text-slate-500">{item.status}</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">{item.summary}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold">Staff links</h2>
-          <p className="mt-1 text-xs text-slate-500">Choose the area you need.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <QuickLink to="/staff/announcements" title="Announcements" detail="Draft and publish updates" />
-            <QuickLink to="/staff/messages" title="Team board" detail="Read and share internal updates" />
-            <QuickLink to="/staff/creators" title="Creator verification" detail="Review creator applications" />
-            {isAdmin && <QuickLink to="/admin" title="Admin console" detail="Manage company access and operations" />}
-            <QuickLink to="/news" title="Public news" detail="View published announcements" />
-          </div>
-        </section>
-      </div>
+      <section>
+        <h2 className="font-semibold">Staff links</h2>
+        <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
+          <QuickLink to="/staff/announcements" title="Announcements" />
+          <QuickLink to="/staff/messages" title="Team board" />
+          <QuickLink to="/staff/creators" title="Creator verification" />
+          {isAdmin && <QuickLink to="/admin" title="Admin console" />}
+          <QuickLink to="/news" title="Public news" />
+        </ul>
+      </section>
     </div>
   );
 }
 
-function QuickLink({ to, title, detail }: { to: string; title: string; detail: string }) {
+function QuickLink({ to, title }: { to: string; title: string }) {
   return (
-    <Link to={to} className="rounded-lg border border-slate-200 p-4 transition hover:border-[#0066cc] hover:bg-blue-50/30">
-      <strong className="text-sm">{title}</strong>
-      <span className="mt-1 block text-xs text-slate-500">{detail}</span>
-    </Link>
+    <li>
+      <Link to={to} className="block py-2.5 text-sm hover:text-[#14583c] hover:underline">
+        {title}
+      </Link>
+    </li>
   );
 }
 
@@ -251,25 +205,21 @@ function NicknameSettings({
   const editing = nickname !== (me?.nickname ?? "");
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex items-center gap-2">
-        <UserCircle className="size-4 text-slate-500" />
-        <h3 className="font-semibold text-sm">Public nickname</h3>
-      </div>
+    <section>
+      <h3 className="text-sm font-semibold">Public nickname</h3>
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-slate-500">
         This is the name shown on the staff portal, board, and announcements. It is not listed on the public About page.
       </p>
 
       {saved ? (
-        <div className="mt-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-          <Check className="size-4 shrink-0" />
+        <p className="mt-3 text-sm text-[#14583c]">
           Nickname saved. It may take a moment to appear everywhere.
-        </div>
+        </p>
       ) : null}
 
       {error && (
-        <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p role="alert" className="mt-3 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -360,24 +310,20 @@ function AnnouncementList({
   onRemove: (item: (typeof items)[number]) => void;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          {title === "Drafts" ? <FileText className="size-4" /> : <Bell className="size-4" />}
-          {title}
-        </h3>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{items.length}</span>
-      </div>
+    <section>
+      <h3 className="border-b border-slate-200 pb-2 text-sm font-semibold">
+        {title} ({items.length})
+      </h3>
 
       {items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-slate-500">{empty}</p>
+        <p className="py-6 text-sm text-slate-500">{empty}</p>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-slate-200">
           {items.map((item) => {
             const mayManage = isAdmin || item.authorId === userId;
             return (
               <article key={item._id} className="py-4">
-                <p className="text-xs font-medium capitalize text-[#7651c9]">
+                <p className="text-xs capitalize text-slate-500">
                   {item.category === "development" ? "Development update" : item.category}
                 </p>
                 <h4 className="mt-1 font-semibold">{item.title}</h4>
@@ -638,36 +584,34 @@ function AnnouncementsPanel({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#7651c9]">Public-facing</p>
-          <h2 className="mt-1 text-xl font-semibold">Game announcements</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Create polished updates with photos or video. Your personal name is never shown publicly.
+          <h2 className="text-xl font-semibold">Announcements</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Updates shown on the public News page. Your name is never shown publicly.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => resetForm()}>
-          <FileText className="size-4" />
           New post
         </Button>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p role="alert" className="text-sm text-red-700">
           {error}
         </p>
       )}
 
       {newsPostingStatus?.eligible && (
-        <section className="rounded-xl border border-blue-200 bg-blue-50/60 p-5">
+        <section className="border-y border-slate-200 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h3 className="font-semibold text-slate-900">News publishing verification</h3>
+              <h3 className="font-semibold">News publishing verification</h3>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Verify your company email before creating, editing, or publishing announcements. Verification stays active for one hour.</p>
             </div>
             {newsPostingStatus.verifiedUntil > Date.now() ? (
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">Verified</span>
+              <span className="text-xs font-semibold text-[#14583c]">Verified</span>
             ) : (
               <Button type="button" variant="outline" disabled={codeBusy} onClick={() => void requestNewsCode()}>{codeBusy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send verification code</Button>
             )}
@@ -682,7 +626,7 @@ function AnnouncementsPanel({
         </section>
       )}
 
-      <section id="game-announcement-form" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <section id="game-announcement-form" className="scroll-mt-24 border-y border-slate-200 py-5">
         <div>
           <h3 className="font-semibold">{editingId ? "Edit announcement" : "Compose announcement"}</h3>
           <p className="text-xs text-slate-500">
@@ -745,7 +689,7 @@ function AnnouncementsPanel({
           <p className="text-right text-[11px] text-slate-400">{body.length}/10,000</p>
         </div>
 
-        <div className="mt-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+        <div className="mt-5 border border-slate-200 p-4">
           <Label htmlFor="announcement-media" className="flex items-center gap-2">
             <ImagePlus className="size-4" />
             Photos and videos
@@ -771,7 +715,7 @@ function AnnouncementsPanel({
           {media.length > 0 && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {media.map((asset, index) => (
-                <div key={asset.storageId} className="rounded-lg border border-slate-200 bg-white p-2">
+                <div key={asset.storageId} className="border border-slate-200 p-2">
                   {asset.url && (
                     asset.mediaType === "image" ? (
                       <img
@@ -942,12 +886,10 @@ function StaffBoard({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+    <section className="space-y-5">
       <div>
-        <h2 className="font-semibold">Staff message board</h2>
-        <p className="text-xs text-slate-500">
-          Internal updates for admins and company staff · newest first
-        </p>
+        <h2 className="text-xl font-semibold">Team board</h2>
+        <p className="mt-1 text-sm text-slate-600">Internal notes for staff. Newest first.</p>
       </div>
 
       <form onSubmit={submit} className="mt-5">
@@ -973,42 +915,32 @@ function StaffBoard({
       </form>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <p role="alert" className="mt-4 text-sm text-red-700">
           {error}
         </p>
       )}
 
-      <div className="mt-6 space-y-4">
+      <div className="divide-y divide-slate-200 border-t border-slate-200">
         {board === undefined ? (
           <div className="flex justify-center py-10">
             <Loader2 className="size-5 animate-spin" />
           </div>
         ) : board === null ? (
-          <p className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm">
-            Staff access required.
-          </p>
+          <p className="py-4 text-sm text-slate-600">Staff access required.</p>
         ) : board.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
-            No messages yet. Start a team update.
-          </div>
+          <p className="py-6 text-sm text-slate-500">No messages yet.</p>
         ) : (
           board.map((message) => (
-            <article key={message._id} className="rounded-xl border border-slate-200 p-4">
+            <article key={message._id} className="py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-slate-100 text-sm font-semibold">
-                    {initials(message.authorName)}
-                  </span>
-
-                  <div>
-                    <p className="flex items-center gap-2 text-sm font-semibold">
-                      {message.authorName}
-                      {message.badge && <RoleBadge badge={message.badge} />}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {[message.department, message.position].filter(Boolean).join(" · ") || "Company team"}
-                    </p>
-                  </div>
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-semibold">
+                    {message.authorName}
+                    {message.badge && <RoleBadge badge={message.badge} />}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {[message.department, message.position].filter(Boolean).join(" · ") || "Company team"}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -1020,7 +952,7 @@ function StaffBoard({
                       type="button"
                       aria-label="Delete message"
                       onClick={() => void removeMessageFromBoard(message._id, message.authorId)}
-                      className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                      className="p-1.5 text-slate-400 hover:text-red-600"
                     >
                       <Trash2 className="size-4" />
                     </button>
@@ -1045,54 +977,46 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const location = useLocation();
   const me = useQuery(api.staff.me);
   const tabs = [
-    { id: "overview" as const, label: "Workspace", icon: Building2 },
-    { id: "announcements" as const, label: "Announcements", icon: Megaphone },
-    { id: "messages" as const, label: "Team board", icon: Users },
+    { id: "overview" as const, label: "Workspace" },
+    { id: "announcements" as const, label: "Announcements" },
+    { id: "messages" as const, label: "Team board" },
   ];
 
   const selectedTab: StaffSection =
     tabs.find((tab) => location.pathname.endsWith("/staff/" + tab.id))?.id ?? "overview";
   const adminView = isAdmin || me?.isAdmin === true;
   return (
-    <div className="staff-workspace min-h-screen bg-[#f8f9f8] pb-12">
-      <header className="ow-page-hero px-5 py-10 text-white sm:px-8 sm:py-12">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-medium text-blue-100">OpenWorlds · Staff</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Staff workspace</h1>
-          <p className="mt-4 text-base leading-7 text-blue-50">
-            {me?.signedIn ? `Welcome back, ${displayNameFor(me)}.` : "For OpenWorlds employees and volunteers."}
+    <div className="staff-workspace min-h-screen bg-white pb-12">
+      <header className="border-b border-slate-200 px-5 py-6 sm:px-8">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="text-2xl font-semibold">Staff workspace</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {me?.signedIn ? `Signed in as ${displayNameFor(me)}.` : "For OpenWorlds employees and volunteers."}
           </p>
         </div>
       </header>
-      <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-8">
-        <div className="min-w-0">
-          <div className="mb-5 flex flex-wrap gap-1 border-b border-slate-300" role="tablist" aria-label="Staff workspace">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <Link
-            key={id}
-            to={`/staff/${id}`}
-            className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${
-              selectedTab === id
-                ? "border-[#176b45] text-[#14583c]"
-                : "border-transparent text-slate-500 hover:border-slate-400 hover:text-slate-800"
-            }`}
-          >
-            <Icon className="size-4" />
-            {label}
-          </Link>
-        ))}
-      </div>
+      <div className="mx-auto max-w-4xl px-5 py-6 sm:px-8">
+        <nav className="mb-6 flex flex-wrap gap-5 border-b border-slate-200 pb-3 text-sm" aria-label="Staff workspace">
+          {tabs.map(({ id, label }) => (
+            <Link
+              key={id}
+              to={`/staff/${id}`}
+              className={selectedTab === id ? "font-semibold text-[#14583c]" : "text-slate-500 hover:text-slate-900"}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
 
       {selectedTab === "overview" && me?.isStaff && <MoreStaffTools />}
 
       {selectedTab === "overview" ? (
-        <WorkspaceOverview isAdmin={adminView} me={me} onAnnouncements={() => {}} />
+        <WorkspaceOverview isAdmin={adminView} me={me} />
       ) : selectedTab === "announcements" ? (
         <AnnouncementsPanel isAdmin={adminView} userId={userId ?? (me?.userId ?? "")} />
       ) : (
         <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}
-        </div>
       </div>
     </div>
   );
@@ -1142,7 +1066,7 @@ function SiteStatusControl() {
 
   const statusLabel = status === "unavailable" ? "The site is under construction or currently unavailable" : status === "available" ? "Default" : "Loading…";
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
+    <section>
       <div>
         <h2 className="font-semibold">Website status</h2>
         <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
@@ -1181,14 +1105,14 @@ function StaffSecurityPanel() {
 
   if (!data) return null;
   return (
-    <section className="rounded-xl border border-amber-200 bg-white p-5">
+    <section>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Review active restrictions and player appeals. Remove a ban or approve an appeal to restore access.</p></div>
-        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">{data.bans.length} active · {data.appeals.length} appeals</span>
+        <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Remove a ban or approve an appeal to restore access.</p></div>
+        <span className="text-xs text-slate-500">{data.bans.length} active · {data.appeals.length} appeals</span>
       </div>
-      {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-      {data.appeals.length > 0 && <div className="mt-4 space-y-3">{data.appeals.map((appeal) => <article key={appeal._id} className="rounded-lg border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="rounded-full border border-amber-200 bg-white px-2 py-1 text-xs text-amber-800">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline</Button></div></article>)}</div>}
-      {data.appeals.length === 0 && data.bans.length === 0 ? <p className="mt-4 text-sm text-slate-500">No restrictions or appeals need attention.</p> : data.bans.length > 0 && <ul className="mt-4 divide-y divide-slate-100 rounded-lg border border-slate-200">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email} · {ban.reason}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void perform(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Unban</Button></li>)}</ul>}
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {data.appeals.length > 0 && <div className="divide-y divide-slate-200 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline</Button></div></article>)}</div>}
+      {data.appeals.length === 0 && data.bans.length === 0 ? <p className="mt-4 text-sm text-slate-500">No restrictions or appeals need attention.</p> : data.bans.length > 0 && <ul className="mt-4 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email} · {ban.reason}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void perform(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Unban</Button></li>)}</ul>}
     </section>
   );
 }
