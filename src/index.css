@@ -376,6 +376,45 @@ main :is(h1, h2, h3, h4) {
   color: #111827;
 }
 
+/* Staff masthead keeps the site's red/green/gold rule as its only ornament. */
+.staff-portal .staff-masthead {
+  position: relative;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.staff-portal .staff-masthead::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
+  content: "";
+}
+
+.staff-portal .staff-kicker {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.staff-portal .staff-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.staff-portal .staff-section-title::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: none;
+  background: var(--ow-green);
+  content: "";
+}
+
 .staff-welcome-dialog {
   border-color: #e2e8f0;
   background: #fff;

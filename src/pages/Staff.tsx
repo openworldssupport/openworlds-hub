@@ -113,7 +113,7 @@ function WorkspaceOverview({
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
-          <h2 className="font-semibold">Recent announcements</h2>
+          <h2 className="staff-section-title">Recent announcements</h2>
           <Link to="/staff/announcements" className="text-sm text-[#14583c] hover:underline">Manage posts</Link>
         </div>
 
@@ -137,7 +137,7 @@ function WorkspaceOverview({
       </section>
 
       <section>
-        <h2 className="font-semibold">Staff links</h2>
+        <h2 className="staff-section-title">Staff links</h2>
         <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
@@ -153,8 +153,9 @@ function WorkspaceOverview({
 function QuickLink({ to, title }: { to: string; title: string }) {
   return (
     <li>
-      <Link to={to} className="block py-2.5 text-sm hover:text-[#14583c] hover:underline">
-        {title}
+      <Link to={to} className="group flex items-center justify-between py-2.5 text-sm hover:text-[#14583c]">
+        <span className="group-hover:underline">{title}</span>
+        <span aria-hidden="true" className="text-slate-400 group-hover:text-[#14583c]">→</span>
       </Link>
     </li>
   );
@@ -311,8 +312,8 @@ function AnnouncementList({
 }) {
   return (
     <section>
-      <h3 className="border-b border-slate-200 pb-2 text-sm font-semibold">
-        {title} ({items.length})
+      <h3 className="staff-section-title border-b border-slate-200 pb-2 text-sm">
+        {title} <span className="font-normal text-slate-500">({items.length})</span>
       </h3>
 
       {items.length === 0 ? (
@@ -587,7 +588,7 @@ function AnnouncementsPanel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Announcements</h2>
+          <h2 className="staff-section-title text-xl">Announcements</h2>
           <p className="mt-1 text-sm text-slate-600">
             Updates shown on the public News page. Your name is never shown publicly.
           </p>
@@ -888,7 +889,7 @@ function StaffBoard({
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="text-xl font-semibold">Team board</h2>
+        <h2 className="staff-section-title text-xl">Team board</h2>
         <p className="mt-1 text-sm text-slate-600">Internal notes for staff. Newest first.</p>
       </div>
 
@@ -987,9 +988,10 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const adminView = isAdmin || me?.isAdmin === true;
   return (
     <div className="staff-workspace min-h-screen bg-white pb-12">
-      <header className="border-b border-slate-200 px-5 py-6 sm:px-8">
+      <header className="staff-masthead px-5 py-6 sm:px-8">
         <div className="mx-auto max-w-4xl">
-          <h1 className="text-2xl font-semibold">Staff workspace</h1>
+          <p className="staff-kicker">OpenWorlds · Staff office</p>
+          <h1 className="mt-1 text-2xl font-semibold">Staff workspace</h1>
           <p className="mt-1 text-sm text-slate-600">
             {me?.signedIn ? `Signed in as ${displayNameFor(me)}.` : "For OpenWorlds employees and volunteers."}
           </p>
