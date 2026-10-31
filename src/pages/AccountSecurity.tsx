@@ -70,7 +70,7 @@ export function AccountSecuritySettings() {
       </form>
       <div className="mt-6 border-t border-slate-100 pt-4">
         <p className="text-sm font-medium">Two-step verification: {accountSecurity.enabled ? "On" : "Off"}</p>
-        <p className="mt-1 text-xs text-slate-500">Optional authenticator app codes add an extra sign-in check.</p>
+        <p className="mt-1 text-xs text-slate-500">{user.role === "user" ? "Optional authenticator app codes add an extra sign-in check." : "Needed to unlock staff tools: the admin console, creator approvals, announcements, moderation, and the website status switch."}</p>
         {accountSecurity.enabled ? (
           <form onSubmit={(event) => void turnOff(event)} className="mt-3 flex flex-wrap items-end gap-3">
             <div className="w-full max-w-xs space-y-2"><Label htmlFor="disable-two-factor">Authenticator or recovery code</Label><Input id="disable-two-factor" autoComplete="one-time-code" required value={code} onChange={(event) => setCode(event.target.value)} /></div>

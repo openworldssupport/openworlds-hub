@@ -1,10 +1,11 @@
 import { useDeferredValue, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { useAction, useMutation, useQuery } from "convex/react";
-import { BadgeCheck, ExternalLink, Loader2, Mail, ShieldCheck } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { BadgeCheck, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { SiteNav } from "@/components/SiteNav";
+import { StaffUnlock } from "@/components/StaffUnlock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,13 +20,10 @@ import {
 
 export default function CreatorVerification() {
   const status = useQuery(api.adminRoster.creatorRosterStatus);
-  const requestCode = useAction(api.adminRoster.requestCreatorCode);
-  const verifyCode = useMutation(api.adminRoster.verifyCreatorCode);
   const saveCreator = useMutation(api.users.saveOfficialCreator);
   const removeCreator = useMutation(api.users.removeOfficialCreator);
   const [now, setNow] = useState(Date.now());
   const creators = useQuery(api.users.staffOfficialCreators, status?.canManage && (status.verifiedUntil ?? 0) > now ? {} : "skip");
-  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -49,38 +47,6 @@ export default function CreatorVerification() {
     const timer = window.setTimeout(() => setNow(Date.now()), status.verifiedUntil - Date.now());
     return () => window.clearTimeout(timer);
   }, [status?.verifiedUntil]);
-
-  async function sendCode() {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await requestCode({});
-      setNotice("A six-digit verification code was sent to support@openworlds.dk. It expires in 10 minutes.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send the Support verification code.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirmCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      const result = await verifyCode({ code });
-      if (!result.ok) throw new Error(result.message);
-      setCode("");
-      setNow(Date.now());
-      setNotice("Verified. Creator approvals are enabled for 15 minutes.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not verify the Support code.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function approveCreator(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -126,7 +92,7 @@ export default function CreatorVerification() {
         <div className="mx-auto max-w-4xl">
           <p className="flex items-center gap-2 text-sm font-medium text-blue-100"><BadgeCheck className="size-4" /> Staff tools</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Creator verification</h1>
-          <p className="mt-3 max-w-2xl text-base leading-7 text-blue-50">Review a creator’s player account and public profiles. A one-time Support email code is required before granting verified status.</p>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-blue-50">Review a creator’s player account and public profiles. Confirm with your authenticator app before granting verified status.</p>
         </div>
       </section>
 
@@ -144,10 +110,9 @@ export default function CreatorVerification() {
             <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
               <div className="flex items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-800"><ShieldCheck className="size-5" /></span>
-                <div><h2 className="font-semibold">Support verification</h2><p className="mt-1 text-sm leading-6 text-slate-600">Request the code from support@openworlds.dk and enter it here. It expires after 10 minutes; approval access lasts 15 minutes.</p></div>
+                <div><h2 className="font-semibold">Unlock staff tools</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the 6-digit code from your authenticator app. Creator approvals stay unlocked for 15 minutes, and the same unlock covers the admin console.</p></div>
               </div>
-              <Button className="mt-4" variant="outline" disabled={busy || verified} onClick={() => void sendCode()}><Mail className="size-4" />{busy ? "Sending code…" : verified ? "Creator approvals verified" : "Send code to Support"}</Button>
-              {!verified && <form onSubmit={(event) => void confirmCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="staff-creator-support-code">6-digit Support code</Label><Input id="staff-creator-support-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={busy || code.length !== 6}>{busy ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />} Verify code</Button></form>}
+              {!verified && <div className="mt-4"><StaffUnlock description="Unlock creator approvals and the admin console with your authenticator app." /></div>}
               {verified && (
                 <div className="mt-5 space-y-3">
                   <Button onClick={() => { setError(""); setFormOpen(true); }}><BadgeCheck className="size-4" /> Verify a creator</Button>

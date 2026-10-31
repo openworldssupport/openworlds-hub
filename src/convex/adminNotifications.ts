@@ -3,6 +3,7 @@ import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
+import { isStaffUnlocked } from "./staffUnlock";
 
 export type AdminNotificationRecipientKind = "careers" | "support" | "both";
 
@@ -48,10 +49,8 @@ export const canSendTestAlert = internalQuery({
       (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk"));
     if (!isVerifiedAdmin) throw new Error("Verified administrator access is required.");
 
-    const verification = await ctx.db.query("adminRosterVerifications")
-      .withIndex("by_user", (q) => q.eq("userId", userId)).unique();
-    if (!verification?.permissionVerifiedUntil || verification.permissionVerifiedUntil < Date.now()) {
-      throw new Error("Verify the code sent to support@openworlds.dk before sending a test alert.");
+    if (!(await isStaffUnlocked(ctx))) {
+      throw new Error("Unlock staff tools with your authenticator app before sending a test alert.");
     }
 
     const recipient = await ctx.db.get(recipientId);

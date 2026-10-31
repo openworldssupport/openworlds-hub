@@ -1,10 +1,11 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { requireSiteAvailable } from "./siteStatus";
+import { staffUnlockState } from "./staffUnlock";
 
 async function requireSecurityStaff(ctx: QueryCtx | MutationCtx, verifyAdminPermission = true) {
   const userId = await getAuthUserId(ctx);
@@ -34,81 +35,24 @@ export async function recordSecurityViolation(ctx: MutationCtx) {
   });
 }
 
-export const createNewsPostingCode = internalMutation({
-  args: { userId: v.id("users"), codeHash: v.string() },
-  handler: async (ctx, { userId, codeHash }) => {
-    const user = await ctx.db.get(userId);
-    const eligible = user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-      (user.staffAccess || user.department?.trim() || user.position?.trim());
-    if (!eligible || !user) throw new Error("Not authorized.");
-    const now = Date.now();
-    const windowStart = user.newsPostingCodeWindowAt ?? 0;
-    const requestCount = windowStart > now - 60 * 60 * 1000 ? (user.newsPostingCodeRequestCount ?? 0) : 0;
-    if (requestCount >= 3) throw new Error("Code request limit reached. Try again later.");
-    await ctx.db.patch(userId, {
-      newsPostingCodeWindowAt: requestCount === 0 ? now : windowStart,
-      newsPostingCodeRequestCount: requestCount + 1,
-      newsPostingCodeRequestedAt: now,
-    });
-    const previous = await ctx.db.query("newsPostingCodes").withIndex("by_user_created", (q) => q.eq("userId", userId)).collect();
-    await Promise.all(previous.map((entry) => ctx.db.delete(entry._id)));
-    await ctx.db.insert("newsPostingCodes", { userId, codeHash, createdAt: now, expiresAt: now + 10 * 60 * 1000, attempts: 0 });
-    return { email: user.email ?? "", name: user.nickname ?? user.name ?? "Company member" };
-  },
-});
-
-export const clearNewsCode = internalMutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    const entries = await ctx.db.query("newsPostingCodes").withIndex("by_user_created", (q) => q.eq("userId", userId)).collect();
-    await Promise.all(entries.map((entry) => ctx.db.delete(entry._id)));
-  },
-});
-
 export const newsPostingStatus = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!userId || !user) return { eligible: false, isAdmin: false, verifiedUntil: 0, isBanned: false };
+    if (!userId || !user) return { eligible: false, isAdmin: false, verifiedUntil: 0, isBanned: false, hasCode: false, enrolled: false };
     const administrator = user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk";
-    const latestCode = await ctx.db.query("newsPostingCodes").withIndex("by_user_created", (q) => q.eq("userId", userId)).order("desc").first();
     const eligible = user.emailVerificationTime !== undefined && !user.isSiteBanned &&
       (user.staffAccess || user.department?.trim() || user.position?.trim());
-    return { eligible: Boolean(eligible), isAdmin: administrator, verifiedUntil: user.newsPostingVerifiedUntil ?? 0, isBanned: user.isSiteBanned === true, hasCode: Boolean(latestCode && latestCode.expiresAt >= Date.now()) };
-  },
-});
-
-export const verifyNewsPostingCode = mutation({
-  args: { code: v.string() },
-  handler: async (ctx, args) => {
-    await requireSiteAvailable(ctx);
-    const userId = await getAuthUserId(ctx);
-    const user = userId ? await ctx.db.get(userId) : null;
-    if (!userId || !user || user.emailVerificationTime === undefined || user.isSiteBanned || !(user.staffAccess || user.department?.trim() || user.position?.trim())) throw new Error("Not authorized.");
-    const entries = await ctx.db.query("newsPostingCodes").withIndex("by_user_created", (q) => q.eq("userId", userId)).order("desc").take(1);
-    const entry = entries[0];
-    if (!entry || entry.expiresAt < Date.now()) return { verified: false, banned: false };
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(args.code.trim()));
-    const codeHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-    if (codeHash !== entry.codeHash) {
-      const attempts = entry.attempts + 1;
-      await ctx.db.patch(entry._id, { attempts });
-      if (attempts >= 5) {
-        await ctx.db.patch(userId, {
-          isSiteBanned: true,
-          siteBanReason: "Repeated failed news verification attempts",
-          siteBannedAt: Date.now(),
-        });
-        const outstanding = await ctx.db.query("newsPostingCodes").withIndex("by_user_created", (q) => q.eq("userId", userId)).collect();
-        await Promise.all(outstanding.map((codeEntry) => ctx.db.delete(codeEntry._id)));
-        return { verified: false, banned: true };
-      }
-      return { verified: false, banned: false, remainingAttempts: 5 - attempts };
-    }
-    await ctx.db.patch(userId, { newsPostingVerifiedUntil: Date.now() + 60 * 60 * 1000 });
-    await ctx.db.delete(entry._id);
-    return { verified: true, banned: false, remainingAttempts: 0 };
+    const state = await staffUnlockState(ctx);
+    return {
+      eligible: Boolean(eligible),
+      isAdmin: administrator,
+      verifiedUntil: state.verifiedUntil,
+      isBanned: user.isSiteBanned === true,
+      hasCode: state.verifiedUntil > Date.now(),
+      enrolled: state.enrolled,
+    };
   },
 });
 

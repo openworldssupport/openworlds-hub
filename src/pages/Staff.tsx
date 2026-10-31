@@ -1,9 +1,10 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Link, useLocation } from "react-router";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { SiteNav } from "@/components/SiteNav";
+import { StaffUnlock } from "@/components/StaffUnlock";
 import { RoleBadge } from "@/components/RoleBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,6 @@ import {
   Loader2,
   Pencil,
   Send,
-  ShieldCheck,
   Trash2,
   XCircle,
   Check,
@@ -366,8 +366,6 @@ function AnnouncementsPanel({
 }) {
   const announcements = useQuery(api.staff.announcements);
   const newsPostingStatus = useQuery(api.security.newsPostingStatus);
-  const sendNewsCode = useAction(api.newsVerification.sendCode);
-  const verifyNewsCode = useMutation(api.security.verifyNewsPostingCode);
   const saveAnnouncement = useMutation(api.staff.saveAnnouncement);
   const setStatus = useMutation(api.staff.setAnnouncementStatus);
   const removeAnnouncement = useMutation(api.staff.removeAnnouncement);
@@ -385,9 +383,6 @@ function AnnouncementsPanel({
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [newsCode, setNewsCode] = useState("");
-  const [codeBusy, setCodeBusy] = useState(false);
-  const [codeMessage, setCodeMessage] = useState("");
 
   function resetForm(discardNewUploads = true) {
     if (discardNewUploads) {
@@ -452,7 +447,7 @@ function AnnouncementsPanel({
         if (file.size > 50 * 1024 * 1024) throw new Error("Each media file must be 50 MB or smaller.");
 
         const uploadUrl = await generateUploadUrl();
-        if (!uploadUrl) throw new Error("Verify your news-posting code before uploading media.");
+        if (!uploadUrl) throw new Error("Unlock staff tools before uploading media.");
         const response = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": file.type },
@@ -463,7 +458,7 @@ function AnnouncementsPanel({
 
         const result = await response.json() as { storageId: Id<"_storage"> };
         const asset = await finalizeUpload({ storageId: result.storageId, mediaType });
-        if (!asset.url) throw new Error("Verify your news-posting code before uploading media.");
+        if (!asset.url) throw new Error("Unlock staff tools before uploading media.");
 
         setMedia((current) => [
           ...current,
@@ -474,38 +469,6 @@ function AnnouncementsPanel({
       setError("Could not upload media.");
     } finally {
       setUploading(false);
-    }
-  }
-
-  async function requestNewsCode() {
-    setCodeBusy(true);
-    setCodeMessage("");
-    try {
-      await sendNewsCode({});
-      setCodeMessage("A verification code was sent to the company mailbox. It expires in 10 minutes.");
-    } catch {
-      setCodeMessage("Could not send a code. Check your eligibility and try again later.");
-    } finally {
-      setCodeBusy(false);
-    }
-  }
-
-  async function confirmNewsCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setCodeBusy(true);
-    setCodeMessage("");
-    try {
-      const result = await verifyNewsCode({ code: newsCode });
-      if (result.verified) {
-        setNewsCode("");
-        setCodeMessage("Verified. You can publish news for the next hour.");
-      } else {
-        setCodeMessage(result.banned ? "Too many incorrect attempts. Website access has been restricted; submit an appeal for review." : `That code was not accepted. ${result.remainingAttempts ?? 0} attempts remain.`);
-      }
-    } catch {
-      setCodeMessage("Could not verify the code. Request a new one and try again.");
-    } finally {
-      setCodeBusy(false);
     }
   }
 
@@ -608,22 +571,14 @@ function AnnouncementsPanel({
         <section className="border-y border-slate-200 py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h3 className="font-semibold">News publishing verification</h3>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Verify your company email before creating, editing, or publishing announcements. Verification stays active for one hour.</p>
+              <h3 className="font-semibold">News publishing</h3>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Confirm with your authenticator app before creating, editing, or publishing announcements. The unlock lasts 15 minutes.</p>
             </div>
-            {newsPostingStatus.verifiedUntil > Date.now() ? (
-              <span className="text-xs font-semibold text-[#14583c]">Verified</span>
-            ) : (
-              <Button type="button" variant="outline" disabled={codeBusy} onClick={() => void requestNewsCode()}>{codeBusy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send verification code</Button>
-            )}
+            {newsPostingStatus.verifiedUntil > Date.now() && <span className="text-xs font-semibold text-[#14583c]">Unlocked</span>}
           </div>
           {newsPostingStatus.verifiedUntil <= Date.now() && (
-            <form onSubmit={(event) => void confirmNewsCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
-              <div className="w-full max-w-xs space-y-1.5"><Label htmlFor="news-verification-code">6-digit code</Label><Input id="news-verification-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={newsCode} onChange={(event) => setNewsCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div>
-              <Button type="submit" variant="outline" disabled={codeBusy || newsCode.length !== 6}>{codeBusy ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />} Verify code</Button>
-            </form>
+            <div className="mt-4"><StaffUnlock description="Unlock publishing for the next 15 minutes with your authenticator app." /></div>
           )}
-          {codeMessage && <p role="status" className="mt-3 text-sm text-slate-700">{codeMessage}</p>}
         </section>
       )}
 
@@ -1025,38 +980,19 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
 
 function SiteStatusControl() {
   const status = useQuery(api.siteStatus.staffStatus);
-  const requestCode = useAction(api.siteStatus.requestChangeCode);
-  const confirmChange = useMutation(api.siteStatus.confirmChange);
+  const gate = useQuery(api.staffUnlock.status);
+  const changeStatus = useMutation(api.siteStatus.setStatus);
   const [targetStatus, setTargetStatus] = useState<"available" | "unavailable">("available");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"choose" | "verify">("choose");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-
-  async function sendCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage("");
-    try {
-      await requestCode({ status: targetStatus });
-      setStep("verify");
-      setMessage("A six-digit verification code was sent to the support email. It expires in 10 minutes.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not send the verification code.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const unlocked = (gate?.verifiedUntil ?? 0) > Date.now();
 
   async function applyStatus(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
     try {
-      const result = await confirmChange({ code });
-      if (!result.ok) throw new Error(result.message);
-      setStep("choose");
-      setCode("");
+      await changeStatus({ status: targetStatus });
       setMessage("Website status updated.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not update website status.");
@@ -1070,20 +1006,16 @@ function SiteStatusControl() {
     <section>
       <div>
         <h2 className="font-semibold">Website status</h2>
-        <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
-        {step === "choose" ? (
-          <form onSubmit={(event) => void sendCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
-            <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Default</option><option value="unavailable">The site is under construction or currently unavailable</option></select></div>
-            <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Sending code…" : "Send verification code"}</Button>
-          </form>
+        <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. Staff can take the site offline; only administrators can bring it back.</p>
+        {!unlocked ? (
+          <div className="mt-4"><StaffUnlock description="Unlock with your authenticator app to change the website status." /></div>
         ) : (
           <form onSubmit={(event) => void applyStatus(event)} className="mt-4 flex flex-wrap items-end gap-3">
-            <div className="w-full max-w-xs space-y-2"><Label htmlFor="site-status-code">Support email code</Label><Input id="site-status-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
-            <Button type="submit" disabled={busy || code.length !== 6}>{busy ? "Updating…" : "Verify & apply"}</Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => { setStep("choose"); setCode(""); setMessage(""); }}>Cancel</Button>
+            <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Default</option><option value="unavailable">The site is under construction or currently unavailable</option></select></div>
+            <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Updating…" : "Update status"}</Button>
           </form>
         )}
-        {message && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600">{step === "verify" && <AlertTriangle className="size-4" />}{message}</p>}
+        {message && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600"><AlertTriangle className="size-4" />{message}</p>}
       </div>
     </section>
   );
@@ -1111,6 +1043,7 @@ function StaffSecurityPanel() {
         <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Remove a ban or approve an appeal to restore access.</p></div>
         <span className="text-xs text-slate-500">{data.bans.length} active · {data.appeals.length} appeals</span>
       </div>
+      <div className="mt-3"><StaffUnlock description="Moderation actions need an authenticator unlock." /></div>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {data.appeals.length > 0 && <div className="divide-y divide-slate-200 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline</Button></div></article>)}</div>}
       {data.appeals.length === 0 && data.bans.length === 0 ? <p className="mt-4 text-sm text-slate-500">No restrictions or appeals need attention.</p> : data.bans.length > 0 && <ul className="mt-4 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email} · {ban.reason}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void perform(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Unban</Button></li>)}</ul>}

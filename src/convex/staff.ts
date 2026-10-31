@@ -9,6 +9,7 @@ import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
 import { linkVerifiedCreatorAccount } from "./users";
 import { requireSiteAvailable } from "./siteStatus";
+import { isStaffUnlocked } from "./staffUnlock";
 
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -476,7 +477,7 @@ export const generateAnnouncementUploadUrl = mutation({
       return null;
     }
     const user = await currentUser(ctx);
-    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return null;
+    if (!user || !(await isStaffUnlocked(ctx))) return null;
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -493,7 +494,7 @@ export const finalizeAnnouncementUpload = mutation({
       return { storageId: args.storageId, mediaType: args.mediaType, url: null };
     }
     const user = await currentUser(ctx);
-    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return { storageId: args.storageId, mediaType: args.mediaType, url: null };
+    if (!user || !(await isStaffUnlocked(ctx))) return { storageId: args.storageId, mediaType: args.mediaType, url: null };
     const userId = user._id;
     const metadata = await ctx.db.system.get("_storage", args.storageId);
     if (!metadata) throw new Error("Upload not found.");
@@ -579,7 +580,7 @@ export const saveAnnouncement = mutation({
       return { restricted: true };
     }
     const user = await currentUser(ctx);
-    if (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now()) return { restricted: true };
+    if (!user || !(await isStaffUnlocked(ctx))) return { restricted: true };
     const title = args.title.trim();
     const summary = args.summary.trim();
     const body = args.body.trim();
@@ -681,7 +682,7 @@ export const deleteAnnouncementUpload = mutation({
       return { ok: false, restricted: true };
     }
     const user = await currentUser(ctx);
-    if (!user || (!(await isAdmin(ctx)) && (user.newsPostingVerifiedUntil ?? 0) < Date.now())) return { ok: false, restricted: true };
+    if (!user || !(await isStaffUnlocked(ctx))) return { ok: false, restricted: true };
     const userId = await getAuthUserId(ctx);
     const stored = await ctx.db.query("announcementAssets")
       .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
@@ -730,7 +731,7 @@ export const setAnnouncementStatus = mutation({
       return { ok: false, restricted: true };
     }
     const user = await currentUser(ctx);
-    if (args.status === "published" && (!user || (user.newsPostingVerifiedUntil ?? 0) < Date.now())) {
+    if (args.status === "published" && (!user || !(await isStaffUnlocked(ctx)))) {
       return { ok: false, restricted: true };
     }
     const announcement = await ctx.db.get(args.announcementId);

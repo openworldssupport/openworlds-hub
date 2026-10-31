@@ -126,6 +126,7 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_status_created", ["status", "createdAt"]),
 
+    // Legacy: news posting now uses the session unlock in staffUnlocks.
     newsPostingCodes: defineTable({
       userId: v.id("users"),
       codeHash: v.string(),
@@ -159,6 +160,17 @@ const schema = defineSchema(
       attempts: v.number(),
     }).index("by_email", ["email"]),
 
+    // One short-lived elevation per signed-in session. Created by
+    // staffUnlock.unlock after the member confirms a code from their own
+    // authenticator app; every sensitive staff action checks it.
+    staffUnlocks: defineTable({
+      userId: v.id("users"),
+      sessionId: v.string(),
+      verifiedUntil: v.number(),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_session", ["sessionId"]),
+
+    // Legacy emailed-code records. No longer written or read.
     adminRosterVerifications: defineTable({
       userId: v.id("users"),
       codeHash: v.optional(v.string()),
