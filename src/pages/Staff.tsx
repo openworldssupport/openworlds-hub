@@ -24,7 +24,6 @@ import {
   Users,
   UserCircle,
   Check,
-  Construction,
   AlertTriangle,
 } from "lucide-react";
 import { displayNameFor, displayInitials } from "@/lib/staff";
@@ -109,7 +108,7 @@ function WorkspaceOverview({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-3">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[#eef2ff] text-sm font-semibold text-[#7651c9]">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-slate-50 text-sm font-semibold text-[#14583c]">
                   {displayInitials(me)}
                 </span>
                 <div className="min-w-0">
@@ -684,17 +683,11 @@ function AnnouncementsPanel({
       )}
 
       <section id="game-announcement-form" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div className="flex items-start gap-3">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-[#0066cc]">
-            {editingId ? <Pencil className="size-4" /> : <Megaphone className="size-4" />}
-          </span>
-
-          <div>
-            <h3 className="font-semibold">{editingId ? "Edit announcement" : "Compose announcement"}</h3>
-            <p className="text-xs text-slate-500">
-              Only published posts appear on the News and Events pages. Individual poster identities remain private.
-            </p>
-          </div>
+        <div>
+          <h3 className="font-semibold">{editingId ? "Edit announcement" : "Compose announcement"}</h3>
+          <p className="text-xs text-slate-500">
+            Only published posts appear on the News and Events pages. Individual poster identities remain private.
+          </p>
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_210px]">
@@ -950,17 +943,11 @@ function StaffBoard({
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-[#0066cc]">
-          <Users className="size-5" />
-        </span>
-
-        <div>
-          <h2 className="font-semibold">Staff message board</h2>
-          <p className="text-xs text-slate-500">
-            Internal updates for admins and company staff · newest first
-          </p>
-        </div>
+      <div>
+        <h2 className="font-semibold">Staff message board</h2>
+        <p className="text-xs text-slate-500">
+          Internal updates for admins and company staff · newest first
+        </p>
       </div>
 
       <form onSubmit={submit} className="mt-5">
@@ -1156,25 +1143,22 @@ function SiteStatusControl() {
   const statusLabel = status === "unavailable" ? "The site is under construction or currently unavailable" : status === "available" ? "Default" : "Loading…";
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-800"><Construction className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-semibold">Website status</h2>
-          <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
-          {step === "choose" ? (
-            <form onSubmit={(event) => void sendCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
-              <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Default</option><option value="unavailable">The site is under construction or currently unavailable</option></select></div>
-              <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Sending code…" : "Send verification code"}</Button>
-            </form>
-          ) : (
-            <form onSubmit={(event) => void applyStatus(event)} className="mt-4 flex flex-wrap items-end gap-3">
-              <div className="w-full max-w-xs space-y-2"><Label htmlFor="site-status-code">Support email code</Label><Input id="site-status-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
-              <Button type="submit" disabled={busy || code.length !== 6}>{busy ? "Updating…" : "Verify & apply"}</Button>
-              <Button type="button" variant="outline" disabled={busy} onClick={() => { setStep("choose"); setCode(""); setMessage(""); }}>Cancel</Button>
-            </form>
-          )}
-          {message && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600">{step === "verify" && <AlertTriangle className="size-4" />}{message}</p>}
-        </div>
+      <div>
+        <h2 className="font-semibold">Website status</h2>
+        <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. A verified code from support@openworlds.dk is required for each change.</p>
+        {step === "choose" ? (
+          <form onSubmit={(event) => void sendCode(event)} className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="min-w-0 space-y-2"><Label htmlFor="site-status-target">Set site to</Label><select id="site-status-target" value={targetStatus} onChange={(event) => setTargetStatus(event.target.value as typeof targetStatus)} className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="available">Default</option><option value="unavailable">The site is under construction or currently unavailable</option></select></div>
+            <Button type="submit" disabled={busy || status === targetStatus}>{busy ? "Sending code…" : "Send verification code"}</Button>
+          </form>
+        ) : (
+          <form onSubmit={(event) => void applyStatus(event)} className="mt-4 flex flex-wrap items-end gap-3">
+            <div className="w-full max-w-xs space-y-2"><Label htmlFor="site-status-code">Support email code</Label><Input id="site-status-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
+            <Button type="submit" disabled={busy || code.length !== 6}>{busy ? "Updating…" : "Verify & apply"}</Button>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => { setStep("choose"); setCode(""); setMessage(""); }}>Cancel</Button>
+          </form>
+        )}
+        {message && <p role="status" className="mt-3 flex items-center gap-2 text-sm text-slate-600">{step === "verify" && <AlertTriangle className="size-4" />}{message}</p>}
       </div>
     </section>
   );
