@@ -37,6 +37,14 @@ export function SiteNav() {
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [welcomeBusy, setWelcomeBusy] = useState(false);
   const [welcomeError, setWelcomeError] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const matchedRole = welcomeDetails
     ? careerRoles.find((role) => role.title.trim().toLowerCase() === welcomeDetails.position.trim().toLowerCase())
     : undefined;
@@ -62,7 +70,8 @@ export function SiteNav() {
   }
 
   return (
-    <header className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header data-scrolled={scrolled} className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="ow-progress" aria-hidden="true" />
       <SiteStatusNotice />
       <Dialog
         open={welcomeOpen && Boolean(welcomeDetails)}
@@ -109,7 +118,7 @@ export function SiteNav() {
             </Link>
           ))}
           <DropdownMenu>
-            <DropdownMenuTrigger className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">More</DropdownMenuTrigger>
+            <DropdownMenuTrigger className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100" style={{ animationDelay: "240ms" }}>More</DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44">
               {MORE_LINKS.map((link) => (
                 <DropdownMenuItem key={link.to} asChild>
