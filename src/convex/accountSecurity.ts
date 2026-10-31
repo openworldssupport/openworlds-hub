@@ -181,6 +181,51 @@ export const completeStaffSignIn = internalAction({
   },
 });
 
+/**
+ * Sends the next staff sign-in code to the verified recovery email instead of
+ * the company mailbox. Nothing is sent here; the auth provider delivers the
+ * code after this flag is set.
+ */
+export const requestStaffRecoveryDelivery = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email: rawEmail }) => {
+    await requireSiteAvailable(ctx);
+    const email = rawEmail.trim().toLowerCase();
+    const user = email.length <= 254
+      ? await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first()
+      : null;
+    const eligible = Boolean(user && user.role !== "user" && !user.isAnonymous && !user.isSiteBanned &&
+      (user.staffAccess || user.department?.trim() || user.position?.trim() || email === "support@openworlds.dk") &&
+      user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined);
+    if (!eligible || !user) throw new Error("No verified recovery email is available for that account.");
+    const lastRequest = user.staffOtpRecoveryRequestAt ?? 0;
+    if (Date.now() - lastRequest < 60_000) throw new Error("Wait a minute before requesting another recovery code.");
+    await ctx.db.patch(user._id, { staffOtpRecoveryRequestAt: Date.now() });
+    return { ok: true as const };
+  },
+});
+
+/** Internal: where should the next staff sign-in code go? */
+export const staffOtpDestination = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first();
+    const requestedAt = user?.staffOtpRecoveryRequestAt ?? 0;
+    const recovery = user?.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined && Date.now() - requestedAt < 2 * 60 * 1000
+      ? user.recoveryEmail
+      : null;
+    return recovery ? { deliveryEmail: recovery } : { deliveryEmail: null };
+  },
+});
+
+export const clearStaffRecoveryDelivery = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const user = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first();
+    if (user?.staffOtpRecoveryRequestAt !== undefined) await ctx.db.patch(user._id, { staffOtpRecoveryRequestAt: undefined });
+  },
+});
+
 export const staffTwoFactorApproved = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {

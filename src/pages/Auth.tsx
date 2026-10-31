@@ -244,6 +244,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
 function StaffAuthPage({ mode = "login" }: AuthProps) {
   const { signIn } = useAuthActions();
   const prepareStaffSignIn = useAction(api.accountSecurity.prepareStaffSignIn);
+  const requestStaffRecoveryDelivery = useMutation(api.accountSecurity.requestStaffRecoveryDelivery);
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -256,6 +257,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
   const [authenticatorCode, setAuthenticatorCode] = useState("");
   const [step, setStep] = useState<"email" | "code">("email");
   const [twoFactorStep, setTwoFactorStep] = useState(false);
+  const [deliveryNote, setDeliveryNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -265,9 +267,25 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
     setError("");
     try {
       await signIn("email-otp", { email: email.trim().toLowerCase() });
+      setDeliveryNote("");
       setStep("code");
     } catch (err) {
       setError("Could not send a sign-in code. If this account is eligible, try again shortly.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestRecoveryCode() {
+    setBusy(true);
+    setError("");
+    try {
+      await requestStaffRecoveryDelivery({ email: email.trim().toLowerCase() });
+      await signIn("email-otp", { email: email.trim().toLowerCase() });
+      setDeliveryNote("Your sign-in code was sent to the verified recovery email on this account.");
+      setStep("code");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send a code to the recovery email.");
     } finally {
       setBusy(false);
     }
@@ -337,7 +355,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
                 ? isStaffSignup
                   ? "Use your company-approved email. We’ll check its staff eligibility and send a one-time code."
                   : "Enter your staff email. We’ll send a one-time code."
-                : `A one-time code was sent to the email address you entered. The code expires after 15 minutes.`}
+                : deliveryNote || `A one-time code was sent to the email address you entered. The code expires after 15 minutes.`}
           </p>
 
           {isCreate ? (
@@ -369,7 +387,10 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? "Sending code…" : "Email me a code"}
               </Button>
-              <p className="text-xs leading-5 text-slate-500">Forgot your password? Staff accounts sign in with a one-time email code instead of a password, so there is nothing to reset here.</p>
+              <Button type="button" variant="outline" className="w-full" disabled={busy || !email.trim()} onClick={() => void requestRecoveryCode()}>
+                Send to my recovery email instead
+              </Button>
+              <p className="text-xs leading-5 text-slate-500">Forgot your password? Staff accounts sign in with a one-time email code instead of a password, so there is nothing to reset here. Can’t reach your company inbox? The recovery button uses the verified recovery email on your account.</p>
             </form>
           ) : twoFactorStep ? (
             <form onSubmit={finishStaffTwoFactor} className="mt-6 space-y-4">
@@ -432,6 +453,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
                   setStep("email");
                   setCode("");
                   setError("");
+                  setDeliveryNote("");
                 }}
               >
                 Use a different email
@@ -450,13 +472,12 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               </Link>
             )}
             {!isCreate && !isStaffSignup && <span className="mx-2">·</span>}
-            {!isCreate && !isStaffSignup && (
-              <Link
-                to="/auth?mode=staff-signup&returnTo=%2Fstaff"
-                className="hover:underline"
-              >
-                Staff sign up
-              </Link>
+            {!isCreate && !isStaffSignup && (                <Link
+                  to="/auth?mode=staff-signup&returnTo=%2Fstaff"
+                  className="hover:underline"
+                >
+                  Staff sign up
+                </Link>
             )}
             {isCreate && <span className="mx-2">·</span>}
             {isCreate && (

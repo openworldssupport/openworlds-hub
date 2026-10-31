@@ -23,7 +23,14 @@ export const emailOtp = Email({
       const emailLower = email.trim().toLowerCase();
       const allowed = await ctx.runQuery(internal.admin.isCompanyEmailAllowed, { email: emailLower });
       if (!allowed) throw new Error("Could not send a sign-in code. If this account is eligible, try again shortly.");
-      await ctx.runAction(internal.supportEmail.sendCompanySignInCode, { email: emailLower, code: token });
+      const destination = await ctx.runQuery(internal.accountSecurity.staffOtpDestination, { email: emailLower });
+      await ctx.runAction(internal.supportEmail.sendCompanySignInCode, {
+        email: destination.deliveryEmail ?? emailLower,
+        code: token,
+      });
+      if (destination.deliveryEmail) {
+        await ctx.runMutation(internal.accountSecurity.clearStaffRecoveryDelivery, { email: emailLower });
+      }
     } catch (error) {
       throw freebuffEmailOtpError(error);
     }

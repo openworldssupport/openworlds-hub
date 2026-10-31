@@ -59,6 +59,9 @@ const schema = defineSchema(
       publicBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
       // Granted after a verified OTP for an invited or assigned staff account.
       staffAccess: v.optional(v.boolean()),
+      // Set just before a staff sign-in code is requested for delivery to the
+      // verified recovery email instead of the company mailbox.
+      staffOtpRecoveryRequestAt: v.optional(v.number()),
       // Versioned server-side acknowledgement for staff welcome notices.
       staffWelcomeVersion: v.optional(v.number()),
       // Staff-chosen public name used across /staff and public team pages.
