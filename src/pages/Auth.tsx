@@ -156,7 +156,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     try {
       await beginPasswordReset({ login: login.trim().toLowerCase() });
       setResetStep("verify");
-      setNotice("If the account has a verified recovery email, a code will be sent there.");
+      setNotice("If that account has a verified recovery email, a 6-digit reset code is on its way to it.");
     } catch {
       setError("Could not request a reset code. Try again later.");
     } finally {
@@ -194,7 +194,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Enter your username and the recovery email on the account." : isSignup ? "Pick a username and password. A recovery email is optional." : "Sign in to your player profile and saved game progress."}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Enter the username or email on your account. We send the reset code to its verified recovery email." : isSignup ? "Pick a username and password. A recovery email is optional, and it must be verified before it can be used." : "Sign in to your player profile and saved game progress."}</p>
           {twoFactorStep ? (
             <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
               <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
@@ -205,7 +205,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
             </form>
           ) : resetStep === "request" ? (
             <form onSubmit={requestReset} className="mt-6 space-y-4">
-              <div className="space-y-2"><Label htmlFor="reset-login">Username</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="reset-login">Username or email</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username or account email" /><p className="text-xs text-slate-500">The code goes to the verified recovery email, not to this address. No recovery email yet? Sign in and add one under Account recovery.</p></div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>{busy ? "Requesting…" : "Send recovery code"}</Button>
               <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("closed"); setError(""); }}>Back to sign in</button>
@@ -369,6 +369,7 @@ function StaffAuthPage({ mode = "login" }: AuthProps) {
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? "Sending code…" : "Email me a code"}
               </Button>
+              <p className="text-xs leading-5 text-slate-500">Forgot your password? Staff accounts sign in with a one-time email code instead of a password, so there is nothing to reset here.</p>
             </form>
           ) : twoFactorStep ? (
             <form onSubmit={finishStaffTwoFactor} className="mt-6 space-y-4">

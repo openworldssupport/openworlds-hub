@@ -17,11 +17,12 @@ function normalizeEmail(value: string) {
   return email;
 }
 
-async function requirePlayer(ctx: MutationCtx) {
+/** Any signed-in company or player account can hold a verified recovery email. */
+async function requireAccount(ctx: MutationCtx) {
   await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
-  if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+  if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage your recovery email.");
   return user;
 }
 
@@ -40,10 +41,10 @@ function newCode() {
 export const recoveryStatus = query({
   args: {},
   handler: async (ctx) => {
-    await requireSiteAvailable(ctx);
+    // Read-only self state stays available so settings pages render during an outage.
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+    if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage your recovery email.");
     return { recoveryEmail: user.recoveryEmail ?? null, pendingEmail: user.pendingRecoveryEmail ?? null, isVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt) };
   },
 });
@@ -51,7 +52,7 @@ export const recoveryStatus = query({
 export const requestRecoveryEmailCode = mutation({
   args: { email: v.string() },
   handler: async (ctx, { email: rawEmail }) => {
-    const user = await requirePlayer(ctx);
+    const user = await requireAccount(ctx);
     const email = normalizeEmail(rawEmail);
     if (email === user.email?.trim().toLowerCase()) {
       throw new Error("Use an email address different from your player sign-in email as your recovery email.");
@@ -73,7 +74,7 @@ export const requestRecoveryEmailCode = mutation({
 export const verifyRecoveryEmail = mutation({
   args: { code: v.string() },
   handler: async (ctx, { code: rawCode }) => {
-    const user = await requirePlayer(ctx);
+    const user = await requireAccount(ctx);
     const code = rawCode.trim();
     if (!/^\d{6}$/.test(code)) throw new Error("Enter the six-digit code from your email.");
     const row = await ctx.db.query("playerRecoveryCodes").withIndex("by_user_created", (q) => q.eq("userId", user._id)).order("desc").first();
@@ -93,7 +94,7 @@ export const verifyRecoveryEmail = mutation({
     if (prior && prior._id !== user._id) throw new Error("That email cannot be used as a recovery email.");
     await ctx.db.patch(user._id, { recoveryEmail: row.email, recoveryEmailVerifiedAt: Date.now(), pendingRecoveryEmail: undefined });
     await ctx.db.delete(row._id);
-    await linkVerifiedCreatorAccount(ctx, user._id);
+    if (user.role === "user") await linkVerifiedCreatorAccount(ctx, user._id);
     return { ok: true as const };
   },
 });
@@ -103,7 +104,7 @@ export const findResetAccount = internalQuery({
   handler: async (ctx, { login }) => {
     await requireSiteAvailable(ctx);
     const normalized = login.trim().toLowerCase();
-    const user = await ctx.db.query("users").filter((q) => q.or(q.eq(q.field("email"), normalized), q.eq(q.field("playerLogin"), normalized))).first();
+    const user = await ctx.db.query("users").filter((q) => q.or(q.eq(q.field("email"), normalized), q.eq(q.field("playerLogin"), normalized), q.eq(q.field("recoveryEmail"), normalized))).first();
     if (!user || user.role !== "user" || !user.recoveryEmail || !user.recoveryEmailVerifiedAt) return null;
     return { userId: user._id, email: user.email!, recoveryEmail: user.recoveryEmail };
   },

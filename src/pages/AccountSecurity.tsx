@@ -15,6 +15,9 @@ export function AccountSecuritySettings() {
   const updatePlayerProfile = useMutation(api.gameData.updateProfile);
   const updateStaffProfile = useMutation(api.accountSecurity.updateProfile);
   const beginSetup = useMutation(api.accountSecurity.beginSetup);
+  const recoveryStatus = useQuery(api.playerRecovery.recoveryStatus, user && user.role !== "user" ? {} : "skip");
+  const requestRecoveryCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
+  const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
   const confirmSetup = useMutation(api.accountSecurity.confirmSetup);
   const disable = useMutation(api.accountSecurity.disable);
   const [name, setName] = useState("");
@@ -24,6 +27,10 @@ export function AccountSecuritySettings() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [recoveryInput, setRecoveryInput] = useState("");
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
+  const [recoveryNote, setRecoveryNote] = useState("");
+  const [changingRecovery, setChangingRecovery] = useState(false);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
@@ -49,6 +56,26 @@ export function AccountSecuritySettings() {
       setRecoveryCodes(result.recoveryCodes); setSetup(null); setCode("");
       setMessage("Two-step verification is on. Save the recovery codes below; they are shown only once.");
     } catch (err) { setError(err instanceof Error ? err.message : "Could not verify that authenticator code."); }
+    finally { setBusy(false); }
+  }
+
+  async function sendRecoveryCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError(""); setRecoveryNote("");
+    try {
+      await requestRecoveryCode({ email: recoveryInput });
+      setRecoveryNote("We emailed a 6-digit code to that address. Enter it below to activate the recovery email.");
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not send the verification email."); }
+    finally { setBusy(false); }
+  }
+
+  async function confirmRecoveryCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError(""); setRecoveryNote("");
+    try {
+      const result = await verifyRecoveryCode({ code: recoveryCodeInput });
+      if (!result.ok) throw new Error(result.message);
+      setRecoveryInput(""); setRecoveryCodeInput(""); setChangingRecovery(false);
+      setRecoveryNote("Recovery email verified. It is now the address used for account recovery.");
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not verify that code."); }
     finally { setBusy(false); }
   }
 
@@ -85,6 +112,31 @@ export function AccountSecuritySettings() {
         ) : <Button className="mt-3" variant="outline" disabled={busy} onClick={() => void startSetup()}>{busy ? "Starting…" : "Set up authenticator"}</Button>}
         {recoveryCodes.length > 0 && <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-semibold">Recovery codes — save them somewhere safe</p><ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs">{recoveryCodes.map((item) => <li key={item}>{item}</li>)}</ul><Button className="mt-3" size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(recoveryCodes.join("\n")); setMessage("Recovery codes copied."); }}>Copy codes</Button></div>}
       </div>
+      {user.role !== "user" && (
+        <div className="mt-6 border-t border-slate-100 pt-4">
+          <p className="text-sm font-medium">Recovery email: {recoveryStatus?.isVerified ? "verified" : "not set"}</p>
+          <p className="mt-1 text-xs text-slate-500">Optional. A new recovery email is emailed a 6-digit code, and it only becomes active once you enter that code. It must differ from your company email.</p>
+          {recoveryStatus?.isVerified && !changingRecovery ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <p className="text-sm text-emerald-700">{recoveryStatus.recoveryEmail}</p>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setChangingRecovery(true); setRecoveryNote(""); }}>Change email</Button>
+            </div>
+          ) : (
+            <form onSubmit={(event) => void sendRecoveryCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-2"><Label htmlFor="staff-recovery-email">Recovery email</Label><Input id="staff-recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryInput} onChange={(event) => setRecoveryInput(event.target.value)} placeholder={recoveryStatus?.pendingEmail ?? "you@example.com"} /></div>
+              <Button type="submit" variant="outline" disabled={busy || !recoveryInput.trim()}>{busy ? "Sending…" : recoveryStatus?.pendingEmail ? "Resend verification code" : "Send verification code"}</Button>
+              {changingRecovery && <Button type="button" variant="ghost" onClick={() => { setChangingRecovery(false); setRecoveryInput(""); setRecoveryCodeInput(""); setRecoveryNote(""); }}>Cancel</Button>}
+            </form>
+          )}
+          {recoveryStatus?.pendingEmail && (
+            <form onSubmit={(event) => void confirmRecoveryCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-2"><Label htmlFor="staff-recovery-code">Code sent to {recoveryStatus.pendingEmail}</Label><Input id="staff-recovery-code" inputMode="numeric" autoComplete="one-time-code" required maxLength={6} value={recoveryCodeInput} onChange={(event) => setRecoveryCodeInput(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
+              <Button type="submit" disabled={busy || recoveryCodeInput.length !== 6}>{busy ? "Verifying…" : "Verify email"}</Button>
+            </form>
+          )}
+          {recoveryNote && <p role="status" className="mt-3 text-sm text-slate-600">{recoveryNote}</p>}
+        </div>
+      )}
       {message && <p role="status" className="mt-3 text-sm text-emerald-700">{message}</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
