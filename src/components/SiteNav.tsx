@@ -8,6 +8,25 @@ import { useAuth } from "@/hooks/use-auth";
 import { SiteStatusNotice } from "@/components/SiteStatusNotice";
 import { careerBranches, careerRoles } from "@/lib/careers";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+const PRIMARY_LINKS = [
+  { to: "/worlds", label: "Worlds" },
+  { to: "/news", label: "News" },
+  { to: "/downloads", label: "Downloads" },
+  { to: "/community", label: "Community" },
+  { to: "/support", label: "Support" },
+];
+
+const MORE_LINKS = [
+  { to: "/about", label: "About" },
+  { to: "/events", label: "Events" },
+  { to: "/roadmap", label: "Roadmap" },
+  { to: "/learning", label: "Learning" },
+  { to: "/media", label: "Media" },
+  { to: "/careers", label: "Careers" },
+  { to: "/rules", label: "Rules" },
+];
 
 export function SiteNav() {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
@@ -84,20 +103,27 @@ export function SiteNav() {
           <span className="font-semibold tracking-tight">OpenWorlds</span>
         </Link>
         <div className="flex flex-wrap items-center gap-1 text-xs lg:text-sm">
-          <Link to="/" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Home</Link>
-          <Link to="/about" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">About</Link>
-          <Link to="/community" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Community</Link>
+          {PRIMARY_LINKS.map((link) => (
+            <Link key={link.to} to={link.to} className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">
+              {link.label}
+            </Link>
+          ))}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">More</DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {MORE_LINKS.map((link) => (
+                <DropdownMenuItem key={link.to} asChild>
+                  <Link to={link.to}>{link.label}</Link>
+                </DropdownMenuItem>
+              ))}
+              {!user && (
+                <DropdownMenuItem asChild>
+                  <Link to="/auth?returnTo=%2Fstaff">Company Staff</Link>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {user?.canAccessCreatorSpace && <Link to="/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Creator Space</Link>}
-          <Link to="/worlds" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Worlds</Link>
-          <Link to="/events" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Events</Link>
-          <Link to="/roadmap" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Roadmap</Link>
-          <Link to="/learning" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Learning</Link>
-          <Link to="/news" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">News</Link>
-          <Link to="/media" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Media</Link>
-          <Link to="/downloads" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Downloads</Link>
-          <Link to="/careers" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Careers</Link>
-          <Link to="/support" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Support</Link>
-          <Link to="/rules" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Rules</Link>
           {isStaffAccount && <Link to="/staff" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Company Staff</Link>}
           {isLoading ? (
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
@@ -120,9 +146,8 @@ export function SiteNav() {
             </>
           ) : (
             <>
-              <Link to="/auth?returnTo=%2Fstaff" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Company Staff log in</Link>
-              <Link to="/player-login" className="rounded-md px-2 py-2 text-slate-600 hover:bg-slate-100">Player log in</Link>
-              <Link to="/player-signup" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player sign up</Link>
+              <Link to="/player-login" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Sign in</Link>
+              <Link to="/player-signup" className="rounded-md px-2.5 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Sign up</Link>
             </>
           )}
         </div>

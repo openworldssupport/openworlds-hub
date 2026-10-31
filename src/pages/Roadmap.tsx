@@ -39,7 +39,7 @@ export default function Roadmap() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-gradient-to-br from-slate-50 via-white to-violet-50 px-5 py-14 sm:px-8 sm:py-16">
+      <section className="border-y border-slate-100 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">How to follow progress</h2>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -54,7 +54,7 @@ export default function Roadmap() {
       </section>
 
       <section className="mx-auto max-w-5xl px-5 py-14 sm:px-8">
-        <div className="rounded-xl border border-violet-200 bg-gradient-to-r from-blue-50 via-white to-amber-50 p-6 sm:p-8">
+        <div className="border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">Want a say in what we build?</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Send questions or feedback through the contact page. Public milestones will be added here after team review.

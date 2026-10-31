@@ -44,7 +44,7 @@
 
 /* CHANGE VALUES FOR THEME */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.125rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -136,17 +136,6 @@
   isolation: isolate;
 }
 
-.site-nav::after {
-  position: absolute;
-  z-index: -1;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--ow-green);
-  content: "";
-}
-
 .holiday-greeting {
   background: #104b35;
   color: #f7e7bd;
@@ -157,7 +146,7 @@
 }
 
 .site-nav nav > div a:hover {
-  color: var(--ow-red);
+  color: var(--ow-green);
 }
 
 .ow-page-hero {
@@ -167,27 +156,15 @@
   background: #14583c;
 }
 
-.ow-page-hero::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image: radial-gradient(circle at 80% 22%, rgb(255 255 255 / 22%) 0 1px, transparent 2px), radial-gradient(circle at 92% 74%, rgb(255 255 255 / 18%) 0 1px, transparent 2px), radial-gradient(circle at 12% 86%, rgb(255 255 255 / 16%) 0 1px, transparent 2px);
-  background-size: 28px 28px, 34px 34px, 42px 42px;
-  opacity: 0.65;
-  content: "";
-}
-
+/* Signature rule under the header banner: the site's one recurring flourish. */
 .ow-page-hero::after {
   position: absolute;
-  top: 1.5rem;
-  right: max(2rem, calc((100vw - 64rem) / 2));
-  color: #dcefdc;
-  font-size: 3.75rem;
-  line-height: 1;
-  opacity: 0.92;
-  text-shadow: 0 0 18px rgb(186 233 244 / 60%);
-  content: "❄";
-  pointer-events: none;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
+  content: "";
 }
 
 .ow-page-hero > div {
@@ -198,6 +175,92 @@
 main article {
   border-color: #e2e8f0;
   transition: border-color 180ms ease;
+}
+
+/* Motion: a short rise on arrival, a quiet underline on nav links. */
+@keyframes ow-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ow-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+main {
+  animation: ow-fade 240ms ease-out both;
+}
+
+.site-nav {
+  animation: ow-rise 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ow-page-hero > div,
+.staff-masthead > div {
+  animation: ow-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ow-page-hero > div > * {
+  animation: ow-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ow-page-hero > div > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.ow-page-hero > div > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.ow-page-hero > div > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.ow-page-hero > div > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.35rem;
+  left: 0.625rem;
+  height: 1px;
+  background: #14583c;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+  content: "";
+}
+
+.nav-link:hover::after,
+.nav-link[data-state="open"]::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 main article:hover {

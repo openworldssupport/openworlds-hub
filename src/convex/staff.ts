@@ -193,36 +193,47 @@ export const listMembers = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, { paginationOpts }) => {
     await requireRosterVerification(ctx);
-    const result = await ctx.db
-      .query("users")
-      .order("desc")
-      .paginate(paginationOpts);
-    const page = result.page
-      .filter((user) => user.isAnonymous !== true)
-      .map((user) => {
-      const department = user.department?.trim() || null;
-      const position = user.position?.trim() || null;
-      const assigned = Boolean(department || position);
-      return {
-        userId: user._id,
-        name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
-        nickname: user.nickname ?? null,
-        email: user.email ?? null,
-        role: user.role ?? null,
-        department,
-        position,
-        isStaff: assigned || user.staffAccess === true || user.role === "admin",
-        isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk",
-        badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
-        memberStatus: user.memberStatus ?? null,
-        isBanned: user.isSiteBanned === true,
-        isOfficialCreator: user.isOfficialCreator === true,
-        playerLogin: user.playerLogin ?? null,
-        image: user.image ?? null,
-      };
-      });
+    // The directory lists company accounts only; player accounts never appear here.
+    const page = [];
+    let cursor: string | null = paginationOpts.cursor;
+    let isDone = false;
+    let batches = 0;
+    while (page.length < paginationOpts.numItems && !isDone && batches < 20) {
+      const batch = await ctx.db
+        .query("users")
+        .order("desc")
+        .paginate({ ...paginationOpts, cursor });
+      cursor = batch.continueCursor;
+      isDone = batch.isDone;
+      batches += 1;
+      for (const user of batch.page) {
+        if (user.isAnonymous === true) continue;
+        const department = user.department?.trim() || null;
+        const position = user.position?.trim() || null;
+        const assigned = Boolean(department || position);
+        const isStaffAccount = assigned || user.staffAccess === true || user.role === "admin";
+        if (!isStaffAccount || user.role === "user") continue;
+        page.push({
+          userId: user._id,
+          name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
+          nickname: user.nickname ?? null,
+          email: user.email ?? null,
+          role: user.role ?? null,
+          department,
+          position,
+          isStaff: true,
+          isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk",
+          badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
+          memberStatus: user.memberStatus ?? null,
+          isBanned: user.isSiteBanned === true,
+          isOfficialCreator: user.isOfficialCreator === true,
+          playerLogin: user.playerLogin ?? null,
+          image: user.image ?? null,
+        });
+      }
+    }
     page.sort((a, b) => Number(a.isAdmin) - Number(b.isAdmin));
-    return { ...result, page };
+    return { page, continueCursor: cursor ?? "", isDone };
   },
 });
 

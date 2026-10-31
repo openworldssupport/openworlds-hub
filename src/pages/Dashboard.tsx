@@ -250,7 +250,7 @@ export default function Dashboard() {
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <h2 className="font-semibold tracking-tight">Account recovery</h2>
-            <p className="mt-1 text-sm text-slate-500">A verified recovery email is required to use your player account and reset your password.</p>
+            <p className="mt-1 text-sm text-slate-500">Optional. Adding one lets you reset your password if you forget it.</p>
             {!changingRecoveryEmail && recoveryStatus?.isVerified ? (
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <p className="text-sm text-emerald-700">Recovery email verified: {recoveryStatus.recoveryEmail}</p>

@@ -59,7 +59,7 @@ export default function Downloads() {
         </div>
       </section>
 
-      <section className="border-y border-slate-100 bg-gradient-to-br from-slate-50 via-white to-amber-50 px-5 py-14 sm:px-8 sm:py-16">
+      <section className="border-y border-slate-100 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-4 sm:grid-cols-3">
             <Link to="/roadmap" className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">

@@ -270,8 +270,8 @@ export const publicPlayerProfile = query({
         .unique();
     if (!user || user.isSiteBanned) return null;
     const isCompanyStaff = isPublicCompanyStaff(user);
-    const isVerifiedPlayer = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined;
-    if (!isCompanyStaff && !isVerifiedPlayer) return null;
+    const isPlayer = user.role === "user";
+    if (!isCompanyStaff && !isPlayer) return null;
     const officialCreator = await ctx.db.query("officialCreators")
       .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
       .first();
@@ -312,8 +312,8 @@ async function requireVerifiedPlayer(ctx: MutationCtx) {
   await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
-  if (!user || user.role !== "user" || user.isSiteBanned || !user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) {
-    throw new Error("A signed-in player with a verified recovery email is required.");
+  if (!user || user.role !== "user" || user.isSiteBanned) {
+    throw new Error("A signed-in player is required.");
   }
   return user;
 }
@@ -329,12 +329,12 @@ export const friendStatus = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const target = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!target || target.role !== "user" || target.isSiteBanned || !target.profileDiscoverable || !target.recoveryEmail || target.recoveryEmailVerifiedAt === undefined) return { status: "unavailable" as const };
+    if (!target || target.role !== "user" || target.isSiteBanned || !target.profileDiscoverable) return { status: "unavailable" as const };
     const viewerId = await getAuthUserId(ctx);
     if (!viewerId) return { status: "signed-out" as const };
     if (viewerId === target._id) return { status: "self" as const };
     const viewer = await ctx.db.get(viewerId);
-    if (!viewer || viewer.role !== "user" || viewer.isSiteBanned || !viewer.recoveryEmail || viewer.recoveryEmailVerifiedAt === undefined) return { status: "unavailable" as const };
+    if (!viewer || viewer.role !== "user" || viewer.isSiteBanned) return { status: "unavailable" as const };
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", viewerId)).collect(),
       ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", viewerId)).collect(),
@@ -352,7 +352,7 @@ export const sendFriendRequest = mutation({
   handler: async (ctx, { username }) => {
     const sender = await requireVerifiedPlayer(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable || receiver.recoveryEmailVerifiedAt === undefined) throw new Error("That player is not available for friend requests.");
+    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable) throw new Error("That player is not available for friend requests.");
     if (sender._id === receiver._id) throw new Error("You cannot send a friend request to yourself.");
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect(),
@@ -405,7 +405,7 @@ export const myFriends = query({
     await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!user || user.role !== "user" || user.isSiteBanned || !user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) return null;
+    if (!user || user.role !== "user" || user.isSiteBanned) return null;
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", userId!)).collect(),
       ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", userId!)).collect(),
@@ -441,12 +441,12 @@ export const publicFriendList = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const owner = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!owner || owner.role !== "user" || owner.isSiteBanned || !owner.profileDiscoverable || owner.profileFriendsVisible !== true || !owner.recoveryEmail || owner.recoveryEmailVerifiedAt === undefined) return [];
+    if (!owner || owner.role !== "user" || owner.isSiteBanned || !owner.profileDiscoverable || owner.profileFriendsVisible !== true) return [];
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", owner._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", owner._id)).collect();
     const ids = [...new Set([...outgoing, ...incoming].filter((r) => r.status === "accepted").map((r) => r.senderId === owner._id ? r.receiverId : r.senderId))];
     const friends = await Promise.all(ids.map((id) => ctx.db.get(id)));
-    const visibleFriends = friends.filter((friend) => friend && friend.role === "user" && !friend.isSiteBanned && friend.profileDiscoverable && friend.recoveryEmail && friend.recoveryEmailVerifiedAt !== undefined && friend.playerLogin?.trim());
+    const visibleFriends = friends.filter((friend) => friend && friend.role === "user" && !friend.isSiteBanned && friend.profileDiscoverable && friend.playerLogin?.trim());
     return await Promise.all(visibleFriends.map(async (friend) => ({
       username: friend!.playerLogin!.trim(),
       displayName: isEmailAddress(friend!.name) ? null : friend!.name?.trim() || null,
@@ -460,7 +460,7 @@ export const sendPlayerMessage = mutation({
   handler: async (ctx, { username, body }) => {
     const sender = await requireVerifiedPlayer(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable || !receiver.recoveryEmail || receiver.recoveryEmailVerifiedAt === undefined || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
+    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).collect();
     if (!acceptedFriendship(sender._id, receiver._id, [...outgoing, ...incoming])) throw new Error("You can message this player only after they accept your friend request.");
@@ -482,7 +482,7 @@ export const playerConversation = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     const other = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", rawUsername.trim().replace(/^@/, "").toLowerCase())).unique();
-    if (!user || user.role !== "user" || user.isSiteBanned || !user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined || !other || other.role !== "user" || other.isSiteBanned || !other.recoveryEmail || other.recoveryEmailVerifiedAt === undefined || other._id === user._id) return null;
+    if (!user || user.role !== "user" || user.isSiteBanned || !other || other.role !== "user" || other.isSiteBanned || other._id === user._id) return null;
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect();
     if (!acceptedFriendship(user._id, other._id, [...outgoing, ...incoming])) return null;
@@ -517,7 +517,7 @@ export const searchPlayerProfiles = query({
     const matches = [...unique.values()]
       .filter((user) => {
         if (user.isSiteBanned) return false;
-        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()));
+        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && Boolean(user.playerLogin?.trim()));
       })
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;
@@ -570,7 +570,7 @@ export const searchPlayersForCreatorVerification = query({
     const unique = new Map([...usernameMatches, ...nameMatches].map((user) => [user._id, user]));
     const normalizedTerm = term.toLowerCase();
     return [...unique.values()]
-      .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned && user.recoveryEmailVerifiedAt !== undefined && Boolean(user.playerLogin?.trim()))
+      .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned && Boolean(user.playerLogin?.trim()))
       .map((user) => {
         const username = user.playerLogin!.trim();
         const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
@@ -619,7 +619,7 @@ export const updatePublicProfile = mutation({
     if (!userId) throw new Error("Sign in to update your profile.");
     const user = await ctx.db.get(userId);
     if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
-    if (!user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) throw new Error("Verify your recovery email first.");
+
     const displayName = args.displayName.trim();
     const about = args.about.trim();
     if (displayName.length < 2 || displayName.length > 32) throw new Error("Display name must be 2–32 characters.");
@@ -639,7 +639,7 @@ export const setProfileDiscoverability = mutation({
     if (!userId) throw new Error("Sign in to update your profile privacy.");
     const user = await ctx.db.get(userId);
     if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
-    if (!user.recoveryEmail || user.recoveryEmailVerifiedAt === undefined) throw new Error("Verify your recovery email before changing player profile settings.");
+
     await ctx.db.patch(userId, { profileDiscoverable: discoverable });
     return { discoverable };
   },

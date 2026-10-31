@@ -123,7 +123,7 @@ export default function Rules() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-slate-50 via-white to-violet-50 px-5 py-14 sm:px-8 sm:py-16">
+      <section className="bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div>

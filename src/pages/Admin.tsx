@@ -237,7 +237,7 @@ function TeamPanel() {
   if (!isRosterVerified) {
     return (
       <section className="mt-6 max-w-2xl rounded-lg border border-slate-200 bg-white p-5">
-        <div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-blue-50 text-[#0066cc]"><ShieldCheck className="size-5" /></span><div><h2 className="font-semibold">Verify access to the account directory</h2><p className="mt-1 text-sm leading-6 text-slate-600">For additional protection, enter a one-time code sent to careers@openworlds.dk before viewing account details. Verification lasts 15 minutes.</p></div></div>
+        <div><h2 className="font-semibold">Verify access to the staff directory</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the one-time code sent to careers@openworlds.dk. Verification lasts 15 minutes.</p></div>
         <Button className="mt-5" variant="outline" onClick={() => void sendRosterCode()} disabled={verificationBusy}><Mail className="size-4" />{verificationBusy ? "Sending code..." : "Send code to Careers"}</Button>
         <form onSubmit={(event) => void verifyRosterCode(event)} className="mt-4 flex flex-wrap items-end gap-3"><div className="w-full max-w-xs space-y-2"><Label htmlFor="admin-roster-code">6-digit verification code</Label><Input id="admin-roster-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={verificationCode} onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" /></div><Button type="submit" disabled={verificationBusy || verificationCode.length !== 6}><ShieldCheck className="size-4" />{verificationBusy ? "Verifying..." : "Verify"}</Button></form>
         {verificationMessage && <p role="status" className="mt-3 text-sm text-slate-600">{verificationMessage}</p>}
@@ -793,7 +793,7 @@ export default function AdminPage() {
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
         <h1 className="text-3xl font-semibold tracking-tight">Admin console</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Manage the private account directory and generic submission-alert recipients. Only verified admins can access these controls. Viewing account records requires a Careers email code; changing staff/admin permissions or alert recipients requires a separate Support email code. The directory includes player and staff account emails and role/restriction details, so use it only for legitimate administration.</p>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Staff accounts only. Viewing the directory requires a Careers email code; changing access or alert recipients requires a separate Support email code.</p>
         <TeamPanel />
         <SubmissionNotificationPanel />
       </section>

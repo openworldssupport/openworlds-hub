@@ -125,7 +125,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
       }
       navigate(destination, { replace: true });
     } catch {
-      setError(isSignup ? "Could not create your account. Check your details; this username or email may already be registered." : "Username/email or password is incorrect.");
+      setError(isSignup ? "Could not create your account. That username may already be taken." : "Username or password is incorrect.");
     } finally {
       setBusy(false);
     }
@@ -194,7 +194,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
           <h1 className="mt-5 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Use your username or email address and a verified recovery email." : isSignup ? "Use a username, password, and a recovery email. You’ll need to verify the email before using your player account." : "Sign in to access your player profile and saved game progress. If your recovery email is not verified yet, you’ll be prompted to verify one."}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Enter your username and the recovery email on the account." : isSignup ? "Pick a username and password. A recovery email is optional." : "Sign in to your player profile and saved game progress."}</p>
           {twoFactorStep ? (
             <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
               <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
