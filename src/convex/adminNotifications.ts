@@ -46,7 +46,7 @@ export const canSendTestAlert = internalQuery({
   handler: async (ctx, { userId, recipientId, channel }) => {
     const user = await ctx.db.get(userId);
     const isVerifiedAdmin = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-      (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk"));
+      (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk"));
     if (!isVerifiedAdmin) throw new Error("Verified administrator access is required.");
 
     if (!(await isStaffUnlocked(ctx))) {

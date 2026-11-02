@@ -19,7 +19,7 @@ export async function recordSecurityViolation(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) return;
   const user = await ctx.db.get(userId);
-  if (!user || user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk" || user.isSiteBanned) return;
+  if (!user || user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk" || user.isSiteBanned) return;
   const now = Date.now();
   const count = user.lastSecurityViolationAt && now - user.lastSecurityViolationAt < 60 * 60 * 1000
     ? (user.securityViolationCount ?? 0) + 1
@@ -41,7 +41,7 @@ export const newsPostingStatus = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!userId || !user) return { eligible: false, isAdmin: false, verifiedUntil: 0, isBanned: false, hasCode: false, enrolled: false };
-    const administrator = user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk";
+    const administrator = user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
     const eligible = user.emailVerificationTime !== undefined && !user.isSiteBanned &&
       (user.staffAccess || user.department?.trim() || user.position?.trim());
     const state = await staffUnlockState(ctx);
@@ -63,7 +63,7 @@ export const accessStatus = query({
     if (!userId) return { signedIn: false, isAdmin: false, isBanned: false, reason: null };
     const user = await ctx.db.get(userId);
     if (!user) return { signedIn: false, isAdmin: false, isBanned: false, reason: null };
-    const isAdmin = user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk";
+    const isAdmin = user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
     return {
       signedIn: true,
       isAdmin,
@@ -125,7 +125,7 @@ export const setBan = mutation({
     await requireSecurityStaff(ctx);
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("Account not found.");
-    if (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk") {
+    if (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk") {
       throw new Error("Admin accounts cannot be banned through this control.");
     }
     const reason = args.reason?.trim();

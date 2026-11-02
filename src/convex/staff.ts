@@ -223,7 +223,7 @@ export const listMembers = query({
           department,
           position,
           isStaff: true,
-          isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk",
+          isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk",
           badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
           memberStatus: user.memberStatus ?? null,
           isBanned: user.isSiteBanned === true,
@@ -283,10 +283,10 @@ export const setMemberStatus = mutation({
     await requirePermissionVerification(ctx);
     const target = await ctx.db.get(args.userId);
     if (!target) throw new Error("Account not found.");
-    if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "support@openworlds.dk") {
+    if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "contact@openworlds.dk") {
       throw new Error("This control is only for admin accounts.");
     }
-    if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+    if (target.email?.trim().toLowerCase() === "contact@openworlds.dk") {
       throw new Error("The bootstrap administrator cannot be changed here.");
     }
     await ctx.db.patch(args.userId, { memberStatus: args.memberStatus === "none" ? undefined : args.memberStatus });
@@ -327,7 +327,7 @@ export const setAssignment = mutation({
     if (!department && !position) {
       const target = await ctx.db.get(args.userId);
       if (!target) throw new Error("Account not found.");
-      if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+      if (target.email?.trim().toLowerCase() === "contact@openworlds.dk") {
         throw new Error("The bootstrap admin cannot be removed from staff access.");
       }
       const keepBan = args.isBanned ?? (target.isSiteBanned === true);
@@ -357,7 +357,7 @@ export const setAssignment = mutation({
 
     const target = await ctx.db.get(args.userId);
     if (!target) throw new Error("Account not found.");
-    if (target.email?.trim().toLowerCase() === "support@openworlds.dk") {
+    if (target.email?.trim().toLowerCase() === "contact@openworlds.dk") {
       throw new Error("The bootstrap admin cannot be changed from the team assignment panel.");
     }
     const accessLevel = nextLevel;

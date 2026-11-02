@@ -7,7 +7,7 @@ import { requireStaffUnlock } from "./staffUnlock";
 const statusValidator = v.union(v.literal("available"), v.literal("unavailable"));
 
 function isAuthorizedAdmin(user: { email?: string; emailVerificationTime?: number; role?: string; isSiteBanned?: boolean }) {
-  const bootstrapAdmin = user.email?.trim().toLowerCase() === "support@openworlds.dk";
+  const bootstrapAdmin = user.email?.trim().toLowerCase() === "contact@openworlds.dk";
   return Boolean(user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.role === "admin" || bootstrapAdmin));
 }
 

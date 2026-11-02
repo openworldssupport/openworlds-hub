@@ -8,7 +8,7 @@ import { requirePermissionVerification, requireRosterVerification } from "./admi
 export const CAREERS_EMAIL = "careers@openworlds.dk";
 
 /** The verified support address that is allowed to administer the site. */
-export const SUPPORT_EMAIL = "support@openworlds.dk";
+export const SUPPORT_EMAIL = "contact@openworlds.dk";
 
 /** Verified company administrator (the support mailbox is the bootstrap admin). */
 export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {

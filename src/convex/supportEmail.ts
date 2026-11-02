@@ -6,10 +6,10 @@ import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
-const DEFAULT_SUPPORT_EMAIL = "support@openworlds.dk";
+const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
 const CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
-const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <support@openworlds.dk>";
+const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <contact@openworlds.dk>";
 const CAREERS_BOT_FROM = "OpenWorlds Careers Bot <careers@openworlds.dk>";
 
 export const sendCompanySignInCode = internalAction({

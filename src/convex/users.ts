@@ -96,7 +96,7 @@ export const creatorSpaceAccess = query({
     if (!user || user.isSiteBanned) return { allowed: false as const, accessLevel: null, creatorProfile: null };
 
     const isAdmin = user.emailVerificationTime !== undefined &&
-      (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk");
+      (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk");
     const isStaff = user.emailVerificationTime !== undefined &&
       Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
     const creatorRecord = user.role === "user" && user.recoveryEmailVerifiedAt !== undefined
@@ -657,7 +657,7 @@ export const currentUser = query({
     // auth user document (which includes the private sign-in email).
     const hasCompanyCreatorSpaceAccess = user.emailVerificationTime !== undefined && (
       user.role === "admin" ||
-      user.email?.trim().toLowerCase() === "support@openworlds.dk" ||
+      user.email?.trim().toLowerCase() === "contact@openworlds.dk" ||
       user.staffAccess === true ||
       Boolean(user.department?.trim() || user.position?.trim())
     );

@@ -195,7 +195,7 @@ export const requestStaffRecoveryDelivery = mutation({
       ? await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first()
       : null;
     const eligible = Boolean(user && user.role !== "user" && !user.isAnonymous && !user.isSiteBanned &&
-      (user.staffAccess || user.department?.trim() || user.position?.trim() || email === "support@openworlds.dk") &&
+      (user.staffAccess || user.department?.trim() || user.position?.trim() || email === "contact@openworlds.dk") &&
       user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined);
     if (!eligible || !user) throw new Error("No verified recovery email is available for that account.");
     const lastRequest = user.staffOtpRecoveryRequestAt ?? 0;
@@ -242,7 +242,7 @@ export const staffAccountForSignIn = internalQuery({
     if (!user || user.role === "user" || user.isAnonymous || user.isSiteBanned) return null;
     const invitation = await ctx.db.query("companyAccess").withIndex("by_email", (q) => q.eq("email", normalized)).first();
     const assigned = Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
-    if (normalized !== "support@openworlds.dk" && !invitation && !assigned) return null;
+    if (normalized !== "contact@openworlds.dk" && !invitation && !assigned) return null;
     return { userId: user._id, twoFactorEnabled: user.twoFactorEnabled === true };
   },
 });

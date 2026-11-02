@@ -7,7 +7,7 @@ const UNLOCK_MS = 15 * 60 * 1000;
 
 function isAdminAccount(user: { role?: string; email?: string; emailVerificationTime?: number; isSiteBanned?: boolean } | null) {
   return Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-    (user.role === "admin" || user.email?.trim().toLowerCase() === "support@openworlds.dk"));
+    (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk"));
 }
 
 function isStaffAccount(user: { role?: string; email?: string; emailVerificationTime?: number; isSiteBanned?: boolean; staffAccess?: boolean; department?: string; position?: string } | null) {
