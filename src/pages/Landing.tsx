@@ -37,6 +37,16 @@ const explore = [
     title: "Rules",
     text: "General website and community guidelines.",
   },
+  {
+    to: "/careers",
+    title: "Careers",
+    text: "Browse current opportunities to contribute to OpenWorlds.",
+  },
+  {
+    to: "/support",
+    title: "Support",
+    text: "Read support information or open a ticket.",
+  },
 ];
 
 export default function Landing() {
@@ -56,7 +66,7 @@ export default function Landing() {
                 <span>built together.</span>
               </span>
             </h1>
-            <p className="mt-6 max-w-2xl border-l-2 border-white/40 pl-3 text-sm text-blue-50">
+            <p className="ow-note mt-6 max-w-2xl border-l-2 border-white/40 pl-3 text-sm text-blue-50">
               Site news: OpenWorlds downloads are temporarily unavailable.
             </p>
             <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
@@ -64,22 +74,16 @@ export default function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                to="/community"
+                to="/player-signup"
                 className="ow-cta inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
               >
-                Join the community <ArrowRight className="size-4" />
+                Create a player account <ArrowRight className="size-4" />
               </Link>
               <Link
-                to="/careers"
+                to="/community"
                 className="ow-cta inline-flex h-11 items-center rounded-sm border border-white/50 px-5 text-sm font-semibold text-white hover:bg-white/10"
               >
-                Explore careers
-              </Link>
-              <Link
-                to="/player-signup"
-                className="ow-cta inline-flex h-11 items-center rounded-sm border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
-              >
-                Create a player account
+                Join the community
               </Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">
@@ -98,82 +102,42 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="ow-heading-rule text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
-          </div>
-          <Link to="/about" className="inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="flex flex-wrap items-end justify-between gap-5 border-b border-slate-300 pb-5">
+          <h2 className="ow-heading-rule text-2xl font-semibold tracking-tight sm:text-3xl">Explore the site</h2>
+          <Link to="/about" className="inline-flex items-center gap-2 pb-1 text-sm font-medium text-[#0066cc] hover:underline">
             About OpenWorlds <ArrowRight className="size-4" />
           </Link>
         </div>
 
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid sm:grid-cols-2 sm:gap-x-14">
           {explore.map(({ to, title, text }, index) => (
-            <Link
-              key={to}
-              to={to}
-              className="ow-card group rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-400"
-              style={stagger(index)}
-            >
-              <h3 className="flex items-center gap-1.5 font-semibold">
-                {title}
-                <ArrowRight className="size-4 opacity-0 transition-opacity group-hover:opacity-100" />
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+            <Link key={to} to={to} className="ow-index-row group" style={stagger(index)}>
+              <span className="ow-index-num">{String(index + 1).padStart(2, "0")}</span>
+              <div className="min-w-0 flex-1">
+                <h3 className="flex items-center gap-1.5 text-base">
+                  {title}
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
+              </div>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="border-y border-slate-200 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
-        <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
-          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(0)}>
-            <h2 className="text-lg font-semibold">Careers</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Browse current opportunities to contribute to OpenWorlds.
-            </p>
-            <Link to="/careers" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
-              View careers <ArrowRight className="size-4" />
-            </Link>
-          </article>
-
-          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(1)}>
-            <h2 className="text-lg font-semibold">Need a hand?</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Read current support information or open a ticket.
-            </p>
-            <div className="mt-5 text-sm font-medium text-[#0066cc]">
-              <Link to="/support" className="hover:underline">Visit support</Link>
-            </div>
-          </article>
-
-          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(2)}>
-            <h2 className="text-lg font-semibold">Events</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Check for event announcements confirmed by the team.
-            </p>
-            <Link to="/events" className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
-              See events <ArrowRight className="size-4" />
-            </Link>
-          </article>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 sm:p-8">
-          <p className="text-sm font-medium text-[#7c5a00]">In development</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            Downloads temporarily unavailable
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+      <section className="px-5 pb-16 sm:px-8 sm:pb-24">
+        <div className="ow-band mx-auto max-w-6xl">
+          <p className="ow-band__eyebrow">In development</p>
+          <h2>Downloads temporarily unavailable</h2>
+          <p className="mt-3 text-sm leading-6">
             OpenWorlds downloads are temporarily unavailable. The game is still in development; published updates are listed on the News page.
           </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link to="/downloads" className="inline-flex h-11 items-center gap-2 rounded-sm bg-[#0066cc] px-5 text-sm font-medium text-white hover:bg-[#004a99]">
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/downloads" className="ow-band__cta">
               Check download status <ArrowRight className="size-4" />
             </Link>
-            <Link to="/roadmap" className="inline-flex h-11 items-center rounded-sm border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Link to="/roadmap" className="ow-band__ghost">
               View the roadmap
             </Link>
           </div>
@@ -181,9 +145,12 @@ export default function Landing() {
       </section>
 
       <footer className="ow-footer border-t border-slate-200">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
-          <span>OpenWorlds © 2026. All rights reserved.</span>
-          <div className="flex flex-wrap gap-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-6 text-sm text-slate-500 sm:px-8">
+          <div className="flex items-center gap-2.5">
+            <Wordmark className="size-5" label="" />
+            <span>OpenWorlds © 2026. All rights reserved.</span>
+          </div>
+          <div className="flex flex-wrap gap-5">
             <a href="https://discord.gg/JWq5hEsKRX" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">Discord</a>
             <a href="https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA" target="_blank" rel="noopener noreferrer" className="hover:text-slate-900">YouTube</a>
             <Link to="/rules" className="hover:text-slate-900">Rules</Link>

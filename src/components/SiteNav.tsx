@@ -159,7 +159,12 @@ export function SiteNav() {
           ) : (
             <>
               <Link to="/player-login" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Sign in</Link>
-              <Link to="/player-signup" className="rounded-md px-2.5 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Sign up</Link>
+              <Link
+                to="/player-signup"
+                className="nav-cta inline-flex h-9 items-center rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Sign up
+              </Link>
             </>
           )}
         </div>

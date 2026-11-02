@@ -484,6 +484,12 @@ main [class*="border-t-2"] {
   border-top-color: #e2e8f0 !important;
 }
 
+/* Editorial blocks keep a firm ink rule instead of a pale hairline. */
+main [class*="border-t-2"][class*="border-slate-900"] {
+  border-top-width: 2px !important;
+  border-top-color: #0f172a !important;
+}
+
 main :is(a, button)[class*="rounded-"] {
   border-radius: 0.125rem !important;
 }
@@ -746,13 +752,18 @@ main :is(h1, h2, h3, h4) {
   color: #14583c;
 }
 
+/* Filled nav action keeps its light label on hover. */
+.site-nav .nav-cta:hover {
+  color: oklch(0.985 0 0);
+}
+
 /* Landing hero: mask-revealed headline lines and a large line-art globe. */
 .ow-line {
   display: block;
   overflow: hidden;
-  /* Room for descenders so the mask never clips the type. */
-  margin-bottom: -0.12em;
-  padding-bottom: 0.12em;
+  /* Room for ascenders and descenders so the mask never clips the type. */
+  margin: -0.07em 0 -0.13em;
+  padding: 0.07em 0 0.13em;
 }
 
 .ow-line > span {
@@ -947,12 +958,12 @@ main :is(h1, h2, h3, h4) {
 }
 
 /* Footer links underline from the left. */
-.ow-footer a {
+main > footer a {
   position: relative;
   transition: color 160ms ease;
 }
 
-.ow-footer a::after {
+main > footer a::after {
   position: absolute;
   right: 0;
   bottom: -2px;
@@ -965,7 +976,7 @@ main :is(h1, h2, h3, h4) {
   content: "";
 }
 
-.ow-footer a:hover::after {
+main > footer a:hover::after {
   transform: scaleX(1);
 }
 
@@ -1019,4 +1030,226 @@ main :is(h1, h2, h3, h4) {
   .ow-mark-meridian {
     stroke-dashoffset: 0 !important;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Art direction: deeper banner, editorial rules, one strong colour band */
+/* ------------------------------------------------------------------ */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #176b45;
+  color: #fff;
+}
+
+main :is(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+main p {
+  text-wrap: pretty;
+}
+
+/* The banner is a printed plate: a fine graticule over deep green. */
+.ow-page-hero {
+  background-color: #11432c;
+  background-image:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 96px),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 96px),
+    radial-gradient(120% 90% at 8% -20%, rgb(255 255 255 / 13%), transparent 58%),
+    linear-gradient(180deg, #186043 0%, #0d3d28 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.ow-page-hero h1 {
+  font-size: clamp(2.1rem, 1.3rem + 2.9vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+}
+
+/* Short uppercase kicker above every banner headline. */
+.ow-page-hero p[class*="text-sm"]:not(.ow-note) {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.ow-page-hero p[class*="text-sm"]:not(.ow-note) svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.ow-page-hero p[class*="leading-7"] {
+  max-width: 42rem;
+}
+
+/* Numbered index: a directory, not a wall of cards. */
+.ow-index-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.35rem 0;
+  border-bottom: 1px solid #e5eae5;
+  transition: padding-left 280ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease;
+  animation: ow-card-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.ow-index-row:hover {
+  padding-left: 0.6rem;
+}
+
+.ow-index-num {
+  padding-top: 0.2rem;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  color: #9aa5a0;
+  transition: color 200ms ease;
+}
+
+.ow-index-row h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: color 200ms ease;
+}
+
+.ow-index-row h3 svg {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ow-index-row:hover h3,
+.ow-index-row:focus-visible h3 {
+  color: var(--ow-green);
+}
+
+.ow-index-row:hover .ow-index-num,
+.ow-index-row:focus-visible .ow-index-num {
+  color: var(--ow-green);
+}
+
+.ow-index-row:hover h3 svg,
+.ow-index-row:focus-visible h3 svg {
+  opacity: 1;
+  transform: none;
+}
+
+/* Full-width colour band used once per page at most. */
+.ow-band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(2rem, 4vw, 3.25rem);
+  color: #e9f2ea;
+  background-color: #0f4630;
+  background-image:
+    radial-gradient(90% 130% at 100% 0%, rgb(255 255 255 / 10%), transparent 60%),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 84px),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 84px),
+    linear-gradient(160deg, #14583c 0%, #0b3524 100%);
+}
+
+.ow-band::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
+  content: "";
+}
+
+.ow-band::after {
+  position: absolute;
+  top: 50%;
+  right: -6rem;
+  width: 24rem;
+  height: 24rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  content: "";
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .ow-band::after {
+    display: block;
+  }
+}
+
+.ow-band > * {
+  position: relative;
+  z-index: 1;
+}
+
+.ow-band__eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e8c877;
+}
+
+.ow-band h2 {
+  margin-top: 0.6rem;
+  color: #fff;
+  font-size: clamp(1.5rem, 1.15rem + 1vw, 2.1rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.ow-band p {
+  max-width: 42rem;
+  color: rgb(230 241 232 / 88%);
+}
+
+.ow-band__cta,
+.ow-band__ghost {
+  display: inline-flex;
+  height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.125rem;
+  padding: 0 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease,
+    border-color 200ms ease;
+}
+
+.ow-band__cta {
+  background: #fff;
+  color: #0f4630;
+}
+
+.ow-band__cta:hover {
+  transform: translateY(-1px);
+  background: #eaf4ec;
+}
+
+.ow-band__ghost {
+  border: 1px solid rgb(255 255 255 / 35%);
+  color: #fff;
+}
+
+.ow-band__ghost:hover {
+  transform: translateY(-1px);
+  border-color: rgb(255 255 255 / 60%);
+  background: rgb(255 255 255 / 10%);
+}
+
+.ow-band__cta svg {
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ow-band__cta:hover svg {
+  transform: translateX(3px);
 }
