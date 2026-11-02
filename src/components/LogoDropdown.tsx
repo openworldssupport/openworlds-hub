@@ -21,7 +21,7 @@ export function LogoDropdown() {
     try {
       await signOut();
       navigate("/");
-    } catch (error) {
+    } catch {
       console.error("Sign out failed.");
     }
   };
