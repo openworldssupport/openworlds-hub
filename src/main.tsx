@@ -79,51 +79,127 @@ class ToolbarErrorBoundary extends React.Component<
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(_err: Error) {
-    console.warn("[VlyToolbar] Error; toolbar disabled.");
+  componentDidCatch(error: Error) {
+    console.warn("[VlyToolbar] Disabled after error:", error);
   }
   render() {
     return this.state.hasError ? null : this.props.children;
   }
 }
 
-/** Hard guard so runtime errors never leave the preview as a blank page. */
-class RootErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; message: string; stack: string }
-> {
-  state = { hasError: false, message: "", stack: "" };
-  static getDerivedStateFromError(_error: Error) {
+type ErrorDetail = { name: string; message: string; stack: string };
+
+/** Turn anything thrown into a readable message instead of a generic notice. */
+function describeError(error: unknown): ErrorDetail {
+  if (error instanceof Error) {
     return {
-      hasError: true,
-      message: "Unexpected application error.",
-      stack: "",
+      name: error.name || "Error",
+      message: error.message || "No message was provided.",
+      stack: error.stack ?? "",
     };
   }
-  componentDidCatch(_err: Error) {
-    console.error("[Preview] Root render failed.");
+  if (typeof error === "string") {
+    return { name: "Error", message: error, stack: "" };
   }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
-          <div className="max-w-lg text-center">
-            <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
-              {this.state.message}
-            </p>
-            {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
-                {this.state.stack}
-              </pre>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
+  try {
+    return { name: "Error", message: JSON.stringify(error), stack: "" };
+  } catch {
+    return { name: "Error", message: String(error), stack: "" };
   }
 }
+
+/** Full-page message shown when rendering fails, with the real reason. */
+function RenderErrorScreen({ error }: { error: unknown }) {
+  const detail = describeError(error);
+  return (
+    <div className="min-h-screen bg-white p-6 text-slate-900">
+      <div className="mx-auto max-w-2xl">
+        <p className="text-sm font-semibold text-[#b42318]">Something went wrong</p>
+        <h1 className="mt-2 break-words text-xl font-semibold tracking-tight">
+          {detail.name}: {detail.message}
+        </h1>
+        {import.meta.env.DEV && detail.stack && (
+          <pre className="mt-4 max-h-64 overflow-auto rounded border border-slate-200 bg-slate-50 p-3 text-[11px] leading-5 text-slate-600">
+            {detail.stack}
+          </pre>
+        )}
+        <p className="mt-4 text-sm leading-6 text-slate-600">
+          Reload the page to try again. If it keeps happening, send this message to contact@openworlds.dk.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-5 inline-flex h-10 items-center rounded-sm bg-[#14583c] px-4 text-sm font-semibold text-white hover:bg-[#0f4630]"
+        >
+          Reload page
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Hard guard so runtime errors show their real message instead of a blank page. */
+class RootErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: unknown }
+> {
+  state = { error: null as unknown };
+  static getDerivedStateFromError(error: unknown) {
+    return { error };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[OpenWorlds] Render failed:", error);
+  }
+  render() {
+    return this.state.error ? <RenderErrorScreen error={this.state.error} /> : this.props.children;
+  }
+}
+
+/** Errors that never reach React (async callbacks, failed requests) get a small
+ *  dismissible notice with the actual message rather than a generic banner. */
+function installRuntimeErrorNotice() {
+  if (typeof document === "undefined") return;
+  const show = (error: unknown) => {
+    const detail = describeError(error);
+    let panel = document.getElementById("ow-runtime-error");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "ow-runtime-error";
+      panel.setAttribute("role", "alert");
+      panel.style.cssText =
+        "position:fixed;bottom:16px;left:16px;right:16px;max-width:38rem;z-index:2147483647;" +
+        "background:#111f18;color:#f5f7f4;border:1px solid #3b5a49;border-left:3px solid #c0392b;" +
+        "border-radius:4px;padding:12px 14px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
+        "box-shadow:0 8px 24px rgba(0,0,0,0.25);";
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "Dismiss";
+      close.style.cssText =
+        "position:absolute;top:8px;right:8px;background:none;border:0;color:#9fb3a8;font:inherit;cursor:pointer;";
+      close.addEventListener("click", () => panel?.remove());
+
+      const text = document.createElement("pre");
+      text.id = "ow-runtime-error-text";
+      text.style.cssText = "margin:0;padding-right:64px;white-space:pre-wrap;word-break:break-word;";
+
+      panel.append(close, text);
+      document.body.appendChild(panel);
+    }
+    const text = panel.querySelector("#ow-runtime-error-text");
+    if (text) {
+      const stack = import.meta.env.DEV ? detail.stack.split("\n").slice(0, 6).join("\n") : "";
+      text.textContent = `OpenWorlds error — ${detail.name}: ${detail.message}${stack ? `\n\n${stack}` : ""}`;
+    }
+  };
+
+  window.addEventListener("error", (event) => {
+    if (event.error) show(event.error);
+  });
+  window.addEventListener("unhandledrejection", (event) => show(event.reason));
+}
+
+installRuntimeErrorNotice();
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL || "https://blissful-lynx-171.convex.cloud";
 const convex = new ConvexReactClient(convexUrl);
