@@ -55,8 +55,9 @@ export default function Landing() {
       <SiteNav />
 
       <section className="ow-page-hero px-5 py-16 text-white sm:px-8 sm:py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="mx-auto max-w-6xl">
           <div>
+            <Wordmark variant="outline" className="mb-6 size-11 text-white/80" label="" />
             <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
             <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
               <span className="ow-line" style={stagger(0)}>
@@ -96,15 +97,12 @@ export default function Landing() {
               <Link to="/worlds" className="hover:text-white">Worlds</Link>
             </div>
           </div>
-          <div className="ow-landing-mark" aria-hidden="true">
-            <Wordmark variant="outline" className="ow-hero-emblem" />
-          </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="flex flex-wrap items-end justify-between gap-5 border-b border-slate-300 pb-5">
-          <h2 className="ow-heading-rule text-2xl font-semibold tracking-tight sm:text-3xl">Explore the site</h2>
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Explore the site</h2>
           <Link to="/about" className="inline-flex items-center gap-2 pb-1 text-sm font-medium text-[#0066cc] hover:underline">
             About OpenWorlds <ArrowRight className="size-4" />
           </Link>
@@ -113,14 +111,11 @@ export default function Landing() {
         <div className="grid sm:grid-cols-2 sm:gap-x-14">
           {explore.map(({ to, title, text }, index) => (
             <Link key={to} to={to} className="ow-index-row group" style={stagger(index)}>
-              <span className="ow-index-num">{String(index + 1).padStart(2, "0")}</span>
               <div className="min-w-0 flex-1">
-                <h3 className="flex items-center gap-1.5 text-base">
-                  {title}
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </h3>
+                <h3 className="text-base font-semibold">{title}</h3>
                 <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
               </div>
+              <ArrowRight className="mt-1 size-4 shrink-0 text-slate-400" aria-hidden="true" />
             </Link>
           ))}
         </div>

@@ -783,73 +783,6 @@ main :is(h1, h2, h3, h4) {
   }
 }
 
-.ow-landing-mark {
-  position: relative;
-  display: none;
-  place-items: center;
-  background: radial-gradient(circle at 50% 46%, rgb(255 255 255 / 9%), transparent 62%);
-}
-
-.ow-landing-mark::before {
-  position: absolute;
-  inset: -9%;
-  border: 1px dashed rgb(255 255 255 / 16%);
-  border-radius: 50%;
-  animation: ow-spin 64s linear infinite;
-  content: "";
-}
-
-/* Pressed-paper seal under the plate. */
-.ow-landing-mark::after {
-  position: absolute;
-  top: auto;
-  right: 9%;
-  bottom: -1.1rem;
-  left: 9%;
-  height: 3px;
-  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
-  transform-origin: left center;
-  animation: ow-rule 900ms cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
-  content: "";
-}
-
-.ow-landing-mark .ow-mark {
-  color: #143d2a;
-}
-
-.ow-landing-mark .ow-mark-plate {
-  fill: #f3ecda;
-  stroke: none;
-  filter: drop-shadow(0 20px 34px rgb(3 22 14 / 45%));
-}
-
-.ow-landing-mark .ow-mark {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: auto;
-}
-
-@media (min-width: 1024px) {
-  .ow-landing-mark {
-    display: grid;
-  }
-}
-
-@supports (animation-timeline: scroll()) {
-  .ow-landing-mark .ow-mark {
-    animation: ow-drift linear both;
-    animation-timeline: scroll(root block);
-    animation-range: 0 700px;
-  }
-}
-
-@keyframes ow-drift {
-  to {
-    transform: translateY(48px) rotate(6deg);
-  }
-}
-
 /* Calls to action lift a little and nudge their arrow. */
 .ow-cta {
   transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, background-color 200ms ease,
@@ -926,25 +859,6 @@ main :is(h1, h2, h3, h4) {
     opacity: 1;
     transform: none;
   }
-}
-
-/* Section headings earn a short two-colour rule as they arrive. */
-.ow-heading-rule {
-  position: relative;
-  padding-bottom: 0.65rem;
-}
-
-.ow-heading-rule::after {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 2.75rem;
-  height: 2px;
-  background: linear-gradient(90deg, var(--ow-red), var(--ow-green));
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: ow-rule 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
-  content: "";
 }
 
 /* A slow highlight crosses the greeting bar. */
@@ -1036,7 +950,6 @@ main > footer a:hover::after {
 
 @media (prefers-reduced-motion: reduce) {
   .ow-mark-globe,
-  .ow-landing-mark::before,
   .holiday-greeting::after,
   .ow-route-loader__bar::after {
     animation: none !important;
@@ -1071,75 +984,35 @@ main p {
   text-wrap: pretty;
 }
 
-/* The banner is a printed plate: a fine graticule over deep green. */
-.ow-page-hero {
-  background-color: #11432c;
-  background-image:
-    repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 96px),
-    repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 96px),
-    radial-gradient(120% 90% at 8% -20%, rgb(255 255 255 / 13%), transparent 58%),
-    linear-gradient(180deg, #186043 0%, #0d3d28 100%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
-}
-
 .ow-page-hero h1 {
   font-size: clamp(2.1rem, 1.3rem + 2.9vw, 3.75rem);
   line-height: 1.05;
   letter-spacing: -0.028em;
 }
 
-/* Short uppercase kicker above every banner headline. */
-.ow-page-hero p[class*="text-sm"]:not(.ow-note) {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.ow-page-hero p[class*="text-sm"]:not(.ow-note) svg {
-  width: 0.85rem;
-  height: 0.85rem;
-}
-
 .ow-page-hero p[class*="leading-7"] {
   max-width: 42rem;
 }
 
-/* Numbered index: a directory, not a wall of cards. */
+/* A plain list of the site's sections. */
 .ow-index-row {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 1.25rem;
-  padding: 1.35rem 0;
+  padding: 1.25rem 0;
   border-bottom: 1px solid #e5eae5;
-  transition: padding-left 280ms cubic-bezier(0.22, 1, 0.36, 1), background-color 200ms ease;
   animation: ow-card-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-.ow-index-row:hover {
-  padding-left: 0.6rem;
-}
-
-.ow-index-num {
-  padding-top: 0.2rem;
-  font-size: 0.7rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.14em;
-  color: #9aa5a0;
-  transition: color 200ms ease;
-}
-
 .ow-index-row h3 {
   font-weight: 600;
-  letter-spacing: -0.01em;
-  transition: color 200ms ease;
+  transition: color 180ms ease;
 }
 
-.ow-index-row h3 svg {
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+.ow-index-row > svg {
+  transition: color 180ms ease, transform 220ms ease;
 }
 
 .ow-index-row:hover h3,
@@ -1147,30 +1020,19 @@ main p {
   color: var(--ow-green);
 }
 
-.ow-index-row:hover .ow-index-num,
-.ow-index-row:focus-visible .ow-index-num {
+.ow-index-row:hover > svg,
+.ow-index-row:focus-visible > svg {
   color: var(--ow-green);
+  transform: translateX(2px);
 }
 
-.ow-index-row:hover h3 svg,
-.ow-index-row:focus-visible h3 svg {
-  opacity: 1;
-  transform: none;
-}
-
-/* Full-width colour band used once per page at most. */
+/* A single deep-green panel for the download notice. */
 .ow-band {
   position: relative;
-  isolation: isolate;
   overflow: hidden;
   padding: clamp(2rem, 4vw, 3.25rem);
   color: #e9f2ea;
-  background-color: #0f4630;
-  background-image:
-    radial-gradient(90% 130% at 100% 0%, rgb(255 255 255 / 10%), transparent 60%),
-    repeating-linear-gradient(90deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 84px),
-    repeating-linear-gradient(0deg, rgb(255 255 255 / 4%) 0 1px, transparent 1px 84px),
-    linear-gradient(160deg, #14583c 0%, #0b3524 100%);
+  background: #104b35;
 }
 
 .ow-band::before {
@@ -1183,35 +1045,14 @@ main p {
   content: "";
 }
 
-.ow-band::after {
-  position: absolute;
-  top: 50%;
-  right: -6rem;
-  width: 24rem;
-  height: 24rem;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 50%;
-  transform: translateY(-50%);
-  content: "";
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .ow-band::after {
-    display: block;
-  }
-}
-
 .ow-band > * {
   position: relative;
   z-index: 1;
 }
 
 .ow-band__eyebrow {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   color: #e8c877;
 }
 
