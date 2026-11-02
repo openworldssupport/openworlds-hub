@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteStatusNotice } from "@/components/SiteStatusNotice";
+import { Wordmark } from "@/components/Wordmark";
 import { careerBranches, careerRoles } from "@/lib/careers";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -108,14 +109,16 @@ export function SiteNav() {
       </div>
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">
         <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">
-          <img src="/logo.svg" alt="" width={36} height={36} className="size-9 rounded-lg" />
+          <span className="ow-logo">
+            <Wordmark className="size-9" label="" />
+          </span>
           <span className="font-semibold tracking-tight">OpenWorlds</span>
         </Link>
         <div className="flex flex-wrap items-center gap-1 text-xs lg:text-sm">
           {PRIMARY_LINKS.map((link) => (
-            <Link key={link.to} to={link.to} className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">
+            <NavLink key={link.to} to={link.to} className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">
               {link.label}
-            </Link>
+            </NavLink>
           ))}
           <DropdownMenu>
             <DropdownMenuTrigger className="nav-link rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100" style={{ animationDelay: "240ms" }}>More</DropdownMenuTrigger>

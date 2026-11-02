@@ -6,6 +6,7 @@ import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { RequireAuth } from "@/components/RequireAuth";
+import { Wordmark } from "@/components/Wordmark";
 import { LegalPolicyGate } from "@/components/LegalPolicyGate";
 import { OfflinePage } from "@/components/OfflinePage";
 import "./index.css";
@@ -60,8 +61,10 @@ const StaffMessages = lazy(
 // Simple loading fallback for route transitions
 function RouteLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="ow-route-loader" role="status" aria-label="Loading page">
+      <Wordmark className="size-10" label="" />
+      <span className="ow-route-loader__bar" aria-hidden="true" />
+      <span className="text-xs text-slate-500">Loading…</span>
     </div>
   );
 }

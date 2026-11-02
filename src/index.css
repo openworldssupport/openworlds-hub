@@ -404,6 +404,16 @@ main > footer {
   background-position: top;
   background-repeat: no-repeat;
   background-size: 100% 3px;
+  animation: ow-footer-rule 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ow-footer-rule {
+  from {
+    background-size: 0 3px;
+  }
+  to {
+    background-size: 100% 3px;
+  }
 }
 
 :where(a, button, input, textarea):focus-visible {
@@ -612,4 +622,401 @@ main :is(h1, h2, h3, h4) {
 .staff-welcome-dialog,
 .staff-welcome-dialog * {
   color: #111827 !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion layer: the mark draws itself, the page settles, cards react. */
+/* ------------------------------------------------------------------ */
+
+.ow-mark {
+  display: block;
+  overflow: visible;
+}
+
+.ow-mark-plate {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ow-mark-plate 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: filter 240ms ease;
+}
+
+.ow-mark-rim,
+.ow-mark-equator,
+.ow-mark-meridian {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ow-draw 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ow-mark-rim {
+  animation-delay: 140ms;
+}
+
+.ow-mark-equator {
+  animation-delay: 320ms;
+}
+
+.ow-mark-meridian {
+  animation-delay: 380ms;
+}
+
+/* The meridians turn slowly inside the fixed rim, so the globe reads as a
+   globe rather than a rotating sticker. */
+.ow-mark-globe {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ow-spin 18s linear infinite;
+}
+
+.ow-mark-glint {
+  transform: translateX(0) skewX(-16deg);
+  animation: ow-mark-glint 1000ms ease-out 640ms both;
+}
+
+.ow-mark:hover .ow-mark-glint,
+.ow-logo:hover .ow-mark-glint {
+  animation: ow-mark-glint-hover 900ms ease-out both;
+}
+
+.ow-mark:hover .ow-mark-plate,
+.ow-logo:hover .ow-mark-plate {
+  filter: drop-shadow(0 4px 10px rgb(8 117 209 / 30%));
+}
+
+.ow-logo {
+  display: inline-flex;
+  flex: none;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-nav a:hover > .ow-logo {
+  transform: translateY(-1px) rotate(-4deg);
+}
+
+@keyframes ow-mark-plate {
+  from {
+    opacity: 0;
+    transform: scale(0.82) rotate(-10deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ow-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ow-mark-glint {
+  from {
+    transform: translateX(-120px) skewX(-16deg);
+  }
+  to {
+    transform: translateX(780px) skewX(-16deg);
+  }
+}
+
+@keyframes ow-mark-glint-hover {
+  from {
+    transform: translateX(-120px) skewX(-16deg);
+  }
+  to {
+    transform: translateX(780px) skewX(-16deg);
+  }
+}
+
+@keyframes ow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Active route gets the same underline as the hovered link. */
+.nav-link[aria-current="page"]::after {
+  transform: scaleX(1);
+  background: var(--ow-green);
+}
+
+.nav-link[aria-current="page"] {
+  color: #14583c;
+}
+
+/* Landing hero: mask-revealed headline lines and a large line-art globe. */
+.ow-line {
+  display: block;
+  overflow: hidden;
+  /* Room for descenders so the mask never clips the type. */
+  margin-bottom: -0.12em;
+  padding-bottom: 0.12em;
+}
+
+.ow-line > span {
+  display: block;
+  animation: ow-line-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(150ms + var(--i, 0) * 110ms);
+}
+
+@keyframes ow-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ow-landing-mark {
+  position: relative;
+  display: none;
+  place-items: center;
+}
+
+.ow-landing-mark::before {
+  position: absolute;
+  inset: -8%;
+  border: 1px dashed rgb(255 255 255 / 18%);
+  border-radius: 50%;
+  animation: ow-spin 64s linear infinite;
+  content: "";
+}
+
+.ow-landing-mark::after {
+  position: absolute;
+  inset: 6%;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 50%;
+  content: "";
+}
+
+.ow-landing-mark .ow-mark {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 1024px) {
+  .ow-landing-mark {
+    display: grid;
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .ow-landing-mark .ow-mark {
+    animation: ow-drift linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 700px;
+  }
+}
+
+@keyframes ow-drift {
+  to {
+    transform: translateY(48px) rotate(6deg);
+  }
+}
+
+/* Calls to action lift a little and nudge their arrow. */
+.ow-cta {
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, background-color 200ms ease,
+    border-color 200ms ease, color 200ms ease;
+}
+
+.ow-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px -22px rgb(2 20 12 / 80%);
+}
+
+.ow-cta:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.ow-cta svg {
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ow-cta:hover svg {
+  transform: translateX(4px);
+}
+
+/* Landing cards: staggered arrival, a rule that draws along the bottom edge. */
+.ow-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: ow-card-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+  transition: border-color 200ms ease, background-color 200ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+}
+
+.ow-card::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ow-red), var(--ow-green) 55%, var(--ow-gold));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  content: "";
+}
+
+.ow-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 30px -26px rgb(15 23 42 / 70%);
+}
+
+.ow-card:hover::after,
+.ow-card:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.ow-card:hover h3 svg,
+.ow-card:focus-visible h3 svg {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.ow-card h3 svg {
+  transition: transform 220ms ease, opacity 200ms ease;
+}
+
+@keyframes ow-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Section headings earn a short two-colour rule as they arrive. */
+.ow-heading-rule {
+  position: relative;
+  padding-bottom: 0.65rem;
+}
+
+.ow-heading-rule::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2.75rem;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ow-red), var(--ow-green));
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: ow-rule 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+  content: "";
+}
+
+/* A slow highlight crosses the greeting bar. */
+.holiday-greeting {
+  position: relative;
+  overflow: hidden;
+}
+
+.holiday-greeting::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 40%, rgb(247 231 189 / 14%) 50%, transparent 60%);
+  transform: translateX(-120%);
+  animation: ow-greeting 11s ease-in-out 3s infinite;
+  pointer-events: none;
+  content: "";
+}
+
+@keyframes ow-greeting {
+  0%,
+  100% {
+    transform: translateX(-120%);
+  }
+  45%,
+  55% {
+    transform: translateX(120%);
+  }
+}
+
+/* Footer links underline from the left. */
+.ow-footer a {
+  position: relative;
+  transition: color 160ms ease;
+}
+
+.ow-footer a::after {
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  content: "";
+}
+
+.ow-footer a:hover::after {
+  transform: scaleX(1);
+}
+
+/* Route loader: the mark turns while the chunk arrives. */
+.ow-route-loader {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #fff;
+}
+
+.ow-route-loader__bar {
+  position: relative;
+  width: 8rem;
+  height: 2px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.ow-route-loader__bar::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--ow-green), var(--ow-gold));
+  transform-origin: left center;
+  animation: ow-loader-bar 1100ms ease-in-out infinite;
+  content: "";
+}
+
+@keyframes ow-loader-bar {
+  0% {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ow-mark-globe,
+  .ow-landing-mark::before,
+  .holiday-greeting::after,
+  .ow-route-loader__bar::after {
+    animation: none !important;
+  }
+
+  .ow-mark-rim,
+  .ow-mark-equator,
+  .ow-mark-meridian {
+    stroke-dashoffset: 0 !important;
+  }
 }

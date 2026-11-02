@@ -1,6 +1,10 @@
+import type { CSSProperties } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 import { SiteNav } from "@/components/SiteNav";
+import { Wordmark } from "@/components/Wordmark";
+
+const stagger = (index: number) => ({ "--i": index }) as CSSProperties;
 
 const explore = [
   {
@@ -41,45 +45,55 @@ export default function Landing() {
       <SiteNav />
 
       <section className="ow-page-hero px-5 py-16 text-white sm:px-8 sm:py-24">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
-          <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-            A community built together.
-          </h1>
-          <p className="mt-6 max-w-2xl border-l-2 border-white/40 pl-3 text-sm text-blue-50">
-            Site news: OpenWorlds downloads are temporarily unavailable.
-          </p>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
-            OpenWorlds is in development. Follow official project updates and find the current status of public resources.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              to="/community"
-              className="inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
-            >
-              Join the community <ArrowRight className="size-4" />
-            </Link>
-            <Link
-              to="/careers"
-              className="inline-flex h-11 items-center rounded-sm border border-white/50 px-5 text-sm font-semibold text-white hover:bg-white/10"
-            >
-              Explore careers
-            </Link>
-            <Link
-              to="/player-signup"
-              className="inline-flex h-11 items-center rounded-sm border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
-            >
-              Create a player account
-            </Link>
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_19rem]">
+          <div>
+            <p className="text-sm font-medium text-blue-100">OpenWorlds</p>
+            <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
+              <span className="ow-line" style={stagger(0)}>
+                <span>A community</span>
+              </span>{" "}
+              <span className="ow-line" style={stagger(1)}>
+                <span>built together.</span>
+              </span>
+            </h1>
+            <p className="mt-6 max-w-2xl border-l-2 border-white/40 pl-3 text-sm text-blue-50">
+              Site news: OpenWorlds downloads are temporarily unavailable.
+            </p>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-blue-50 sm:text-lg">
+              OpenWorlds is in development. Follow official project updates and find the current status of public resources.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/community"
+                className="ow-cta inline-flex h-11 items-center gap-2 rounded-sm bg-white px-5 text-sm font-semibold text-[#0052a3] hover:bg-blue-50"
+              >
+                Join the community <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                to="/careers"
+                className="ow-cta inline-flex h-11 items-center rounded-sm border border-white/50 px-5 text-sm font-semibold text-white hover:bg-white/10"
+              >
+                Explore careers
+              </Link>
+              <Link
+                to="/player-signup"
+                className="ow-cta inline-flex h-11 items-center rounded-sm border border-white/30 px-5 text-sm font-semibold text-blue-50 hover:bg-white/10"
+              >
+                Create a player account
+              </Link>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">
+              <Link to="/downloads" className="font-medium text-white underline underline-offset-4 hover:text-amber-100">Download status</Link>
+              <span aria-hidden="true" className="text-white/40">·</span>
+              <Link to="/support" className="hover:text-white">Support</Link>
+              <span aria-hidden="true" className="text-white/40">·</span>
+              <Link to="/roadmap" className="hover:text-white">Roadmap</Link>
+              <span aria-hidden="true" className="text-white/40">·</span>
+              <Link to="/worlds" className="hover:text-white">Worlds</Link>
+            </div>
           </div>
-          <div className="mt-8 flex flex-wrap gap-4 text-sm text-blue-100">
-            <Link to="/downloads" className="font-medium text-white underline underline-offset-4 hover:text-amber-100">Download status</Link>
-            <span aria-hidden="true" className="text-white/40">·</span>
-            <Link to="/support" className="hover:text-white">Support</Link>
-            <span aria-hidden="true" className="text-white/40">·</span>
-            <Link to="/roadmap" className="hover:text-white">Roadmap</Link>
-            <span aria-hidden="true" className="text-white/40">·</span>
-            <Link to="/worlds" className="hover:text-white">Worlds</Link>
+          <div className="ow-landing-mark" aria-hidden="true">
+            <Wordmark variant="outline" className="text-white/25" />
           </div>
         </div>
       </section>
@@ -87,7 +101,7 @@ export default function Landing() {
       <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
+            <h2 className="ow-heading-rule text-2xl font-semibold tracking-tight sm:text-3xl">Project information</h2>
           </div>
           <Link to="/about" className="inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">
             About OpenWorlds <ArrowRight className="size-4" />
@@ -95,11 +109,12 @@ export default function Landing() {
         </div>
 
         <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {explore.map(({ to, title, text }) => (
+          {explore.map(({ to, title, text }, index) => (
             <Link
               key={to}
               to={to}
-              className="group rounded-lg border border-slate-200 bg-white p-5 transition-colors hover:border-slate-400"
+              className="ow-card group rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-400"
+              style={stagger(index)}
             >
               <h3 className="flex items-center gap-1.5 font-semibold">
                 {title}
@@ -113,7 +128,7 @@ export default function Landing() {
 
       <section className="border-y border-slate-200 bg-slate-50 px-5 py-14 sm:px-8 sm:py-16">
         <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-3">
-          <article className="rounded-lg border border-slate-200 bg-white p-6">
+          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(0)}>
             <h2 className="text-lg font-semibold">Careers</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Browse current opportunities to contribute to OpenWorlds.
@@ -123,7 +138,7 @@ export default function Landing() {
             </Link>
           </article>
 
-          <article className="rounded-lg border border-slate-200 bg-white p-6">
+          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(1)}>
             <h2 className="text-lg font-semibold">Need a hand?</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Read current support information or open a ticket.
@@ -133,7 +148,7 @@ export default function Landing() {
             </div>
           </article>
 
-          <article className="rounded-lg border border-slate-200 bg-white p-6">
+          <article className="ow-card rounded-lg border border-slate-200 bg-white p-6" style={stagger(2)}>
             <h2 className="text-lg font-semibold">Events</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Check for event announcements confirmed by the team.
@@ -165,7 +180,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200">
+      <footer className="ow-footer border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-3 px-5 py-5 text-sm text-slate-500 sm:px-8">
           <span>OpenWorlds © 2026. All rights reserved.</span>
           <div className="flex flex-wrap gap-4">
