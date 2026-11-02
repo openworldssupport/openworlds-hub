@@ -787,23 +787,40 @@ main :is(h1, h2, h3, h4) {
   position: relative;
   display: none;
   place-items: center;
+  background: radial-gradient(circle at 50% 46%, rgb(255 255 255 / 9%), transparent 62%);
 }
 
 .ow-landing-mark::before {
   position: absolute;
-  inset: -8%;
-  border: 1px dashed rgb(255 255 255 / 18%);
+  inset: -9%;
+  border: 1px dashed rgb(255 255 255 / 16%);
   border-radius: 50%;
   animation: ow-spin 64s linear infinite;
   content: "";
 }
 
+/* Pressed-paper seal under the plate. */
 .ow-landing-mark::after {
   position: absolute;
-  inset: 6%;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 50%;
+  top: auto;
+  right: 9%;
+  bottom: -1.1rem;
+  left: 9%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ow-red) 0 34%, var(--ow-green) 34% 83%, var(--ow-gold) 83% 100%);
+  transform-origin: left center;
+  animation: ow-rule 900ms cubic-bezier(0.22, 1, 0.36, 1) 520ms both;
   content: "";
+}
+
+.ow-landing-mark .ow-mark {
+  color: #143d2a;
+}
+
+.ow-landing-mark .ow-mark-plate {
+  fill: #f3ecda;
+  stroke: none;
+  filter: drop-shadow(0 20px 34px rgb(3 22 14 / 45%));
 }
 
 .ow-landing-mark .ow-mark {

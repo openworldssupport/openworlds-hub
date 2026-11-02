@@ -97,7 +97,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="ow-landing-mark" aria-hidden="true">
-            <Wordmark variant="outline" className="text-white/25" />
+            <Wordmark variant="outline" className="ow-hero-emblem" />
           </div>
         </div>
       </section>
