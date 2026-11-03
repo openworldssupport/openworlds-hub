@@ -10,6 +10,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { AccountStatusGate } from "@/components/AccountStatusGate";
 import { OfflinePage } from "@/components/OfflinePage";
 import { StaffSignInNotice } from "@/components/StaffSignInNotice";
+import { StaffConversionPrompt } from "@/components/StaffConversionPrompt";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import { DeviceSessionTracker } from "@/components/DeviceSessionTracker";
 import "./index.css";
@@ -248,6 +249,7 @@ createRoot(document.getElementById("root")!).render(
           <PresenceHeartbeat />
           <DeviceSessionTracker />
           <StaffSignInNotice />
+          <StaffConversionPrompt />
           <OfflinePage>
             <AccountStatusGate>
               <Suspense fallback={<RouteLoading />}>
