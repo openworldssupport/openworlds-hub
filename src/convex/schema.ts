@@ -242,6 +242,47 @@ const schema = defineSchema(
       .index("by_target_created", ["targetId", "createdAt"])
       .index("by_status_created", ["status", "createdAt"]),
 
+    // Admin-managed capability grants for moderation. A row overrides the
+    // built-in defaults for that exact department + position. Administrators
+    // always retain every capability and do not need a row.
+    moderationRolePermissions: defineTable({
+      department: v.string(),
+      position: v.string(),
+      departmentKey: v.string(),
+      positionKey: v.string(),
+      capabilities: v.array(v.union(
+        v.literal("view"),
+        v.literal("warn"),
+        v.literal("suspend"),
+        v.literal("ban"),
+        v.literal("ip-ban"),
+        v.literal("review-appeals"),
+        v.literal("view-audit"),
+      )),
+      updatedAt: v.number(),
+      updatedBy: v.id("users"),
+    })
+      .index("by_keys", ["departmentKey", "positionKey"])
+      .index("by_department", ["departmentKey"]),
+
+    // Network blocks are kept separately from account bans because they apply
+    // to an IP/CIDR at the edge or game server. They are never applied
+    // automatically to a signed-in account by the website runtime.
+    networkBans: defineTable({
+      network: v.string(),
+      reason: v.string(),
+      createdBy: v.id("users"),
+      createdByLabel: v.string(),
+      createdAt: v.number(),
+      expiresAt: v.optional(v.number()),
+      liftedAt: v.optional(v.number()),
+      liftedBy: v.optional(v.id("users")),
+      liftedByLabel: v.optional(v.string()),
+      liftReason: v.optional(v.string()),
+    })
+      .index("by_created", ["createdAt"])
+      .index("by_network", ["network"]),
+
     // Append-only record of every moderation decision, so staff and admins
     // can be held accountable for what they did and why.
     // Automatic image-safety decisions, shown to the contact team.
@@ -277,6 +318,12 @@ const schema = defineSchema(
         v.literal("report-banned"),
         v.literal("automatic-warning"),
         v.literal("automatic-ban"),
+        v.literal("account-warned"),
+        v.literal("account-suspended"),
+        v.literal("account-banned"),
+        v.literal("ip-ban-added"),
+        v.literal("ip-ban-lifted"),
+        v.literal("permissions-updated"),
         v.literal("appeal-approved"),
         v.literal("appeal-declined"),
         v.literal("image-blocked"),

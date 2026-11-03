@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireSiteAvailable } from "./siteStatus";
+import { assertCleanPublicText } from "../lib/contentFilter";
 
 const MAX_SAVE_BYTES = 64 * 1024;
 const saveState = v.object({ version: v.number(), data: v.any() });
@@ -127,6 +128,8 @@ export const publishWorld = mutation({
     const cleanDescription = description.trim();
     if (cleanTitle.length < 2 || cleanTitle.length > 60) throw new Error("World title must be 2–60 characters.");
     if (cleanDescription.length > 1000) throw new Error("Description must be 1,000 characters or fewer.");
+    assertCleanPublicText(cleanTitle, "World title");
+    assertCleanPublicText(cleanDescription, "World description");
     if (imageStorageIds.length > 5 || new Set(imageStorageIds).size !== imageStorageIds.length) throw new Error("Choose up to 5 unique world images.");
     for (const storageId of imageStorageIds) {
       const asset = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
@@ -170,6 +173,7 @@ export const updateProfile = mutation({
     const { userId } = await requirePlayer(ctx);
     const name = displayName.trim();
     if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
+    assertCleanPublicText(name, "Player name");
     await ctx.db.patch(userId, { name, profileDiscoverable: true });
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
     if (saved) await ctx.db.patch(saved._id, { displayName: name, updatedAt: Date.now() });

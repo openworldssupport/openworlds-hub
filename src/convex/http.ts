@@ -138,4 +138,25 @@ http.route({
   }),
 });
 
+/**
+ * Edge/firewall export of active IP/CIDR blocks.
+ *
+ * The Convex runtime does not expose a website visitor's IP to mutations, so
+ * IP bans are enforced by the hosting edge or game server. Configure
+ * NETWORK_BLOCKLIST_SECRET and poll this endpoint with the same value in
+ * `x-openworlds-secret`; it returns only active network blocks.
+ */
+http.route({
+  path: "/moderation/network-bans",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.NETWORK_BLOCKLIST_SECRET;
+    if (!secret) return json({ error: "Network blocklist export is not configured. Set NETWORK_BLOCKLIST_SECRET." }, 503);
+    const provided = request.headers.get("x-openworlds-secret") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    if (provided !== secret) return json({ error: "Unauthorized." }, 401);
+    const blocks = await ctx.runQuery(internal.moderation.activeNetworkBlocks, {});
+    return json({ generatedAt: Date.now(), blocks }, 200);
+  }),
+});
+
 export default http;

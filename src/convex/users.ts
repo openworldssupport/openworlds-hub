@@ -3,6 +3,7 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { deriveBadge, isEmailAddress } from "../lib/staff";
+import { assertCleanPublicText, containsBlockedLanguage } from "../lib/contentFilter";
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin, SUPPORT_EMAIL } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
@@ -178,6 +179,7 @@ export const saveOfficialCreator = mutation({
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid contact email.");
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,31}$/.test(username)) throw new Error("Enter a valid OpenWorlds username (2–32 letters, numbers, dots, hyphens, or underscores).");
     if (displayName.length < 2 || displayName.length > 60) throw new Error("Display name must be 2–60 characters.");
+    const cleanDisplayName = assertCleanPublicText(displayName, "Display name");
     if (socialPlatform && socialPlatform.length > 40) throw new Error("Keep the social platform name under 40 characters.");
     if (socialUrl && (socialUrl.length > 500 || !/^https:\/\//i.test(socialUrl))) throw new Error("Use an HTTPS link under 500 characters for the social profile.");
 
@@ -206,7 +208,7 @@ export const saveOfficialCreator = mutation({
     const values = {
       email,
       username: normalizedUsername,
-      displayName,
+      displayName: cleanDisplayName,
       socialPlatform,
       socialUrl,
       linkedUserId: matched?._id,
@@ -520,6 +522,7 @@ export const sendPlayerMessage = mutation({
     if (!acceptedFriendship(sender._id, receiver._id, [...outgoing, ...incoming])) throw new Error("You can message this player only after they accept your friend request.");
     const cleanBody = body.trim();
     if (!cleanBody || cleanBody.length > 2000) throw new Error("Message must be 1–2,000 characters.");
+    assertCleanPublicText(cleanBody, "Message");
     const recentMessages = await ctx.db.query("playerMessages")
       .withIndex("by_sender_created", (q) => q.eq("senderId", sender._id).gte("createdAt", Date.now() - 10 * 60 * 1000))
       .take(30);
@@ -691,6 +694,7 @@ export const claimPlayerUsername = mutation({
     if (user.playerLogin?.trim()) throw new Error("Your account already has a public username.");
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     if (!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(username)) throw new Error("Use 3–24 letters, numbers, dots, hyphens, or underscores.");
+    if (containsBlockedLanguage(username)) throw new Error("That username contains language that is not allowed in public OpenWorlds spaces.");
     const existing = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).first();
     if (existing) throw new Error("That username is already in use.");
     const reservedCreator = await ctx.db.query("officialCreators").withIndex("by_username", (q) => q.eq("username", username)).first();
@@ -714,6 +718,8 @@ export const updatePublicProfile = mutation({
     const about = args.about.trim();
     if (displayName.length < 2 || displayName.length > 32) throw new Error("Display name must be 2–32 characters.");
     if (about.length > 500) throw new Error("About me must be 500 characters or fewer.");
+    assertCleanPublicText(displayName, "Display name");
+    assertCleanPublicText(about, "About me");
     const isPlayer = user.role === "user";
     // Player accounts store the display name in `name`; staff accounts use the
     // public nickname so their company record and staff roster stay intact.

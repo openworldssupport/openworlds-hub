@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { staffUnlockState } from "./staffUnlock";
-import { moderationAccess, requireAppealReviewer, requireModerationViewer } from "./moderationAccess";
+import { currentModerationAccess, requireAppealReviewer } from "./moderationAccess";
 import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -102,8 +102,9 @@ export const submitAppeal = mutation({
 export const listBansAndAppeals = query({
   args: {},
   handler: async (ctx) => {
-    const viewer = await requireModerationViewer(ctx);
-    if (!moderationAccess(viewer).canViewAppeals) {
+    const { access } = await currentModerationAccess(ctx);
+    if (!access.canView) throw new Error("Your department or position does not include moderation access.");
+    if (!access.canViewAppeals) {
       throw new Error("Your department or position can view moderation cases but not appeal details.");
     }
     const users = await ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(500);
@@ -175,11 +176,12 @@ export const reviewAppeal = mutation({
   args: { appealId: v.id("securityAppeals"), decision: v.union(v.literal("approved"), v.literal("declined")) },
   handler: async (ctx, args) => {
     await requireAppealReviewer(ctx);
+    const { access } = await currentModerationAccess(ctx);
     const appeal = await ctx.db.get(args.appealId);
     if (!appeal || appeal.status !== "pending") throw new Error("This appeal is no longer awaiting review.");
     const user = await ctx.db.get(appeal.userId);
-    if (args.decision === "approved" && user && (user.banType ?? "permanent") === "permanent" && !(await isAdmin(ctx))) {
-      throw new Error("Only an administrator can lift a permanent ban.");
+    if (args.decision === "approved" && user && (user.banType ?? "permanent") === "permanent" && !access.canBan) {
+      throw new Error("Your position can review appeals but cannot lift a permanent ban. Ask an administrator or a role with ban permission.");
     }
     if (user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim()) && !(await isAdmin(ctx))) {
       throw new Error("Only an administrator can review an appeal for a staff account.");

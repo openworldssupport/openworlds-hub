@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
+import { assertCleanPublicText } from "../lib/contentFilter";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
@@ -427,6 +428,7 @@ export const setNick = mutation({
     if (nickname.length > MAX_NICKNAME_LENGTH) {
       throw new Error(`Nicknames are ${MAX_NICKNAME_LENGTH} characters or fewer.`);
     }
+    assertCleanPublicText(nickname, "Nickname");
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authorized.");
     await ctx.db.patch(userId, { nickname });
@@ -587,6 +589,9 @@ export const saveAnnouncement = mutation({
     if (title.length < 3 || title.length > 120) throw new Error("Title must be 3–120 characters.");
     if (summary.length < 10 || summary.length > 240) throw new Error("Summary must be 10–240 characters.");
     if (body.length < 20 || body.length > 10000) throw new Error("Announcement body must be 20–10,000 characters.");
+    assertCleanPublicText(title, "Title");
+    assertCleanPublicText(summary, "Summary");
+    assertCleanPublicText(body, "Announcement body");
 
     if (args.media.length > 5) throw new Error("An announcement can include up to 5 media files.");
     for (const asset of args.media) {

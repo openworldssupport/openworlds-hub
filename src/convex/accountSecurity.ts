@@ -4,6 +4,7 @@ import { action, internalAction, internalMutation, internalQuery, mutation, quer
 import { v } from "convex/values";
 import { requireSiteAvailable } from "./siteStatus";
 import { consumeSecondFactor, hashValue, matchingTotpCounter } from "./secondFactor";
+import { assertCleanPublicText } from "../lib/contentFilter";
 
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 8;
@@ -73,6 +74,7 @@ export const updateProfile = mutation({
     const name = rawName.trim();
     const maxLength = user.role === "user" ? 32 : 40;
     if (name.length < 2 || name.length > maxLength || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(name)) throw new Error(`Choose a display name between 2 and ${maxLength} characters.`);
+    assertCleanPublicText(name, "Display name");
     await ctx.db.patch(user._id, user.role === "user" ? { name } : { nickname: name });
     return { name };
   },

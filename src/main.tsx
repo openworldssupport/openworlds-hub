@@ -42,6 +42,7 @@ const CareerApplicationPage = lazy(() => import("./pages/CareerApplication.tsx")
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
+const Moderation = lazy(() => import("./pages/Moderation.tsx"));
 
 const Staff = lazy(  () =>
     import("./pages/Staff.tsx").then((module) => ({
@@ -313,6 +314,18 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationPage />} />
               <Route path="/applications" element={<NotFound />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route
+                path="/moderation"
+                element={
+                  <RequireAuth
+                    title="Trust & Safety sign in"
+                    description="The moderation console is for staff accounts with a department and position assignment."
+                    accessLevel="staff"
+                  >
+                    <Moderation />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/inbox"
                 element={

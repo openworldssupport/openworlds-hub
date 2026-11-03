@@ -10,6 +10,7 @@ import { SUPPORT_EMAIL } from "./admin";
 import { internal } from "./_generated/api";
 import { requireSiteAvailableForUser } from "./siteStatus";
 import { assertSignupAllowed } from "./bans";
+import { assertCleanPublicText, containsBlockedLanguage } from "../lib/contentFilter";
 
 const PLAYER_LOGIN_DOMAIN = "players.openworlds.invalid";
 
@@ -25,6 +26,7 @@ const passwordCrypto = {
 function normalizePlayerLogin(value: unknown): { accountId: string; login: string } {
   const input = typeof value === "string" ? value.trim().toLowerCase() : "";
   if (/^[a-z0-9][a-z0-9._-]{2,23}$/.test(input)) {
+    if (containsBlockedLanguage(input)) throw new Error("That username contains language that is not allowed in public OpenWorlds spaces.");
     return { accountId: `${input}@${PLAYER_LOGIN_DOMAIN}`, login: input };
   }
   if (input.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
@@ -58,8 +60,9 @@ export const playerPassword = ConvexCredentials({
 
     if (flow === "signUp") {
       if (password.length < 12) throw new Error("Use a password between 12 and 128 characters.");
-      const name = typeof credentials.name === "string" ? credentials.name.trim() : "";
-      if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
+      const rawName = typeof credentials.name === "string" ? credentials.name.trim() : "";
+      if (rawName.length < 2 || rawName.length > 32) throw new Error("Player name must be 2–32 characters.");
+      const name = assertCleanPublicText(rawName, "Display name");
       const recoveryEmail = typeof credentials.recoveryEmail === "string"
         ? credentials.recoveryEmail.trim().toLowerCase()
         : "";
@@ -152,7 +155,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
 
         const existingPlayer = linkedUser;
-        const name = typeof profile.name === "string" ? profile.name.trim() : undefined;
+        const rawName = typeof profile.name === "string" ? profile.name.trim() : undefined;
+        const name = rawName ? assertCleanPublicText(rawName, "Display name") : undefined;
         if (existingPlayer) {
           await ctx.db.patch(existingPlayer._id, {
             role: "user",

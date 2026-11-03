@@ -10,6 +10,7 @@ import { StaffUnlock } from "@/components/StaffUnlock";
 import { DEPARTMENTS, deriveBadge, type PublicBadge } from "@/lib/staff";
 import { AlertCircle, BadgeCheck, Loader2, Save, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { Link } from "react-router";
 type AdminNotificationRecipientKind = "careers" | "support" | "both";
 
 const ADMIN_NOTIFICATION_CHANNEL_OPTIONS: Array<readonly [AdminNotificationRecipientKind, string]> = [
@@ -813,8 +814,13 @@ export default function AdminPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Admin console</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Staff accounts only. Unlock with your authenticator app to view the directory, change access, or edit alert recipients.</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Admin console</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Staff accounts only. Unlock with your authenticator app to view the directory, change access, or edit alert recipients.</p>
+          </div>
+          <Button asChild variant="outline"><Link to="/moderation?tab=permissions">Moderation permissions</Link></Button>
+        </div>
         <TeamPanel />
         <SubmissionNotificationPanel />
       </section>

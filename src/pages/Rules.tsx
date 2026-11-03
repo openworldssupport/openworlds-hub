@@ -57,7 +57,7 @@ export default function Rules() {
           <p className="text-sm font-medium text-blue-100">Rules</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Keep OpenWorlds worth visiting</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            These are general website and community guidelines. Reports are reviewed by the contact team using the evidence supplied; permanent bans require an administrator.
+            These are general website and community guidelines. Reports are reviewed by authorized moderation roles using the evidence supplied. Permanent bans and IP/CIDR network blocks require a role explicitly granted that capability; staff-account cases always require an administrator.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#golden" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Read the rules</a>
@@ -118,7 +118,7 @@ export default function Rules() {
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="font-semibold">Reporting concerns</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-700">Report a player's display name, profile picture, Terms violation, or other behaviour from their profile, including a detailed account and HTTPS evidence links where possible. Corroborated patterns may receive an automatic warning or short temporary restriction above strict thresholds; serious or permanent action is reviewed by staff. Reports and bans are limited to approved moderation department/position combinations; appeal messages and decisions are limited further to moderator and appeals-reviewer roles. The Support Escalations Coordinator can view reports and bans but cannot view or decide appeals. Permanent bans and staff-account cases require an administrator. A restricted account can submit an appeal from the restriction screen.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">Report a player's display name, profile picture, Terms violation, or other behaviour from their profile, including a detailed account and HTTPS evidence links where possible. Corroborated patterns may receive an automatic warning or short temporary restriction above strict thresholds; serious or permanent action is reviewed by staff. Reports, warnings, suspensions, bans, IP blocks, appeals, and audit history are limited to the exact moderation capabilities granted to a department and position. Administrators can change those grants in the Trust & Safety console. Executive Leadership, Community Operations & Player Engagement, and Faction moderator roles have reviewed defaults; the Support Escalations Coordinator can view reports and bans but cannot view or decide appeals. Permanent bans require ban permission, and staff-account cases require an administrator. A restricted account can submit an appeal from the restriction screen.</p>
           <Link to="/support" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">Contact support <ArrowRight className="size-4" /></Link>
         </div>
       </section>

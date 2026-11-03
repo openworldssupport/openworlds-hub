@@ -117,6 +117,7 @@ const routes: RouteEntry[] = [
     expect: ["OpenWorlds sign in"],
   },
   { path: "/admin", name: "Admin", load: () => import("./src/pages/Admin.tsx") },
+  { path: "/moderation", name: "Moderation console", load: () => import("./src/pages/Moderation.tsx") },
   { path: "/dashboard", name: "Dashboard (guarded)", load: async () => ({ default: GuardedDashboard }) },
   { path: "/inbox", name: "Inbox (guarded)", load: async () => ({ default: GuardedInbox }) },
   { path: "/staff", name: "Staff (guarded)", load: async () => ({ default: GuardedStaff }) },

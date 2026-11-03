@@ -4,93 +4,268 @@ import type { Doc } from "./_generated/dataModel";
 import { requireStaffUnlock } from "./staffUnlock";
 
 /**
- * Moderation is limited to the right department and position, not merely any
- * staff account. Administrators retain full access.
+ * Moderation is capability-based. Administrators always have every capability;
+ * everyone else needs a verified staff account whose exact department and
+ * position matches either the built-in role table below or an admin-created
+ * override in `moderationRolePermissions`.
  *
- * Access is intentionally an explicit department + position allowlist rather
- * than a loose keyword check. Only these roles can see moderation cases:
- * - Faction + Community Moderator: view, act and review appeals
- * - Faction or Trust & Safety / Moderation + Trust & Safety Moderator: view, act and review appeals
- * - Faction or Trust & Safety / Moderation + Moderation Appeals Reviewer: view, act and review appeals
- * - Player Support & Service + Support Escalations Coordinator: view reports and bans only
- *
- * Support does not get access to appeal messages or appeal decisions.
+ * Capabilities are intentionally narrow:
+ * - view:             see reports, accounts, bans and image cases
+ * - warn:             issue a warning
+ * - suspend:          temporary account restriction (up to 30 days)
+ * - ban:              permanent account ban, or a suspension longer than 30 days
+ * - ip-ban:           add or lift an IP/CIDR network block
+ * - review-appeals:   read and decide appeals
+ * - view-audit:       read the moderation audit log
  */
-const FACTION_DEPARTMENT = /^faction$/i;
-const TRUST_DEPARTMENT = /^(trust\s*&\s*safety(?:\s*\/\s*moderation)?|moderation)$/i;
-const SUPPORT_DEPARTMENT = /^player support\s*&\s*service$/i;
+export const MODERATION_CAPABILITIES = [
+  "view",
+  "warn",
+  "suspend",
+  "ban",
+  "ip-ban",
+  "review-appeals",
+  "view-audit",
+] as const;
 
-const COMMUNITY_MODERATOR = /^community moderator$/i;
-const TRUST_SAFETY_MODERATOR = /^trust\s*&\s*safety moderator$/i;
-const APPEALS_REVIEWER = /^moderation appeals reviewer$/i;
-const SUPPORT_ESCALATIONS = /^support escalations coordinator$/i;
+export type ModerationCapability = (typeof MODERATION_CAPABILITIES)[number];
 
 export type ModerationAccess = {
   isAdmin: boolean;
   canView: boolean;
   canAct: boolean;
+  canWarn: boolean;
+  canSuspend: boolean;
+  canBan: boolean;
+  canPermanentBan: boolean;
+  canIpBan: boolean;
   canViewAppeals: boolean;
   canReviewAppeals: boolean;
-  canPermanentBan: boolean;
+  canViewAudit: boolean;
+  capabilities: ModerationCapability[];
+  source: "admin" | "configured" | "default" | "none";
+  department: string | null;
+  position: string | null;
 };
 
-function text(value?: string | null) {
-  return value?.trim() ?? "";
+export type DefaultModerationRole = {
+  department: string;
+  position: string;
+  capabilities: ModerationCapability[];
+};
+
+const ALL: ModerationCapability[] = [...MODERATION_CAPABILITIES];
+const TRUST_LEAD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "ip-ban", "review-appeals", "view-audit"];
+const COMMUNITY_MOD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "view-audit"];
+const APPEALS: ModerationCapability[] = ["view", "review-appeals", "view-audit"];
+
+/**
+ * Sensible starting roles. An administrator can change any of these in the
+ * Trust & Safety permissions tab without editing code. These defaults are only
+ * used until an override row exists for that exact department + position.
+ */
+export const DEFAULT_MODERATION_ROLES: DefaultModerationRole[] = [
+  // Executive leadership: oversight of every moderation capability.
+  { department: "Executive Leadership", position: "Chief Technical Officer (CTO)", capabilities: ALL },
+  { department: "Executive Leadership", position: "Chief Operating Officer (COO)", capabilities: ALL },
+  { department: "Executive Leadership", position: "Chief Financial Officer (CFO)", capabilities: ALL },
+  { department: "Executive Leadership", position: "Chief Marketing Officer (CMO)", capabilities: ALL },
+  { department: "Executive Leadership", position: "Executive Strategic & Advisory Board", capabilities: ["view", "view-audit"] },
+
+  // Community operations: the coordinator can act on reports; the other roles
+  // have lighter-touch access instead of inheriting every power.
+  { department: "Community Operations & Player Engagement", position: "Community Operations Coordinator", capabilities: ["view", "warn", "suspend", "ban", "review-appeals", "view-audit"] },
+  { department: "Community Operations & Player Engagement", position: "Community Events Coordinator", capabilities: ["view", "warn", "suspend"] },
+  { department: "Community Operations & Player Engagement", position: "Player Feedback Coordinator", capabilities: ["view", "warn"] },
+
+  // Faction moderation roles.
+  { department: "Faction", position: "Community Moderator", capabilities: COMMUNITY_MOD },
+  { department: "Faction", position: "Trust & Safety Moderator", capabilities: TRUST_LEAD },
+  { department: "Faction", position: "Player Reports Moderator", capabilities: COMMUNITY_MOD },
+  { department: "Faction", position: "Moderation Appeals Reviewer", capabilities: APPEALS },
+  { department: "Faction", position: "Community Safety Coordinator", capabilities: TRUST_LEAD },
+
+  // Legacy department name kept so existing assignments keep working.
+  { department: "Trust & Safety / Moderation", position: "Trust & Safety Moderator", capabilities: TRUST_LEAD },
+  { department: "Trust & Safety / Moderation", position: "Moderation Appeals Reviewer", capabilities: APPEALS },
+  { department: "Trust & Safety / Moderation", position: "Community Moderator", capabilities: COMMUNITY_MOD },
+
+  // Support can see reports and bans, but not appeals or audit history.
+  { department: "Player Support & Service", position: "Support Escalations Coordinator", capabilities: ["view"] },
+];
+
+const DEFAULT_BY_KEY = new Map(
+  DEFAULT_MODERATION_ROLES.map((role) => [`${roleKey(role.department)}|${roleKey(role.position)}`, role.capabilities]),
+);
+
+function roleKey(value?: string | null) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-export function moderationAccess(user: Doc<"users"> | null | undefined): ModerationAccess {
-  const none = { isAdmin: false, canView: false, canAct: false, canViewAppeals: false, canReviewAppeals: false, canPermanentBan: false };
-  if (!user) return none;
-  const isAdmin = user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
-  if (isAdmin) return { isAdmin: true, canView: true, canAct: true, canViewAppeals: true, canReviewAppeals: true, canPermanentBan: true };
+export function moderationRoleKey(department?: string | null, position?: string | null) {
+  return `${roleKey(department)}|${roleKey(position)}`;
+}
 
-  const department = text(user.department);
-  const position = text(user.position);
-  const verifiedStaff = user.emailVerificationTime !== undefined &&
+function normalizeCapabilities(values: readonly string[] | undefined): ModerationCapability[] {
+  const allowed = new Set<string>(MODERATION_CAPABILITIES);
+  const result: ModerationCapability[] = [];
+  for (const value of values ?? []) {
+    if (allowed.has(value) && !result.includes(value as ModerationCapability)) {
+      result.push(value as ModerationCapability);
+    }
+  }
+  return result;
+}
+
+function accessFromCapabilities(
+  capabilities: ModerationCapability[],
+  source: ModerationAccess["source"],
+  department: string | null,
+  position: string | null,
+): ModerationAccess {
+  const has = (capability: ModerationCapability) => capabilities.includes(capability);
+  const canWarn = has("warn");
+  const canSuspend = has("suspend");
+  const canBan = has("ban");
+  const canIpBan = has("ip-ban");
+  const canReviewAppeals = has("review-appeals");
+  return {
+    isAdmin: false,
+    canView: has("view"),
+    canAct: canWarn || canSuspend || canBan || canIpBan,
+    canWarn,
+    canSuspend,
+    canBan,
+    canPermanentBan: canBan,
+    canIpBan,
+    canViewAppeals: canReviewAppeals,
+    canReviewAppeals,
+    canViewAudit: has("view-audit"),
+    capabilities,
+    source,
+    department,
+    position,
+  };
+}
+
+function noneAccess(): ModerationAccess {
+  return accessFromCapabilities([], "none", null, null);
+}
+
+function adminAccess(): ModerationAccess {
+  return {
+    ...accessFromCapabilities(ALL, "admin", null, null),
+    isAdmin: true,
+  };
+}
+
+function isCompanyAdminAccount(user: { role?: string; email?: string }) {
+  return user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
+}
+
+function isVerifiedStaffAccount(user: Doc<"users">) {
+  return user.emailVerificationTime !== undefined &&
     !user.isSiteBanned &&
-    Boolean(user.staffAccess || department || position);
-  if (!verifiedStaff) return none;
+    Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
+}
 
-  const isFaction = FACTION_DEPARTMENT.test(department);
-  const isTrust = TRUST_DEPARTMENT.test(department);
-  const isSupport = SUPPORT_DEPARTMENT.test(department);
-  const isModerationDepartment = isFaction || isTrust;
+/** Built-in access only; useful for showing the default in the permissions editor. */
+export function defaultModerationAccess(user: Doc<"users"> | null | undefined): ModerationAccess {
+  if (!user) return noneAccess();
+  if (isCompanyAdminAccount(user)) return adminAccess();
+  if (!isVerifiedStaffAccount(user)) return noneAccess();
+  const department = user.department?.trim() || null;
+  const position = user.position?.trim() || null;
+  const capabilities = DEFAULT_BY_KEY.get(moderationRoleKey(department, position));
+  return capabilities ? accessFromCapabilities([...capabilities], "default", department, position) : noneAccess();
+}
 
-  const communityModerator = isFaction && COMMUNITY_MODERATOR.test(position);
-  const trustSafetyModerator = isModerationDepartment && TRUST_SAFETY_MODERATOR.test(position);
-  const appealsReviewer = isModerationDepartment && APPEALS_REVIEWER.test(position);
-  const supportViewer = isSupport && SUPPORT_ESCALATIONS.test(position);
+/**
+ * Resolve live access. This reads an exact department/position override when
+ * one exists; otherwise it falls back to the built-in role table.
+ */
+export async function resolveModerationAccess(
+  ctx: QueryCtx | MutationCtx,
+  user: Doc<"users"> | null | undefined,
+): Promise<ModerationAccess> {
+  if (!user) return noneAccess();
+  if (isCompanyAdminAccount(user)) return adminAccess();
+  if (!isVerifiedStaffAccount(user)) return noneAccess();
+  const department = user.department?.trim() || null;
+  const position = user.position?.trim() || null;
+  const override = await ctx.db
+    .query("moderationRolePermissions")
+    .withIndex("by_keys", (q) =>
+      q.eq("departmentKey", roleKey(department)).eq("positionKey", roleKey(position)),
+    )
+    .unique();
+  if (override) {
+    return accessFromCapabilities(normalizeCapabilities(override.capabilities), "configured", department, position);
+  }
+  return defaultModerationAccess(user);
+}
 
-  const canView = communityModerator || trustSafetyModerator || appealsReviewer || supportViewer;
-  const canAct = communityModerator || trustSafetyModerator || appealsReviewer;
-  const canViewAppeals = communityModerator || trustSafetyModerator || appealsReviewer;
-  const canReviewAppeals = canViewAppeals;
-  return { isAdmin: false, canView, canAct, canViewAppeals, canReviewAppeals, canPermanentBan: false };
+/** Signed-in user plus live access. */
+export async function currentModerationAccess(ctx: QueryCtx | MutationCtx) {
+  const userId = await getAuthUserId(ctx);
+  const user = userId ? await ctx.db.get(userId) : null;
+  return { user, access: await resolveModerationAccess(ctx, user) };
 }
 
 export async function requireModerationViewer(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const userId = await getAuthUserId(ctx);
-  const user = userId ? await ctx.db.get(userId) : null;
-  if (!user || !moderationAccess(user).canView) {
+  const { user, access } = await currentModerationAccess(ctx);
+  if (!user || !access.canView) {
     throw new Error("Your department or position does not include moderation access.");
   }
   return user;
 }
 
+const CAPABILITY_ACTION_LABEL: Record<Exclude<ModerationCapability, "view">, string> = {
+  warn: "issue warnings",
+  suspend: "suspend accounts",
+  ban: "ban accounts",
+  "ip-ban": "manage IP bans",
+  "review-appeals": "review appeals",
+  "view-audit": "view the audit log",
+};
+
+export async function requireModerationCapability(
+  ctx: QueryCtx | MutationCtx,
+  capability: Exclude<ModerationCapability, "view">,
+): Promise<Doc<"users">> {
+  return await requireAnyModerationCapability(ctx, [capability]);
+}
+
+/** Passes when the account has at least one of the requested capabilities. */
+export async function requireAnyModerationCapability(
+  ctx: QueryCtx | MutationCtx,
+  capabilities: Array<Exclude<ModerationCapability, "view">>,
+): Promise<Doc<"users">> {
+  const { user, access } = await currentModerationAccess(ctx);
+  if (!user || !access.canView) {
+    throw new Error("Your department or position does not include moderation access.");
+  }
+  if (!capabilities.some((capability) => access.capabilities.includes(capability))) {
+    const actions = capabilities.map((capability) => CAPABILITY_ACTION_LABEL[capability]);
+    throw new Error(`Your department or position cannot ${actions.join(" or ")}. Ask an administrator to update moderation permissions.`);
+  }
+  await requireStaffUnlock(ctx);
+  return user;
+}
+
+/** Any enforcement action (used by image safety cases). */
 export async function requireModerationActor(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const user = await requireModerationViewer(ctx);
-  if (!moderationAccess(user).canAct) {
-    throw new Error("Your position can view moderation cases but cannot issue warnings or bans.");
+  const { user, access } = await currentModerationAccess(ctx);
+  if (!user || !access.canView) {
+    throw new Error("Your department or position does not include moderation access.");
+  }
+  if (!access.canAct) {
+    throw new Error("Your position can view moderation cases but cannot take enforcement action.");
   }
   await requireStaffUnlock(ctx);
   return user;
 }
 
 export async function requireAppealReviewer(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const user = await requireModerationViewer(ctx);
-  if (!moderationAccess(user).canReviewAppeals) {
-    throw new Error("Your position can view moderation cases but cannot decide appeals.");
-  }
-  await requireStaffUnlock(ctx);
-  return user;
+  return await requireModerationCapability(ctx, "review-appeals");
 }

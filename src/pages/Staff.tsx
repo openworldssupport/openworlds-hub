@@ -64,7 +64,13 @@ function MoreStaffTools() {
       <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools <span className="ml-2 text-xs font-normal text-slate-500">{toolSummary}</span></summary>
       <div className="space-y-6 border-t border-slate-200 py-4">
         <SiteStatusControl />
-        <StaffSecurityPanel />
+        {moderationAccess?.canView && (
+          <section>
+            <h2 className="font-semibold">Trust &amp; Safety console</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Reports, account actions, appeals, network blocks, audit history, and capability permissions now live in the dedicated moderation workspace.</p>
+            <Button asChild variant="outline" className="mt-3"><Link to="/moderation">Open moderation console</Link></Button>
+          </section>
+        )}
       </div>
     </details>
   );
@@ -148,6 +154,7 @@ function WorkspaceOverview({
         <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
+          {moderationAccess?.canView && <QuickLink to="/moderation" title="Trust & Safety console" />}
           {moderationAccess?.canViewAppeals && <QuickLink to="/staff/appeals" title="Appeals" />}
           <QuickLink to="/staff/creators" title="Creator verification" />
           {isAdmin && <QuickLink to="/admin" title="Admin console" />}
@@ -1054,6 +1061,12 @@ const MODERATION_ACTIONS: Record<string, string> = {
   "report-banned": "Banned from report",
   "automatic-warning": "Automatic warning",
   "automatic-ban": "Automatic temporary ban",
+  "account-warned": "Warning issued",
+  "account-suspended": "Account suspended",
+  "account-banned": "Account banned",
+  "ip-ban-added": "IP block added",
+  "ip-ban-lifted": "IP block lifted",
+  "permissions-updated": "Permissions updated",
   "appeal-approved": "Appeal approved",
   "appeal-declined": "Appeal declined",
   "image-blocked": "Image blocked",
@@ -1312,7 +1325,7 @@ function DirectBanForm({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-function StaffSecurityPanel() {
+export function StaffSecurityPanel() {
   const data = useQuery(api.moderation.queue);
   const reviewAppeal = useMutation(api.security.reviewAppeal);
   const [error, setError] = useState("");

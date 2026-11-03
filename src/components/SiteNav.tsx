@@ -34,6 +34,7 @@ export function SiteNav() {
   const staffInfo = useQuery(api.staff.me, isAuthenticated ? {} : "skip");
   const inbox = useQuery(api.users.myInbox, isAuthenticated ? {} : "skip");
   const moderationWarnings = useQuery(api.moderation.myWarnings, isAuthenticated ? {} : "skip");
+  const moderationAccess = useQuery(api.moderation.myAccess, isAuthenticated ? {} : "skip");
   const warningCount = moderationWarnings?.warnings.length ?? 0;
   const pendingRequests = inbox && !inbox.needsUsername ? inbox.requests.length : 0;
   const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
@@ -143,6 +144,7 @@ export function SiteNav() {
             </DropdownMenuContent>
           </DropdownMenu>
           {user?.canAccessCreatorSpace && <Link to="/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Creator Space</Link>}
+          {moderationAccess?.canView && <Link to="/moderation" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Moderation</Link>}
           {isStaffAccount && <Link to="/staff" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Company Staff</Link>}
           {isLoading ? (
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
