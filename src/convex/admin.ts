@@ -3,6 +3,7 @@ import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
+import { accountLabel, recordAudit } from "./bans";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -25,7 +26,7 @@ export async function requireCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const bootstrapAdmin = user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;
-  if (!user || user.emailVerificationTime === undefined || (user.role !== "admin" && !bootstrapAdmin)) {
+  if (!user || user.emailVerificationTime === undefined || user.isSiteBanned || (user.role !== "admin" && !bootstrapAdmin)) {
     throw new Error("Not authorized.");
   }
 }
@@ -34,7 +35,7 @@ async function isCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   const bootstrapAdmin = user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;
-  return Boolean(user && user.emailVerificationTime !== undefined && (user.role === "admin" || bootstrapAdmin));
+  return Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.role === "admin" || bootstrapAdmin));
 }
 
 /**
@@ -65,7 +66,7 @@ export const listCompanyAccess = query({
   handler: async (ctx) => {
     if (!(await isCompanyAdmin(ctx))) return null;
     await requireRosterVerification(ctx);
-    const accounts = await ctx.db.query("companyAccess").withIndex("by_email").collect();
+    const accounts = await ctx.db.query("companyAccess").withIndex("by_email").take(1000);
     return accounts.map(({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => ({
       _id,
       department,
@@ -91,6 +92,8 @@ export const inviteCompanyAccount = mutation({
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
     await requirePermissionVerification(ctx);
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
     const email = args.email.trim().toLowerCase();
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Enter a valid company email address.");
@@ -99,6 +102,7 @@ export const inviteCompanyAccount = mutation({
       throw new Error("The bootstrap admin is managed separately and cannot be changed here.");
     }
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
+    if (existingUser?.isSiteBanned) throw new Error("This account is restricted. Review the restriction before changing company access.");
     if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
     const department = args.department.trim();
     const position = args.position.trim();
@@ -143,11 +147,18 @@ export const inviteCompanyAccount = mutation({
         role: args.accessLevel === "admin" ? "admin" : "member",
         staffAccess: true,
         memberStatus: args.memberStatus === "volunteer-thank-you" ? "volunteer-thank-you" : undefined,
-        isSiteBanned: undefined,
-        siteBanReason: undefined,
-        siteBannedAt: undefined,
         securityViolationCount: 0,
         emailVerificationTime: Date.now(),
+      });
+    }
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: user?._id,
+        targetLabel: user ? accountLabel(user) : "Company account invitation",
+        reason: `Company invitation set to ${args.accessLevel} · ${department} / ${position}.`,
       });
     }
     return { ok: true };
@@ -160,6 +171,8 @@ export const revokeCompanyAccount = mutation({
   handler: async (ctx, { accountId }) => {
     await requireCompanyAdmin(ctx);
     await requirePermissionVerification(ctx);
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
     const invitation = await ctx.db.get(accountId);
     if (!invitation) return { ok: true };
     const normalized = invitation.email.trim().toLowerCase();
@@ -180,6 +193,16 @@ export const revokeCompanyAccount = mutation({
         publicBadge: undefined,
         staffAccess: undefined,
         memberStatus: undefined,
+      });
+    }
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: user?._id,
+        targetLabel: user ? accountLabel(user) : "Company account invitation",
+        reason: "Company access revoked by an administrator.",
       });
     }
     return { ok: true };

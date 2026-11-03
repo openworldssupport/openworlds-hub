@@ -658,6 +658,7 @@ function NetworkPanel({ access }: { access: Access }) {
           <div className="space-y-1.5">
             <Label htmlFor="network-block">IP address or CIDR range</Label>
             <Input id="network-block" value={network} onChange={(event) => setNetwork(event.target.value)} placeholder="203.0.113.42 or 203.0.113.0/24" required />
+            <p className="text-xs leading-5 text-slate-500">IPv4 /16–/32 or IPv6 /48–/128 only, so a mistyped range cannot block the whole internet.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="network-days">Days (0 = permanent)</Label>
@@ -739,7 +740,8 @@ function PermissionEditor({ role, onDone }: { role: PermissionRole; onDone: () =
     setError("");
     setNotice("");
     try {
-      await save({ department: role.department, position: role.position, capabilities });
+      const result = await save({ department: role.department, position: role.position, capabilities });
+      setCapabilities([...result.capabilities] as Capability[]);
       setNotice("Permissions saved. They apply immediately.");
       onDone();
     } catch (err) {

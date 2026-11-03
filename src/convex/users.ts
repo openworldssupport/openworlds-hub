@@ -7,7 +7,7 @@ import { assertCleanPublicText, containsBlockedLanguage } from "../lib/contentFi
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin, SUPPORT_EMAIL } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
-import { findSignupBlock } from "./bans";
+import { accountLabel, findSignupBlock, recordAudit } from "./bans";
 import { presenceState } from "./presence";
 
 /**
@@ -58,7 +58,7 @@ export const publicOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
-    const records = await ctx.db.query("officialCreators").collect();
+    const records = await ctx.db.query("officialCreators").take(1000);
     const linkedUsers = await Promise.all(records.map((record) => record.linkedUserId ? ctx.db.get(record.linkedUserId) : null));
     const creators = await Promise.all(records.map(async (record, index) => {
       const linkedUser = linkedUsers[index];
@@ -75,7 +75,7 @@ export const publicOfficialCreators = query({
     const knownUsernames = new Set(visibleCreators.map((creator) => creator.username.toLowerCase()));
     const legacyCreators = await ctx.db.query("users")
       .withIndex("by_official_creator", (q) => q.eq("isOfficialCreator", true))
-      .collect();
+      .take(500);
     for (const creator of legacyCreators) {
       const username = creator.playerLogin?.trim();
       if (creator.emailVerificationTime === undefined || creator.isSiteBanned || !username || knownUsernames.has(username.toLowerCase())) continue;
@@ -131,7 +131,7 @@ export const staffOfficialCreators = query({
   args: {},
   handler: async (ctx) => {
     await requireCreatorVerification(ctx);
-    return (await ctx.db.query("officialCreators").collect())
+    return (await ctx.db.query("officialCreators").take(1000))
       .sort((a, b) => a.displayName.localeCompare(b.displayName))
       .map(({ _id, username, displayName, socialPlatform, socialUrl, linkedUserId }) => ({
         _id,
@@ -149,7 +149,7 @@ export const adminOfficialCreators = query({
   handler: async (ctx) => {
     await requireCompanyAdmin(ctx);
     await requirePermissionVerification(ctx);
-    return (await ctx.db.query("officialCreators").collect())
+    return (await ctx.db.query("officialCreators").take(1000))
       .sort((a, b) => a.displayName.localeCompare(b.displayName))
       .map(({ _id, email, username, displayName, socialPlatform, socialUrl, linkedUserId }) => ({
         _id, email, username, displayName,
@@ -179,6 +179,7 @@ export const saveOfficialCreator = mutation({
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid contact email.");
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,31}$/.test(username)) throw new Error("Enter a valid OpenWorlds username (2–32 letters, numbers, dots, hyphens, or underscores).");
     if (displayName.length < 2 || displayName.length > 60) throw new Error("Display name must be 2–60 characters.");
+    if (isEmailAddress(displayName)) throw new Error("Choose a display name that is not an email address.");
     const cleanDisplayName = assertCleanPublicText(displayName, "Display name");
     if (socialPlatform && socialPlatform.length > 40) throw new Error("Keep the social platform name under 40 characters.");
     if (socialUrl && (socialUrl.length > 500 || !/^https:\/\//i.test(socialUrl))) throw new Error("Use an HTTPS link under 500 characters for the social profile.");
@@ -225,6 +226,18 @@ export const saveOfficialCreator = mutation({
     const linkedToAccount = usernameAccountAfterSave?.role === "user"
       ? await linkVerifiedCreatorAccount(ctx, usernameAccountAfterSave._id)
       : false;
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: matched._id,
+        targetLabel: cleanDisplayName,
+        reason: `Official creator verified for @${normalizedUsername}.`,
+      });
+    }
     return { ok: true, linkedToAccount };
   },
 });
@@ -239,6 +252,18 @@ export const removeOfficialCreator = mutation({
     if (record.linkedUserId) {
       const user = await ctx.db.get(record.linkedUserId);
       if (user) await ctx.db.patch(user._id, { isOfficialCreator: undefined });
+    }
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: record.linkedUserId,
+        targetLabel: record.displayName,
+        reason: `Official creator verification removed for @${record.username}.`,
+      });
     }
     await ctx.db.delete(creatorId);
     return { ok: true };
@@ -343,8 +368,8 @@ export const publicPlayerProfile = query({
       friendsVisible: user.profileFriendsVisible === true,
       friendCount: user.profileFriendsVisible === true
         ? new Set([
-          ...(await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect()).filter((r) => r.status === "accepted").map((r) => r.receiverId),
-          ...(await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect()).filter((r) => r.status === "accepted").map((r) => r.senderId),
+          ...(await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).take(500)).filter((r) => r.status === "accepted").map((r) => r.receiverId),
+          ...(await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).take(500)).filter((r) => r.status === "accepted").map((r) => r.senderId),
         ]).size
         : null,
     };
@@ -388,8 +413,8 @@ export const friendStatus = query({
     const viewer = await ctx.db.get(viewerId);
     if (!viewer || !hasPublicUsername(viewer)) return { status: "unavailable" as const };
     const [outgoing, incoming] = await Promise.all([
-      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", viewerId)).collect(),
-      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", viewerId)).collect(),
+      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", viewerId)).take(500),
+      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", viewerId)).take(500),
     ]);
     const relation = [...outgoing, ...incoming].find((r) =>
       (r.senderId === viewerId && r.receiverId === target._id) || (r.senderId === target._id && r.receiverId === viewerId));
@@ -408,8 +433,8 @@ export const sendFriendRequest = mutation({
     if (sender._id === receiver._id) throw new Error("You cannot send a friend request to yourself.");
     if (receiver.friendRequestsEnabled === false) throw new Error("This player is not accepting friend requests right now.");
     const [outgoing, incoming] = await Promise.all([
-      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect(),
-      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).collect(),
+      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).take(500),
+      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).take(500),
     ]);
     const existing = [...outgoing, ...incoming].find((r) =>
       (r.senderId === sender._id && r.receiverId === receiver._id) || (r.senderId === receiver._id && r.receiverId === sender._id));
@@ -443,8 +468,8 @@ export const removeFriend = mutation({
     const user = await requirePlayerProfile(ctx);
     const other = await findPlayerByUsername(ctx, username);
     if (!other) return { ok: true };
-    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
-    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect();
+    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).take(500);
+    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).take(500);
     const relation = [...outgoing, ...incoming].find((r) =>
       (r.status === "accepted" || (r.status === "pending" && r.senderId === user._id)) &&
       ((r.senderId === user._id && r.receiverId === other._id) || (r.senderId === other._id && r.receiverId === user._id)));
@@ -459,10 +484,10 @@ export const myFriends = query({
     await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!user || !hasPublicUsername(user)) return null;
+    if (!user || user.isSiteBanned || !hasPublicUsername(user)) return null;
     const [outgoing, incoming] = await Promise.all([
-      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", userId!)).collect(),
-      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", userId!)).collect(),
+      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", userId!)).take(500),
+      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", userId!)).take(500),
     ]);
     const requests = [...outgoing, ...incoming];
     const friendIds = [...new Set(requests.filter((r) => r.status === "accepted").map((r) => r.senderId === userId ? r.receiverId : r.senderId))];
@@ -471,14 +496,14 @@ export const myFriends = query({
     const requestsWithUsers = await Promise.all(pending.map(async (request) => ({ requestId: request._id, user: await ctx.db.get(request.senderId) })));
     const safeProfile = (friend: typeof friends[number]) => friend && hasPublicUsername(friend) ? {
       username: friend.playerLogin!.trim(),
-      displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
+      displayName: publicAccountName(friend),
       image: friend.profileImageStorageId ? null : friend.image ?? null,
     } : null;
     const friendProfiles = await Promise.all(friends.map(async (friend) => {
       if (!friend || !hasPublicUsername(friend)) return null;
       return {
         username: friend.playerLogin!.trim(),
-        displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
+        displayName: publicAccountName(friend),
         image: friend.profileImageStorageId ? await ctx.storage.getUrl(friend.profileImageStorageId) : friend.image ?? null,
         presence: presenceState(friend),
       };
@@ -497,14 +522,14 @@ export const publicFriendList = query({
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const owner = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
     if (!owner || !hasPublicUsername(owner) || owner.profileFriendsVisible !== true) return [];
-    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", owner._id)).collect();
-    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", owner._id)).collect();
+    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", owner._id)).take(500);
+    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", owner._id)).take(500);
     const ids = [...new Set([...outgoing, ...incoming].filter((r) => r.status === "accepted").map((r) => r.senderId === owner._id ? r.receiverId : r.senderId))];
     const friends = await Promise.all(ids.map((id) => ctx.db.get(id)));
     const visibleFriends = friends.filter((friend) => friend && hasPublicUsername(friend));
     return await Promise.all(visibleFriends.map(async (friend) => ({
       username: friend!.playerLogin!.trim(),
-      displayName: isEmailAddress(friend!.name) ? null : friend!.name?.trim() || null,
+      displayName: publicAccountName(friend!),
       image: friend!.profileImageStorageId ? await ctx.storage.getUrl(friend!.profileImageStorageId) : friend!.image ?? null,
       presence: presenceState(friend!),
     })));
@@ -539,9 +564,9 @@ export const playerConversation = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     const other = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", rawUsername.trim().replace(/^@/, "").toLowerCase())).unique();
-    if (!user || !hasPublicUsername(user) || !other || !hasPublicUsername(other) || other._id === user._id) return null;
-    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
-    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect();
+    if (!user || user.isSiteBanned || !hasPublicUsername(user) || !other || !hasPublicUsername(other) || other._id === user._id) return null;
+    const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).take(500);
+    const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).take(500);
     if (!acceptedFriendship(user._id, other._id, [...outgoing, ...incoming])) return null;
     const [participantA, participantB] = [user._id, other._id].sort((a, b) => String(a).localeCompare(String(b)));
     const messages = await ctx.db.query("playerMessages").withIndex("by_pair_created", (q) => q.eq("participantA", participantA).eq("participantB", participantB)).order("desc").take(100);
@@ -717,6 +742,7 @@ export const updatePublicProfile = mutation({
     const displayName = args.displayName.trim();
     const about = args.about.trim();
     if (displayName.length < 2 || displayName.length > 32) throw new Error("Display name must be 2–32 characters.");
+    if (isEmailAddress(displayName)) throw new Error("Choose a display name that is not an email address.");
     if (about.length > 500) throw new Error("About me must be 500 characters or fewer.");
     assertCleanPublicText(displayName, "Display name");
     assertCleanPublicText(about, "About me");
@@ -757,17 +783,16 @@ export const myInbox = query({
     if (!hasPublicUsername(user)) return { needsUsername: true as const, requests: [], sent: [] };
 
     const [outgoing, incoming] = await Promise.all([
-      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect(),
-      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect(),
+      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).take(500),
+      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).take(500),
     ]);
 
     const describe = async (otherId: typeof user._id) => {
       const other = await ctx.db.get(otherId);
       if (!other || !hasPublicUsername(other)) return null;
-      const publicName = other.role === "user" ? other.name : other.nickname ?? other.name;
       return {
         username: other.playerLogin!.trim(),
-        displayName: isEmailAddress(publicName) ? null : publicName?.trim() || null,
+        displayName: publicAccountName(other),
         image: other.profileImageStorageId ? await ctx.storage.getUrl(other.profileImageStorageId) : other.image ?? null,
         presence: presenceState(other),
       };

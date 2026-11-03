@@ -65,6 +65,10 @@ const schema = defineSchema(
       // Set just before a staff sign-in code is requested for delivery to the
       // verified recovery email instead of the company mailbox.
       staffOtpRecoveryRequestAt: v.optional(v.number()),
+      // Delivery throttle so a staff email cannot be used as an OTP spam target.
+      staffOtpLastSentAt: v.optional(v.number()),
+      staffOtpSendWindowAt: v.optional(v.number()),
+      staffOtpSendCount: v.optional(v.number()),
       // Versioned server-side acknowledgement for staff welcome notices.
       staffWelcomeVersion: v.optional(v.number()),
       // Staff-chosen public name used across /staff and public team pages.
@@ -98,6 +102,7 @@ const schema = defineSchema(
     })
       .index("email", ["email"]) // index for the email. do not remove or modify
       .index("by_official_creator", ["isOfficialCreator"])
+      .index("by_site_banned", ["isSiteBanned"])
       .index("by_player_login", ["playerLogin"])
       .index("by_recovery_email", ["recoveryEmail"])
       .searchIndex("search_player_profiles", {

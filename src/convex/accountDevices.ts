@@ -91,7 +91,7 @@ export const register = mutation({
       throw new Error("This sign-in session has expired. Sign in again.");
     }
     const user = await ctx.db.get(userId);
-    if (!user || user.isAnonymous) throw new Error("Sign in to manage devices.");
+    if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage devices.");
 
     const deviceId = args.deviceId.trim();
     if (!/^[A-Za-z0-9._:-]{8,128}$/.test(deviceId) || deviceId.length > MAX_DEVICE_ID_LENGTH) {
@@ -129,7 +129,14 @@ export const register = mutation({
 
     const isNewDevice = !knownDevice;
     const alertEmail = verifiedAlertEmail(user);
-    if (isNewDevice && alertEmail) {
+    const recentDevices = alertEmail && isNewDevice
+      ? await ctx.db.query("accountDevices")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .order("desc")
+        .take(50)
+      : [];
+    const recentNewDeviceCount = recentDevices.filter((record) => record.createdAt > now - 60 * 60 * 1000).length;
+    if (isNewDevice && alertEmail && recentNewDeviceCount < 3) {
       await ctx.scheduler.runAfter(0, internal.supportEmail.sendNewDeviceLogin, {
         email: alertEmail,
         device: described.label,
@@ -138,7 +145,7 @@ export const register = mutation({
         signedInAt: now,
       });
     }
-    return { ok: true, newDevice: isNewDevice, alertScheduled: Boolean(isNewDevice && alertEmail) };
+    return { ok: true, newDevice: isNewDevice, alertScheduled: Boolean(isNewDevice && alertEmail && recentNewDeviceCount < 3) };
   },
 });
 
@@ -169,12 +176,12 @@ export const devices = query({
     const sessions = await ctx.db
       .query("authSessions")
       .withIndex("userId", (q) => q.eq("userId", userId))
-      .collect();
+      .take(100);
     const active = sessions.filter((session) => session.expirationTime > now);
     const records = await ctx.db
       .query("accountDevices")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
+      .take(100);
     const bySession = new Map(records.map((record) => [record.sessionId, record]));
     const currentSessionId = await getAuthSessionId(ctx);
 

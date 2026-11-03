@@ -24,7 +24,7 @@ export const listAdminNotificationRecipients = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isAdmin(ctx))) return null;
-    const recipients = await ctx.db.query("adminNotificationRecipients").collect();
+    const recipients = await ctx.db.query("adminNotificationRecipients").take(200);
     return recipients
       .map(({ _id, email, kind }) => ({ _id, email, kind }))
       .sort((a, b) => a.email.localeCompare(b.email));
@@ -35,7 +35,7 @@ export const listAdminNotificationRecipients = query({
 export const getEligibleAdminNotificationRecipients = internalQuery({
   args: { channel: v.union(v.literal("careers"), v.literal("support")) },
   handler: async (ctx, { channel }) => {
-    const recipients = await ctx.db.query("adminNotificationRecipients").collect();
+    const recipients = await ctx.db.query("adminNotificationRecipients").take(200);
     return recipients.filter((recipient) => recipient.kind === channel || recipient.kind === "both");
   },
 });

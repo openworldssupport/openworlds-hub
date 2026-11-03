@@ -159,8 +159,10 @@ function adminAccess(): ModerationAccess {
   };
 }
 
-function isCompanyAdminAccount(user: { role?: string; email?: string }) {
-  return user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
+function isCompanyAdminAccount(user: { role?: string; email?: string; emailVerificationTime?: number; isSiteBanned?: boolean }) {
+  return user.emailVerificationTime !== undefined &&
+    !user.isSiteBanned &&
+    (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk");
 }
 
 function isVerifiedStaffAccount(user: Doc<"users">) {

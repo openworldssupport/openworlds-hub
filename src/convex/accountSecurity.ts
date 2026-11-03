@@ -5,6 +5,7 @@ import { v } from "convex/values";
 import { requireSiteAvailable } from "./siteStatus";
 import { consumeSecondFactor, hashValue, matchingTotpCounter } from "./secondFactor";
 import { assertCleanPublicText } from "../lib/contentFilter";
+import { isEmailAddress } from "../lib/staff";
 
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 8;
@@ -73,7 +74,7 @@ export const updateProfile = mutation({
     const user = await currentAccount(ctx);
     const name = rawName.trim();
     const maxLength = user.role === "user" ? 32 : 40;
-    if (name.length < 2 || name.length > maxLength || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(name)) throw new Error(`Choose a display name between 2 and ${maxLength} characters.`);
+    if (name.length < 2 || name.length > maxLength || isEmailAddress(name) || /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(name)) throw new Error(`Choose a display name between 2 and ${maxLength} characters.`);
     assertCleanPublicText(name, "Display name");
     await ctx.db.patch(user._id, user.role === "user" ? { name } : { nickname: name });
     return { name };
@@ -166,6 +167,28 @@ export const consumeStaffOtpCode = internalMutation({
   },
 });
 
+/** Throttle company sign-in code delivery per email address. */
+export const recordStaffOtpSend = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email: rawEmail }) => {
+    const email = rawEmail.trim().toLowerCase();
+    const user = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first();
+    if (!user) return { allowed: true as const };
+    const now = Date.now();
+    if ((user.staffOtpLastSentAt ?? 0) > now - 60_000) return { allowed: false as const, reason: "cooldown" as const };
+    const count = user.staffOtpSendWindowAt && now - user.staffOtpSendWindowAt < 10 * 60 * 1000
+      ? user.staffOtpSendCount ?? 0
+      : 0;
+    if (count >= 5) return { allowed: false as const, reason: "limit" as const };
+    await ctx.db.patch(user._id, {
+      staffOtpLastSentAt: now,
+      staffOtpSendWindowAt: count === 0 ? now : user.staffOtpSendWindowAt,
+      staffOtpSendCount: count + 1,
+    });
+    return { allowed: true as const };
+  },
+});
+
 export const completeStaffSignIn = internalAction({
   args: { email: v.string(), code: v.string() },
   handler: async (ctx, { email: rawEmail, code }) => {
@@ -196,10 +219,10 @@ export const requestStaffRecoveryDelivery = mutation({
     const user = email.length <= 254
       ? await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first()
       : null;
-    const eligible = Boolean(user && user.role !== "user" && !user.isAnonymous && !user.isSiteBanned &&
+    const eligible = Boolean(user && user.role !== "user" && !user.isAnonymous &&
       (user.staffAccess || user.department?.trim() || user.position?.trim() || email === "contact@openworlds.dk") &&
       user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined);
-    if (!eligible || !user) throw new Error("No verified recovery email is available for that account.");
+    if (!eligible || !user) throw new Error("If that staff account has a verified recovery email, sign-in recovery can be sent there.");
     const lastRequest = user.staffOtpRecoveryRequestAt ?? 0;
     if (Date.now() - lastRequest < 60_000) throw new Error("Wait a minute before requesting another recovery code.");
     await ctx.db.patch(user._id, { staffOtpRecoveryRequestAt: Date.now() });
@@ -241,7 +264,7 @@ export const staffAccountForSignIn = internalQuery({
   handler: async (ctx, { email }) => {
     const normalized = email.trim().toLowerCase();
     const user = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), normalized)).first();
-    if (!user || user.role === "user" || user.isAnonymous || user.isSiteBanned) return null;
+    if (!user || user.role === "user" || user.isAnonymous) return null;
     const invitation = await ctx.db.query("companyAccess").withIndex("by_email", (q) => q.eq("email", normalized)).first();
     const assigned = Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
     if (normalized !== "contact@openworlds.dk" && !invitation && !assigned) return null;
@@ -253,7 +276,7 @@ export const authorizeStaffTwoFactor = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.role === "user" || user.isAnonymous || user.isSiteBanned || !user.twoFactorEnabled || !user.twoFactorSecret) throw new Error("Staff two-step verification failed.");
+    if (!user || user.role === "user" || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) throw new Error("Staff two-step verification failed.");
     await ctx.db.patch(userId, { twoFactorLoginVerifiedUntil: Date.now() + 90 * 1000 });
     return true;
   },
@@ -284,7 +307,7 @@ export const consumeStaffSignInCode = internalMutation({
   args: { userId: v.id("users"), code: v.string() },
   handler: async (ctx, { userId, code }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.role === "user" || user.isAnonymous || user.isSiteBanned || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    if (!user || user.role === "user" || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) {
       return { ok: false as const, message: "Staff sign-in verification failed." };
     }
     const result = await consumeSecondFactor(ctx, user, code);
@@ -302,7 +325,8 @@ export const passwordSignIn = action({
     let account;
     try { account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId, secret: password } }); }
     catch { throw new Error("Username/email or password is incorrect."); }
-    if (!account || account.user.role !== "user" || account.user.isSiteBanned) throw new Error("Username/email or password is incorrect.");
+    // Restricted accounts may sign in to reach the restriction and appeal screen.
+    if (!account || account.user.role !== "user") throw new Error("Username/email or password is incorrect.");
     const recoveryEmailVerified = Boolean(account.user.recoveryEmail && account.user.recoveryEmailVerifiedAt !== undefined);
     if (!account.user.twoFactorEnabled) return { required: false, recoveryEmailVerified };
     const random = new Uint8Array(32);
@@ -320,7 +344,8 @@ export const completePasswordSignIn = action({
     const login = rawLogin.trim().toLowerCase();
     const accountId = /^[a-z0-9][a-z0-9._-]{2,23}$/.test(login) ? `${login}@players.openworlds.invalid` : login;
     const account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId } }).catch(() => null);
-    if (!account || account.user.role !== "user" || account.user.isSiteBanned || !account.user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
+    // Restricted accounts may finish sign-in to reach the appeal screen.
+    if (!account || account.user.role !== "user" || !account.user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
     if (!account.user.recoveryEmail || account.user.recoveryEmailVerifiedAt === undefined) {
       throw new Error("Verify a recovery email before signing in to your player account.");
     }
@@ -335,7 +360,7 @@ export const createLoginChallenge = internalMutation({
   args: { userId: v.id("users"), tokenHash: v.string(), expiresAt: v.number() },
   handler: async (ctx, { userId, tokenHash, expiresAt }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.role !== "user" || user.isSiteBanned || !user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
+    if (!user || user.role !== "user" || !user.twoFactorEnabled) throw new Error("Sign-in verification failed.");
     const existing = await ctx.db.query("twoFactorLoginChallenges")
       .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .collect();
@@ -352,7 +377,7 @@ export const consumeLoginChallenge = internalMutation({
       .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
       .unique();
     const user = await ctx.db.get(userId);
-    if (!challenge || challenge.userId !== userId || !user || user.role !== "user" || user.isSiteBanned || !user.twoFactorEnabled || challenge.expiresAt < Date.now() || challenge.verifiedAt !== undefined) {
+    if (!challenge || challenge.userId !== userId || !user || user.role !== "user" || !user.twoFactorEnabled || challenge.expiresAt < Date.now() || challenge.verifiedAt !== undefined) {
       return { ok: false as const, message: "Sign-in verification expired. Start again." };
     }
     const result = await consumeSecondFactor(ctx, user, code);
@@ -372,7 +397,7 @@ export const consumeVerifiedChallenge = internalMutation({
   handler: async (ctx, { userId, tokenHash }) => {
     const challenge = await ctx.db.query("twoFactorLoginChallenges").withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash)).unique();
     const user = await ctx.db.get(userId);
-    if (!challenge || challenge.userId !== userId || !user || user.role !== "user" || user.isSiteBanned || !user.twoFactorEnabled || challenge.expiresAt < Date.now() || challenge.verifiedAt === undefined) return false;
+    if (!challenge || challenge.userId !== userId || !user || user.role !== "user" || !user.twoFactorEnabled || challenge.expiresAt < Date.now() || challenge.verifiedAt === undefined) return false;
     await ctx.db.delete(challenge._id);
     return true;
   },
@@ -382,7 +407,7 @@ export const consumeLoginCode = internalMutation({
   args: { userId: v.id("users"), code: v.string() },
   handler: async (ctx, { userId, code }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.isAnonymous || user.isSiteBanned || !user.twoFactorEnabled || !user.twoFactorSecret) return { ok: false as const, message: "Sign-in verification failed." };
+    if (!user || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) return { ok: false as const, message: "Sign-in verification failed." };
     return await consumeSecondFactor(ctx, user, code);
   },
 });

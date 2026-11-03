@@ -569,8 +569,10 @@ export const sendSupportNotification = internalAction({
     const to = process.env.SUPPORT_EMAIL ?? DEFAULT_SUPPORT_EMAIL;
     const submittedTime = new Date(args.submittedAt).toISOString();
     // The reference keeps reply threads identifiable, so a reply sent from the
-    // support inbox can be matched back to its ticket automatically.
-    const subjectLine = `${args.reference ? `[${args.reference}] ` : ""}[OpenWorlds Support] ${args.subject || args.reasonLabel}`;
+    // support inbox can be matched back to its ticket automatically. Never let
+    // user-supplied text inject a second header line.
+    const safeSubject = (args.subject || args.reasonLabel).replace(/[\r\n]+/g, " ").trim().slice(0, 180);
+    const subjectLine = `${args.reference ? `[${args.reference}] ` : ""}[OpenWorlds Support] ${safeSubject}`;
 
     const text = [
       "New OpenWorlds support ticket",

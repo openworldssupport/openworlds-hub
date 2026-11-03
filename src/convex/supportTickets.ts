@@ -93,6 +93,7 @@ function supportFanoutHtml({
 }
 
 import { isAdmin, requireAdmin } from "./admin";
+import { requirePermissionVerification } from "./adminRoster";
 import { requireSiteAvailable } from "./siteStatus";
 /** Rejection message when the sender has not accepted the policies. */
 export const SUPPORT_TERMS_CONSENT_MESSAGE =
@@ -270,6 +271,7 @@ export const markResponded = mutation({
   args: { ticketId: v.id("supportTickets") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     await ctx.db.patch(args.ticketId, { respondedAt: Date.now() });
     return { ok: true };
   },
@@ -325,6 +327,7 @@ export const closeTicket = mutation({
   args: { ticketId: v.id("supportTickets") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     await ctx.db.patch(args.ticketId, { closedAt: Date.now() });
     return { ok: true };
   },
@@ -335,6 +338,7 @@ export const reopenTicket = mutation({
   args: { ticketId: v.id("supportTickets") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     await ctx.db.patch(args.ticketId, { respondedAt: undefined, closedAt: undefined, status: "open" });
     return { ok: true };
   },
@@ -345,6 +349,7 @@ export const removeTicket = mutation({
   args: { ticketId: v.id("supportTickets") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     await ctx.db.delete(args.ticketId);
     return { ok: true };
   },
@@ -354,6 +359,7 @@ export const listForAdmin = query({
   args: {},
   handler: async (ctx) => {
     if (!(await isAdmin(ctx))) return null;
+    await requirePermissionVerification(ctx);
 
     const tickets = await ctx.db.query("supportTickets").withIndex("by_submitted_at").order("desc").take(100);
     // Surface the derived status so the team sees the same state the user does.

@@ -91,7 +91,10 @@ export const verifyRecoveryEmail = mutation({
       };
     }
     const prior = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", row.email)).first();
-    if (prior && prior._id !== user._id) throw new Error("That email cannot be used as a recovery email.");
+    const priorRecovery = await ctx.db.query("users").withIndex("by_recovery_email", (q) => q.eq("recoveryEmail", row.email)).first();
+    if ((prior && prior._id !== user._id) || (priorRecovery && priorRecovery._id !== user._id)) {
+      throw new Error("That email cannot be used as a recovery email.");
+    }
     await ctx.db.patch(user._id, { recoveryEmail: row.email, recoveryEmailVerifiedAt: Date.now(), pendingRecoveryEmail: undefined });
     await ctx.db.delete(row._id);
     if (user.role === "user") await linkVerifiedCreatorAccount(ctx, user._id);
@@ -137,7 +140,11 @@ export const consumePasswordResetCode = internalMutation({
   args: { login: v.string(), code: v.string() },
   handler: async (ctx, { login, code }) => {
     const normalizedLogin = login.trim().toLowerCase();
-    const account = await ctx.db.query("users").filter((q) => q.or(q.eq(q.field("email"), normalizedLogin), q.eq(q.field("playerLogin"), normalizedLogin))).first();
+    const account = await ctx.db.query("users").filter((q) => q.or(
+      q.eq(q.field("email"), normalizedLogin),
+      q.eq(q.field("playerLogin"), normalizedLogin),
+      q.eq(q.field("recoveryEmail"), normalizedLogin),
+    )).first();
     if (!account || account.role !== "user") throw new Error("Invalid or expired reset code.");
     const row = await ctx.db.query("playerRecoveryCodes").withIndex("by_user_created", (q) => q.eq("userId", account._id)).order("desc").first();
     if (!row || row.purpose !== "reset-password" || row.expiresAt < Date.now() || row.attempts >= MAX_ATTEMPTS) throw new Error("Invalid or expired reset code.");

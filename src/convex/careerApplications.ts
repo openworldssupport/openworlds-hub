@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { careerPositionAliases, careerRoles, normalizeCareerPosition } from "../lib/careers";
 import { requireAdmin } from "./admin";
+import { requirePermissionVerification } from "./adminRoster";
 import { requireSiteAvailable } from "./siteStatus";
 
 function careerFanoutText({
@@ -87,9 +88,9 @@ export const roleAvailability = query({
   args: {},
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
-    const overrides = await ctx.db.query("careerRoleAvailability").collect();
+    const overrides = await ctx.db.query("careerRoleAvailability").take(500);
     const bySlug = new Map(overrides.map((item) => [item.roleSlug, item.isOpen]));
-    const users = await ctx.db.query("users").collect();
+    const users = await ctx.db.query("users").take(5000);
     return careerRoles.map((role) => {
       const aliases = new Set(careerPositionAliases(role));
       const assignedCount = users.filter((user) => user.emailVerificationTime !== undefined && !user.isSiteBanned &&
@@ -105,6 +106,7 @@ export const setRoleAvailability = mutation({
   args: { roleSlug: v.string(), isOpen: v.boolean() },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const role = careerRoles.find((item) => item.slug === args.roleSlug);
     if (!role) throw new Error("Choose a valid contributor role.");
 
@@ -162,7 +164,7 @@ export const submitEnquiry = mutation({
       const override = await ctx.db.query("careerRoleAvailability")
         .withIndex("by_role_slug", (q) => q.eq("roleSlug", role.slug))
         .first();
-      const users = await ctx.db.query("users").collect();
+      const users = await ctx.db.query("users").take(5000);
       const aliases = new Set(careerPositionAliases(role));
       const assignedCount = users.filter((user) => user.emailVerificationTime !== undefined && !user.isSiteBanned && user.position && aliases.has(normalizeCareerPosition(user.position))).length;
       if ((override && !override.isOpen) || assignedCount >= role.capacity) throw new Error("This position is currently closed because it is filled or has reached capacity.");

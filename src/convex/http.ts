@@ -7,6 +7,22 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
+async function secretMatches(provided: string, expected: string): Promise<boolean> {
+  if (!provided || !expected) return false;
+  const encoder = new TextEncoder();
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(provided)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
+  ]);
+  const a = new Uint8Array(left);
+  const b = new Uint8Array(right);
+  let difference = a.length ^ b.length;
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    difference |= (a[index] ?? 0) ^ (b[index] ?? 0);
+  }
+  return difference === 0;
+}
+
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
@@ -87,7 +103,7 @@ http.route({
       request.headers.get("x-openworlds-secret") ??
       request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
       "";
-    if (provided !== secret) return json({ error: "Unauthorized." }, 401);
+    if (!(await secretMatches(provided, secret))) return json({ error: "Unauthorized." }, 401);
 
     const payload = await request.json().catch(() => null);
     const body = asRecord(payload);
@@ -153,7 +169,7 @@ http.route({
     const secret = process.env.NETWORK_BLOCKLIST_SECRET;
     if (!secret) return json({ error: "Network blocklist export is not configured. Set NETWORK_BLOCKLIST_SECRET." }, 503);
     const provided = request.headers.get("x-openworlds-secret") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-    if (provided !== secret) return json({ error: "Unauthorized." }, 401);
+    if (!(await secretMatches(provided, secret))) return json({ error: "Unauthorized." }, 401);
     const blocks = await ctx.runQuery(internal.moderation.activeNetworkBlocks, {});
     return json({ generatedAt: Date.now(), blocks }, 200);
   }),

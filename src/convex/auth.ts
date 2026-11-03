@@ -11,6 +11,7 @@ import { internal } from "./_generated/api";
 import { requireSiteAvailableForUser } from "./siteStatus";
 import { assertSignupAllowed } from "./bans";
 import { assertCleanPublicText, containsBlockedLanguage } from "../lib/contentFilter";
+import { isEmailAddress } from "../lib/staff";
 
 const PLAYER_LOGIN_DOMAIN = "players.openworlds.invalid";
 
@@ -62,6 +63,7 @@ export const playerPassword = ConvexCredentials({
       if (password.length < 12) throw new Error("Use a password between 12 and 128 characters.");
       const rawName = typeof credentials.name === "string" ? credentials.name.trim() : "";
       if (rawName.length < 2 || rawName.length > 32) throw new Error("Player name must be 2–32 characters.");
+      if (isEmailAddress(rawName)) throw new Error("Choose a display name that is not an email address.");
       const name = assertCleanPublicText(rawName, "Display name");
       const recoveryEmail = typeof credentials.recoveryEmail === "string"
         ? credentials.recoveryEmail.trim().toLowerCase()
@@ -156,6 +158,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 
         const existingPlayer = linkedUser;
         const rawName = typeof profile.name === "string" ? profile.name.trim() : undefined;
+        if (rawName && isEmailAddress(rawName)) throw new Error("Choose a display name that is not an email address.");
         const name = rawName ? assertCleanPublicText(rawName, "Display name") : undefined;
         if (existingPlayer) {
           await ctx.db.patch(existingPlayer._id, {

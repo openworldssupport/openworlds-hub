@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireSiteAvailable } from "./siteStatus";
 import { assertCleanPublicText } from "../lib/contentFilter";
+import { isEmailAddress } from "../lib/staff";
 
 const MAX_SAVE_BYTES = 64 * 1024;
 const saveState = v.object({ version: v.number(), data: v.any() });
@@ -82,17 +83,22 @@ export const finalizePlayerImage = mutation({
       throw new Error("Profile photos are processed by the automatic image safety check.");
     }
     const { userId } = await requirePlayer(ctx);
-    const metadata = await ctx.db.system.get("_storage", storageId);
-    if (!metadata || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(metadata.contentType ?? "")) {
-      if (metadata) await ctx.storage.delete(storageId);
-      throw new Error("Choose a valid image file.");
-    }
-    if (metadata.size > 5 * 1024 * 1024) {
-      await ctx.storage.delete(storageId);
-      throw new Error("Images must be 5 MB or smaller.");
-    }
+    // Check ownership before reading or deleting the object. A public image URL
+    // reveals a storage ID, so rejecting a foreign upload must never destroy it.
     const existing = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
     if (existing && (existing.ownerId !== userId || existing.kind !== kind)) throw new Error("This upload belongs to another account or purpose.");
+    const announcementAsset = await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", storageId))
+      .unique();
+    if (announcementAsset) throw new Error("This upload belongs to an announcement.");
+    const metadata = await ctx.db.system.get("_storage", storageId);
+    const invalidType = !metadata || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(metadata.contentType ?? "");
+    const tooLarge = Boolean(metadata && metadata.size > 5 * 1024 * 1024);
+    if (invalidType || tooLarge) {
+      // Only clean up an object that this account already claimed above.
+      if (existing) await ctx.storage.delete(storageId);
+      throw new Error(invalidType ? "Choose a valid image file." : "Images must be 5 MB or smaller.");
+    }
     if (!existing) await ctx.db.insert("playerMedia", { storageId, ownerId: userId, kind, createdAt: Date.now() });
     return { url: await ctx.storage.getUrl(storageId) };
   },
@@ -173,6 +179,7 @@ export const updateProfile = mutation({
     const { userId } = await requirePlayer(ctx);
     const name = displayName.trim();
     if (name.length < 2 || name.length > 32) throw new Error("Player name must be 2–32 characters.");
+    if (isEmailAddress(name)) throw new Error("Choose a player name that is not an email address.");
     assertCleanPublicText(name, "Player name");
     await ctx.db.patch(userId, { name, profileDiscoverable: true });
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();

@@ -1005,6 +1005,7 @@ function SiteStatusControl() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const unlocked = (gate?.verifiedUntil ?? 0) > Date.now();
+  const isAdmin = gate?.isAdmin === true;
 
   async function applyStatus(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1025,8 +1026,10 @@ function SiteStatusControl() {
     <section>
       <div>
         <h2 className="font-semibold">Website status</h2>
-        <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. Staff can take the site offline; only administrators can bring it back.</p>
-        {!unlocked ? (
+        <p className="mt-1 text-sm text-slate-600">Current status: <strong>{statusLabel}</strong>. Only administrators can change the website status.</p>
+        {!isAdmin ? (
+          <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Your account can view the status. An administrator must make status changes.</p>
+        ) : !unlocked ? (
           <div className="mt-4"><StaffUnlock description="Unlock with your authenticator app to change the website status." /></div>
         ) : (
           <form onSubmit={(event) => void applyStatus(event)} className="mt-4 flex flex-wrap items-end gap-3">

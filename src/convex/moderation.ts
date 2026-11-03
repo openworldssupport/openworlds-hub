@@ -167,7 +167,7 @@ export const queue = query({
     }
     const [reports, bannedAccounts, appeals, audit, media, assessments] = await Promise.all([
       ctx.db.query("playerReports").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
-      ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(200),
+      ctx.db.query("users").withIndex("by_site_banned", (q) => q.eq("isSiteBanned", true)).take(200),
       ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(50),
       ctx.db.query("moderationLog").withIndex("by_created").order("desc").take(40),
       ctx.db.query("mediaModeration").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
@@ -187,7 +187,7 @@ export const queue = query({
         targetId: report.targetId,
         evidenceLinks: report.evidenceLinks ?? [],
       })),
-      assessments: assessments.map((assessment) => ({
+      assessments: access.canViewAudit ? assessments.map((assessment) => ({
         _id: assessment._id,
         targetLabel: assessment.targetLabel,
         targetUsername: assessment.targetUsername ?? null,
@@ -203,11 +203,14 @@ export const queue = query({
         actionTaken: assessment.actionTaken,
         actionExpiresAt: assessment.actionExpiresAt ?? null,
         createdAt: assessment.createdAt,
-      })),
+      })) : [],
       bans: bannedAccounts.filter((user) => isBanActive(user)).map((user) => ({
         userId: user._id,
         name: accountLabel(user),
-        email: user.email ?? "",
+        // Support can confirm and manage restrictions without receiving the
+        // account's private contact address. Appeal reviewers get the email
+        // because it is needed to review the appeal.
+        email: access.canViewAppeals || access.isAdmin ? user.email ?? "" : "",
         username: user.playerLogin ?? null,
         reason: user.siteBanReason ?? "No reason recorded",
         banType: user.banType ?? "permanent",
@@ -226,7 +229,7 @@ export const queue = query({
           targetIsStaff: Boolean(user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim())),
         };
       })) : [],
-      media: await Promise.all(media.map(async (item) => ({
+      media: access.canViewAudit ? await Promise.all(media.map(async (item) => ({
         _id: item._id,
         displayName: item.displayName,
         username: item.username ?? null,
@@ -234,7 +237,7 @@ export const queue = query({
         detail: item.detail,
         createdAt: item.createdAt,
         imageUrl: item.storageId ? await ctx.storage.getUrl(item.storageId) : null,
-      }))),
+      }))) : [],
       audit: access.canViewAudit
         ? audit
           .filter((entry) => access.canViewAppeals || !entry.action.startsWith("appeal-"))
@@ -549,7 +552,7 @@ function normalizeNetworkBlock(raw: string): string {
     }
     if (prefixRaw !== undefined) {
       const prefix = Number(prefixRaw);
-      if (!Number.isInteger(prefix) || prefix < 0 || prefix > 128) throw new Error("IPv6 prefix must be between 0 and 128.");
+      if (!Number.isInteger(prefix) || prefix < 48 || prefix > 128) throw new Error("IPv6 network blocks must use a prefix between /48 and /128.");
       return `${address}/${prefix}`;
     }
     return address;
@@ -560,7 +563,7 @@ function normalizeNetworkBlock(raw: string): string {
   }
   if (prefixRaw !== undefined) {
     const prefix = Number(prefixRaw);
-    if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) throw new Error("IPv4 prefix must be between 0 and 32.");
+    if (!Number.isInteger(prefix) || prefix < 16 || prefix > 32) throw new Error("IPv4 network blocks must use a prefix between /16 and /32.");
     return `${address}/${prefix}`;
   }
   return address;
@@ -676,7 +679,7 @@ export const permissionMatrix = query({
   handler: async (ctx) => {
     const { access } = await currentModerationAccess(ctx);
     if (!access.isAdmin) return null;
-    const overrides = await ctx.db.query("moderationRolePermissions").collect();
+    const overrides = await ctx.db.query("moderationRolePermissions").take(500);
     const byKeys = new Map(overrides.map((row) => [`${row.departmentKey}|${row.positionKey}`, row]));
     const roles = DEFAULT_MODERATION_ROLES.map((role) => {
       const key = moderationRoleKey(role.department, role.position);
@@ -727,10 +730,14 @@ export const setRolePermissions = mutation({
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1–100 characters.");
-    const capabilities = [...new Set(args.capabilities)] as ModerationCapability[];
-    if (!capabilities.every((capability) => MODERATION_CAPABILITIES.includes(capability))) {
+    const requested = new Set(args.capabilities);
+    if (![...requested].every((capability) => MODERATION_CAPABILITIES.includes(capability))) {
       throw new Error("One or more moderation capabilities are invalid.");
     }
+    // Every enforcement or review capability is meaningless without the base
+    // view permission, so add it instead of saving a silently broken role.
+    if (requested.size > 0) requested.add("view");
+    const capabilities = [...requested] as ModerationCapability[];
     const actorId = await getAuthUserId(ctx);
     const actor = actorId ? await ctx.db.get(actorId) : null;
     if (!actorId || !actor) throw new Error("Not authorized.");
@@ -757,7 +764,7 @@ export const setRolePermissions = mutation({
       targetLabel: `${department} / ${position}`,
       reason: capabilities.length ? `Allowed: ${capabilities.join(", ")}` : "No moderation capabilities allowed.",
     });
-    return { ok: true as const };
+    return { ok: true as const, capabilities };
   },
 });
 
@@ -813,6 +820,11 @@ export const reviewReport = mutation({
     const target = await ctx.db.get(report.targetId);
     const now = Date.now();
     const actorLabel = accountLabel(actor);
+    if (target && target._id === actor._id) throw new Error("You cannot enforce a decision against your own account.");
+    const targetIsStaff = Boolean(target && (target.role !== "user" || target.staffAccess || target.department?.trim() || target.position?.trim()));
+    if (decision === "warn" && targetIsStaff && !isCompanyAdminAccount(actor)) {
+      throw new Error("Only an administrator can issue a warning to a staff account.");
+    }
 
     if (decision === "dismiss" || decision === "warn") {
       await ctx.db.patch(report._id, {
@@ -849,6 +861,7 @@ export const reviewReport = mutation({
     }
 
     if (!target) throw new Error("The reported account no longer exists.");
+    if (target._id === actor._id) throw new Error("You cannot enforce a decision against your own account.");
     if (isCompanyAdminAccount(target)) throw new Error("Administrator accounts cannot be banned from the moderation queue.");
     if ((target.role !== "user" || target.staffAccess || target.department?.trim() || target.position?.trim()) && !isCompanyAdminAccount(actor)) {
       throw new Error("Only an administrator can ban a staff account.");

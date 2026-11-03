@@ -8,6 +8,7 @@ import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
+import { accountLabel, recordAudit } from "./bans";
 import { linkVerifiedCreatorAccount } from "./users";
 import { requireSiteAvailable } from "./siteStatus";
 import { isStaffUnlocked } from "./staffUnlock";
@@ -270,6 +271,18 @@ export const setOfficialCreator = mutation({
       if (linked) await ctx.db.patch(linked._id, { linkedUserId: undefined, updatedAt: Date.now() });
       await ctx.db.patch(userId, { isOfficialCreator: undefined });
     }
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: target._id,
+        targetLabel: accountLabel(target),
+        reason: `Official creator badge ${isOfficialCreator ? "granted" : "removed"} by an administrator.`,
+      });
+    }
     return { ok: true, isOfficialCreator };
   },
 });
@@ -303,11 +316,12 @@ export const setAssignment = mutation({
     badge: v.union(v.literal("staff"), v.literal("dev")),
     accessLevel: v.optional(v.union(v.literal("staff"), v.literal("admin"))),
     memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
-    isBanned: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireCompanyAdmin(ctx);
     await requirePermissionVerification(ctx);
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
     const department = args.department.trim();
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
@@ -331,7 +345,7 @@ export const setAssignment = mutation({
       if (target.email?.trim().toLowerCase() === "contact@openworlds.dk") {
         throw new Error("The bootstrap admin cannot be removed from staff access.");
       }
-      const keepBan = args.isBanned ?? (target.isSiteBanned === true);
+      const keepBan = target.isSiteBanned === true;
       const clearedMemberStatus = args.memberStatus === "none" ? undefined : (args.memberStatus ?? target.memberStatus);
       await ctx.db.patch(args.userId, {
         department: undefined,
@@ -353,6 +367,16 @@ export const setAssignment = mutation({
           .first();
         if (invitation) await ctx.db.delete(invitation._id);
       }
+      if (actor) {
+        await recordAudit(ctx, {
+          actorId: actor._id,
+          actorLabel: accountLabel(actor),
+          action: "permissions-updated",
+          targetId: target._id,
+          targetLabel: accountLabel(target),
+          reason: "Staff access cleared by an administrator.",
+        });
+      }
       return { ok: true, isStaff: false };
     }
 
@@ -363,7 +387,7 @@ export const setAssignment = mutation({
     }
     const accessLevel = nextLevel;
     const finalStatus = args.memberStatus ?? (target.memberStatus ? "volunteer-thank-you" : "none");
-    const isBanned = args.isBanned ?? (target.isSiteBanned === true);
+    const isBanned = target.isSiteBanned === true;
     if (target.emailVerificationTime !== undefined) {
       await ctx.db.patch(args.userId, {
         department: department || undefined,
@@ -406,6 +430,16 @@ export const setAssignment = mutation({
       }
       if (accessLevel === "admin" && target.role !== "admin") await ctx.db.patch(target._id, { role: "admin" });
       if (accessLevel === "staff" && target.role === "admin") await ctx.db.patch(target._id, { role: "member" });
+    }
+    if (actor) {
+      await recordAudit(ctx, {
+        actorId: actor._id,
+        actorLabel: accountLabel(actor),
+        action: "permissions-updated",
+        targetId: target._id,
+        targetLabel: accountLabel(target),
+        reason: `Company access set to ${nextLevel} · ${department} / ${position}${isBanned ? " · restricted" : ""}.`,
+      });
     }
     return { ok: true, isStaff: target.emailVerificationTime !== undefined, accessLevel: nextLevel };
   },
@@ -498,23 +532,28 @@ export const finalizeAnnouncementUpload = mutation({
     const user = await currentUser(ctx);
     if (!user || !(await isStaffUnlocked(ctx))) return { storageId: args.storageId, mediaType: args.mediaType, url: null };
     const userId = user._id;
+    // Authorize the object before reading or deleting it. A storage ID from a
+    // public announcement URL must not let another staff member erase it.
+    const existing = await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (existing && (existing.authorId !== userId || existing.announcementId || existing.mediaType !== args.mediaType)) {
+      throw new Error("This upload is not available to attach.");
+    }
+    const playerAsset = await ctx.db.query("playerMedia")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (playerAsset) throw new Error("This upload belongs to player media.");
     const metadata = await ctx.db.system.get("_storage", args.storageId);
     if (!metadata) throw new Error("Upload not found.");
     const contentType = metadata.contentType ?? "";
     const hasExpectedType = args.mediaType === "image" ? contentType.startsWith("image/") : contentType.startsWith("video/");
-    if (!hasExpectedType) {
-      await ctx.storage.delete(args.storageId);
-      throw new Error("Choose a valid image or video file.");
+    if (!hasExpectedType || metadata.size > 50 * 1024 * 1024) {
+      // Only discard an unattached upload that already belongs to this account.
+      if (existing) await ctx.storage.delete(args.storageId);
+      throw new Error(hasExpectedType ? "Media files must be 50 MB or smaller." : "Choose a valid image or video file.");
     }
-    if (metadata.size > 50 * 1024 * 1024) {
-      await ctx.storage.delete(args.storageId);
-      throw new Error("Media files must be 50 MB or smaller.");
-    }
-    const existing = await ctx.db.query("announcementAssets")
-      .withIndex("by_storage_id", (q) => q.eq("storageId", args.storageId))
-      .unique();
     if (existing) {
-      if (existing.authorId !== userId || existing.announcementId || existing.mediaType !== args.mediaType) throw new Error("This upload is not available to attach.");
       return { storageId: args.storageId, mediaType: existing.mediaType!, url: await ctx.storage.getUrl(args.storageId) };
     }
     await ctx.db.insert("announcementAssets", {
@@ -758,6 +797,7 @@ export const adminRemoveAnnouncement = mutation({
   args: { announcementId: v.id("gameAnnouncements") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const announcement = await ctx.db.get(args.announcementId);
     if (announcement) {
       for (const asset of announcement.media ?? []) {

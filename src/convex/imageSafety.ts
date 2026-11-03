@@ -72,13 +72,58 @@ async function checkImage(blob: Blob, apiUser: string, apiSecret: string): Promi
   return { flagged: false, reason: "No violations found", detail };
 }
 
-/** Deletes an upload that was rejected before it could be attached. */
-export const discardUpload = internalMutation({
+/**
+ * Claims a newly uploaded object for the signed-in uploader before any safety
+ * check runs. This makes later cleanup ownership-checked instead of trusting a
+ * raw storage ID supplied by the browser.
+ */
+export const uploadPurpose = internalQuery({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, { storageId }) => {
-    await ctx.storage.delete(storageId);
+    return Boolean(await ctx.db.query("announcementAssets")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", storageId))
+      .unique());
+  },
+});
+
+export const claimUpload = internalMutation({
+  args: { userId: v.id("users"), storageId: v.id("_storage") },
+  handler: async (ctx, { userId, storageId }) => {
+    const existing = await ctx.db.query("playerMedia")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", storageId))
+      .unique();
+    if (existing) {
+      if (existing.ownerId !== userId || existing.kind !== "profile") {
+        throw new Error("This upload belongs to another account or purpose.");
+      }
+      return { claimed: false as const };
+    }
+    await ctx.db.insert("playerMedia", { storageId, ownerId: userId, kind: "profile", createdAt: Date.now() });
+    return { claimed: true as const };
+  },
+});
+
+/** Deletes an upload that was rejected before it could be attached. */
+export const discardUpload = internalMutation({
+  args: { userId: v.id("users"), storageId: v.id("_storage") },
+  handler: async (ctx, { userId, storageId }) => {
     const asset = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
-    if (asset) await ctx.db.delete(asset._id);
+    // Never delete an object merely because a client supplied its storage ID.
+    // Only the uploader's own claimed object can be discarded here, and never
+    // the photo that is currently active on the account.
+    if (!asset || asset.ownerId !== userId || asset.kind !== "profile") return { discarded: false as const };
+    const user = await ctx.db.get(userId);
+    if (user?.profileImageStorageId === storageId) return { discarded: false as const };
+    // Never let an uploader erase the only copy of an image-safety case while
+    // reviewers may still need it as evidence.
+    const cases = await ctx.db.query("mediaModeration")
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(50);
+    if (cases.some((item) => item.storageId === storageId)) return { discarded: false as const };
+    await ctx.storage.delete(storageId);
+    await ctx.db.delete(asset._id);
+    return { discarded: true as const };
   },
 });
 
@@ -163,31 +208,35 @@ export const finalizeProfileImage = action({
     await ctx.runQuery(internal.siteStatus.requireAuthAccess, {});
     const uploader = await ctx.runQuery(internal.imageSafety.uploaderState, {});
     if (!uploader) {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { storageId });
       throw new Error("Sign in to update your profile photo.");
     }
     if (uploader.imageUploadBlockedUntil > Date.now()) {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { storageId });
       throw new Error("Profile photo uploads are paused on this account while the contact team reviews a safety flag. You can still use an existing photo.");
     }
+    const announcementAsset = await ctx.runQuery(internal.imageSafety.uploadPurpose, { storageId });
+    if (announcementAsset) throw new Error("This upload belongs to an announcement.");
+    await ctx.runMutation(internal.imageSafety.claimUpload, { userId: uploader.userId, storageId });
     const metadata = await ctx.runQuery(internal.imageSafety.uploadMetadata, { storageId });
     if (!metadata || !ALLOWED_TYPES.includes(metadata.contentType ?? "") || metadata.size > MAX_BYTES) {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { storageId });
+      await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
       throw new Error("Choose a JPG, PNG, WebP, or GIF image up to 5 MB.");
     }
     const apiUser = process.env.SIGHTENGINE_API_USER?.trim();
     const apiSecret = process.env.SIGHTENGINE_API_SECRET?.trim();
     if (!apiUser || !apiSecret) {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { storageId });
+      await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
       throw new Error("Profile photo uploads are paused while the automatic image safety check is unavailable. Please email contact@openworlds.dk if this continues.");
     }
     const blob = await ctx.storage.get(storageId);
-    if (!blob) throw new Error("That upload could not be read. Please try again.");
+    if (!blob) {
+      await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
+      throw new Error("That upload could not be read. Please try again.");
+    }
     let result: SafetyResult;
     try {
       result = await checkImage(blob, apiUser, apiSecret);
     } catch {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { storageId });
+      await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
       throw new Error("The image safety check could not be completed, so the photo was not saved. Please try again shortly.");
     }
     if (result.flagged) {

@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireStaffUnlock } from "./staffUnlock";
+import { accountLabel, recordAudit } from "./bans";
 
 const statusValidator = v.union(v.literal("available"), v.literal("unavailable"));
 
@@ -55,21 +56,27 @@ export const staffStatus = query({
   },
 });
 
-/** Staff can take the site offline; only an administrator can bring it back. */
+/** Only a verified administrator may take the site offline or restore it. */
 export const setStatus = mutation({
   args: { status: statusValidator },
   handler: async (ctx, { status }) => {
     await requireStaffUnlock(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!user || !isAuthorizedStaff(user)) throw new Error("Only authorized staff can change the website status.");
-    if (status === "available" && !isAuthorizedAdmin(user)) {
-      throw new Error("Only an administrator can bring the website back online.");
+    if (!user || !isAuthorizedAdmin(user)) {
+      throw new Error("Only an administrator can change the website status.");
     }
     const setting = await ctx.db.query("siteStatusSettings").withIndex("by_key", (q) => q.eq("key", "main")).unique();
     const updatedAt = Date.now();
     if (setting) await ctx.db.patch(setting._id, { status, pendingStatus: undefined, updatedAt });
     else await ctx.db.insert("siteStatusSettings", { key: "main", status, updatedAt });
+    await recordAudit(ctx, {
+      actorId: user._id,
+      actorLabel: accountLabel(user),
+      action: "permissions-updated",
+      targetLabel: "Website status",
+      reason: `Website status set to ${status}.`,
+    });
     return { ok: true as const, status };
   },
 });

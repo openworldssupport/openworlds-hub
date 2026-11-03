@@ -13,19 +13,19 @@ export async function recordSecurityViolation(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) return;
   const user = await ctx.db.get(userId);
-  if (!user || user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk" || user.isSiteBanned) return;
+  // Use the same verified-admin check as authorization. A raw role value must
+  // not exempt an unverified or banned account from abuse tracking.
+  if (!user || user.isSiteBanned || (await isAdmin(ctx)) || user.email?.trim().toLowerCase() === "contact@openworlds.dk") return;
   const now = Date.now();
   const count = user.lastSecurityViolationAt && now - user.lastSecurityViolationAt < 60 * 60 * 1000
     ? (user.securityViolationCount ?? 0) + 1
     : 1;
+  // Track repeated unauthorized attempts for review, but never apply a
+  // permanent ban automatically. A UI retry loop or a shared device must not be
+  // able to permanently restrict an account without a human decision.
   await ctx.db.patch(userId, {
     securityViolationCount: count,
     lastSecurityViolationAt: now,
-    ...(count >= 5 ? {
-      isSiteBanned: true,
-      siteBanReason: "Repeated unauthorized access attempts",
-      siteBannedAt: now,
-    } : {}),
   });
 }
 
@@ -57,16 +57,16 @@ export const accessStatus = query({
     if (!userId) return { signedIn: false, isAdmin: false, isBanned: false, reason: null };
     const user = await ctx.db.get(userId);
     if (!user) return { signedIn: false, isAdmin: false, isBanned: false, reason: null };
-    const isAdmin = user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
+    const administrator = await isAdmin(ctx);
     const appeals = await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", userId)).order("desc").take(10);
     const latestAppeal = appeals[0];
     return {
       signedIn: true,
-      isAdmin,
-      isBanned: !isAdmin && user.isSiteBanned === true,
-      reason: !isAdmin && user.isSiteBanned ? user.siteBanReason ?? null : null,
-      banType: !isAdmin && user.isSiteBanned ? user.banType ?? "permanent" : null,
-      banExpiresAt: !isAdmin && user.isSiteBanned ? user.banExpiresAt ?? null : null,
+      isAdmin: administrator,
+      isBanned: !administrator && user.isSiteBanned === true,
+      reason: !administrator && user.isSiteBanned ? user.siteBanReason ?? null : null,
+      banType: !administrator && user.isSiteBanned ? user.banType ?? "permanent" : null,
+      banExpiresAt: !administrator && user.isSiteBanned ? user.banExpiresAt ?? null : null,
       hasPendingAppeal: appeals.some((appeal) => appeal.status === "pending"),
       lastAppeal: latestAppeal ? {
         status: latestAppeal.status,
@@ -107,7 +107,7 @@ export const listBansAndAppeals = query({
     if (!access.canViewAppeals) {
       throw new Error("Your department or position can view moderation cases but not appeal details.");
     }
-    const users = await ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(500);
+    const users = await ctx.db.query("users").withIndex("by_site_banned", (q) => q.eq("isSiteBanned", true)).take(500);
     const appeals = await ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(100);
     return {
       bans: users.map((user) => ({
@@ -191,12 +191,17 @@ export const reviewAppeal = mutation({
     if (!reviewerId || !user) throw new Error("This appeal could not be reviewed.");
     const reviewerLabel = accountLabel(reviewer);
     // A decision should not be reviewed by the person who issued it.
+    const banIdentityRows = await ctx.db
+      .query("bannedIdentities")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
     const recentBanEntries = await ctx.db
       .query("moderationLog")
       .withIndex("by_target_created", (q) => q.eq("targetId", user._id))
       .order("desc")
-      .take(30);
-    if (recentBanEntries.some((entry) => entry.actorId === reviewerId && (entry.action === "ban-temporary" || entry.action === "ban-permanent"))) {
+      .take(100);
+    if (banIdentityRows.some((row) => row.createdBy === reviewerId) ||
+      recentBanEntries.some((entry) => entry.actorId === reviewerId && (entry.action === "ban-temporary" || entry.action === "ban-permanent"))) {
       throw new Error("A different moderator must review an appeal for a ban they issued.");
     }
     await ctx.db.patch(appeal._id, { status: args.decision, reviewedAt: Date.now(), reviewedBy: reviewerId ?? undefined });

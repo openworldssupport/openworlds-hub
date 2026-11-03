@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireSiteAvailable } from "./siteStatus";
+import { assertCleanPublicText } from "../lib/contentFilter";
 import type { Doc } from "./_generated/dataModel";
 
 /** A website tab counts as online while it sends heartbeats. */
@@ -45,7 +46,8 @@ export const reportGameActivity = mutation({
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || user.isSiteBanned) throw new Error("Sign in to report game presence.");
     if (active) {
-      const label = activity?.trim().slice(0, 40);
+      const rawLabel = activity?.trim().slice(0, 40);
+      const label = rawLabel ? assertCleanPublicText(rawLabel, "Game activity") : undefined;
       await ctx.db.patch(user._id, {
         lastGameSeenAt: Date.now(),
         ...(label ? { gameActivity: label } : {}),

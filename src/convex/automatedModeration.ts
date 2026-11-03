@@ -126,6 +126,9 @@ export const assessTarget = internalMutation({
       .take(30))
       .filter((warning) => warning.createdAt >= now - 90 * 24 * 60 * 60 * 1000);
     const recentWarning = priorWarnings.some((warning) => warning.createdAt >= now - WARNING_COOLDOWN_MS);
+    // A coordinated group must not be able to auto-ban an account without a
+    // staff member having reviewed and warned that account first.
+    const priorStaffWarning = priorWarnings.some((warning) => warning.source === "staff");
     const priorAutoBan = (await ctx.db
       .query("moderationAssessments")
       .withIndex("by_target_created", (q) => q.eq("targetId", targetId))
@@ -157,6 +160,7 @@ export const assessTarget = internalMutation({
     if (severity === "low") reasons.push("The dominant category is low severity, so no automatic warning or ban is allowed.");
     if (recentWarning) reasons.push("A warning was already issued recently; another one is not issued automatically.");
     if (priorAutoBan) reasons.push("An automatic temporary ban was already used in the last 90 days; further action needs a person.");
+    if (!priorStaffWarning) reasons.push("A staff member has not reviewed and warned this account, so automatic banning is disabled.");
 
     const canWarn = !targetIsStaff &&
       severity !== "low" &&
@@ -177,7 +181,7 @@ export const assessTarget = internalMutation({
       domains.length >= 3 &&
       reportersWithEvidence >= 3 &&
       evidenceScore >= AUTO_BAN_SCORE &&
-      priorWarnings.length >= 1;
+      priorStaffWarning;
 
     const status: "automatically-warned" | "automatically-banned" | "needs-review" | "insufficient-evidence" =
       canBan ? "automatically-banned"
