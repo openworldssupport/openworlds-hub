@@ -322,7 +322,9 @@ const SITE_THEME = {
   green: "#176b45", // --ow-green
   red: "#a52234", // --ow-red
   gold: "#d6a63b", // --ow-gold
-  logoPlate: "#0875d1", // brand plate
+  hero: "#14583c", // .ow-page-hero background
+  heroInk: "#ffffff", // text on the green banner
+  heroMuted: "#cddcd3", // secondary text on the green banner
   font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
   mono: "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace",
 } as const;
@@ -333,17 +335,17 @@ function emailRule(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(SITE_THEME.red, "34%")}${cell(SITE_THEME.green, "49%")}${cell(SITE_THEME.gold, "17%")}</tr></table>`;
 }
 
-/** The globe plate, drawn with borders so it renders without a hosted image. */
+/** The outline globe mark, drawn with borders so it renders without an image. */
 function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:${SITE_THEME.logoPlate};border-radius:9px">
-      <div style="width:22px;height:22px;margin:0 auto;border:2px solid ${SITE_THEME.paper};border-radius:50%;line-height:0;font-size:0">
-        <div style="width:18px;height:2px;margin:8px auto 0;background:${SITE_THEME.paper};line-height:0;font-size:0">&nbsp;</div>
+    <td width="34" height="34" align="center" valign="middle" style="width:34px;height:34px;border:2px solid ${SITE_THEME.heroInk};border-radius:9px">
+      <div style="width:18px;height:18px;margin:0 auto;border:2px solid ${SITE_THEME.heroInk};border-radius:50%;line-height:0;font-size:0">
+        <div style="width:14px;height:2px;margin:6px auto 0;background:${SITE_THEME.heroInk};line-height:0;font-size:0">&nbsp;</div>
       </div>
     </td>
     <td valign="middle" style="padding-left:12px">
-      <div style="font:700 17px/1.2 ${SITE_THEME.font};color:${SITE_THEME.ink};letter-spacing:-0.2px">OpenWorlds</div>
-      <div style="padding-top:3px;font:400 11px/1.4 ${SITE_THEME.font};color:${SITE_THEME.muted};letter-spacing:0.4px">openworlds.dk</div>
+      <div style="font:700 17px/1.2 ${SITE_THEME.font};color:${SITE_THEME.heroInk};letter-spacing:-0.2px">OpenWorlds</div>
+      <div style="padding-top:3px;font:400 11px/1.4 ${SITE_THEME.font};color:${SITE_THEME.heroMuted};letter-spacing:0.4px">openworlds.dk</div>
     </td>
   </tr></table>`;
 }
@@ -377,13 +379,13 @@ ${preheader ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden
     <td align="center" style="padding:0 12px">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;border-collapse:collapse">
         <tr><td style="padding:0">${emailRule()}</td></tr>
-        <tr><td style="padding:28px 24px 22px">${emailLogo()}</td></tr>
         <tr>
-          <td style="border-top:1px solid ${SITE_THEME.hairline};padding:26px 24px 24px">
-            <h1 style="margin:0 0 16px;font:600 20px/1.35 ${SITE_THEME.font};color:${SITE_THEME.ink};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
-            ${body}
+          <td style="background:${SITE_THEME.hero};padding:26px 24px 26px">
+            ${emailLogo()}
+            <h1 style="margin:20px 0 0;font:600 21px/1.35 ${SITE_THEME.font};color:${SITE_THEME.heroInk};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
           </td>
         </tr>
+        <tr><td style="padding:26px 24px 24px">${body}</td></tr>
         <tr>
           <td style="border-top:1px solid ${SITE_THEME.hairline};padding:16px 24px 28px">
             <p style="margin:0;font:400 12px/1.6 ${SITE_THEME.font};color:${SITE_THEME.muted}">OpenWorlds · ${escapeHtml(footerAddress)}</p>
