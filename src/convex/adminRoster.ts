@@ -23,7 +23,7 @@ export const creatorRosterStatus = query({
   args: {},
   handler: async (ctx) => {
     const state = await staffUnlockState(ctx);
-    return { canManage: state.canAct, verifiedUntil: state.verifiedUntil };
+    return { canManage: state.isAdmin && state.canAct, verifiedUntil: state.verifiedUntil };
   },
 });
 
@@ -38,9 +38,9 @@ export async function requirePermissionVerification(ctx: QueryCtx | MutationCtx)
 }
 
 export async function requireCreatorManagementAuthorization(ctx: QueryCtx | MutationCtx) {
-  await requireStaffUnlock(ctx);
+  await requireRosterVerification(ctx);
 }
 
 export async function requireCreatorVerification(ctx: QueryCtx | MutationCtx) {
-  await requireStaffUnlock(ctx);
+  await requireRosterVerification(ctx);
 }

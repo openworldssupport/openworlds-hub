@@ -90,7 +90,7 @@ export default function CreatorVerification() {
       <SiteNav />
       <section className="ow-page-hero px-5 py-12 text-white sm:px-8 sm:py-16">
         <div className="mx-auto max-w-4xl">
-          <p className="flex items-center gap-2 text-sm font-medium text-blue-100"><BadgeCheck className="size-4" /> Staff tools</p>
+          <p className="flex items-center gap-2 text-sm font-medium text-blue-100"><BadgeCheck className="size-4" /> Admin tools</p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Creator verification</h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-blue-50">Review a creator’s player account and public profiles. Confirm with your authenticator app before granting verified status.</p>
         </div>
@@ -101,8 +101,8 @@ export default function CreatorVerification() {
           <div role="status" className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600"><Loader2 className="size-5 animate-spin" /> Checking staff access…</div>
         ) : !status.canManage ? (
           <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="font-semibold">Verified staff access required</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Sign in with an approved, email-verified OpenWorlds staff or administrator account to manage creator verification.</p>
+            <h2 className="font-semibold">Verified administrator access required</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Sign in with a verified OpenWorlds administrator account to manage creator verification.</p>
             <Button asChild variant="outline" className="mt-4"><Link to="/auth?returnTo=%2Fstaff%2Fcreators">Sign in</Link></Button>
           </section>
         ) : (
@@ -110,7 +110,7 @@ export default function CreatorVerification() {
             <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
               <div className="flex items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-800"><ShieldCheck className="size-5" /></span>
-                <div><h2 className="font-semibold">Unlock staff tools</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the 6-digit code from your authenticator app. Creator approvals stay unlocked for 15 minutes, and the same unlock covers the admin console.</p></div>
+                <div><h2 className="font-semibold">Unlock admin tools</h2><p className="mt-1 text-sm leading-6 text-slate-600">Enter the 6-digit code from your authenticator app. Creator approvals stay unlocked for 15 minutes, and the same unlock covers the admin console.</p></div>
               </div>
               {!verified && <div className="mt-4"><StaffUnlock description="Unlock creator approvals and the admin console with your authenticator app." /></div>}
               {verified && (
@@ -170,7 +170,7 @@ export default function CreatorVerification() {
           <DialogFooter><Button type="button" variant="outline" disabled={busy} onClick={() => setFormOpen(false)}>Cancel</Button><Button type="submit" form="creator-verification-form" disabled={busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : <BadgeCheck className="size-4" />} Grant verified Creator access</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Staff creator verification</footer>
+      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Administrator creator verification</footer>
     </main>
   );
 }

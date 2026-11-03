@@ -155,7 +155,7 @@ function WorkspaceOverview({
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
           {moderationAccess?.canView && <QuickLink to="/moderation" title="Trust & Safety console" />}
-          <QuickLink to="/staff/creators" title="Creator verification" />
+          {isAdmin && <QuickLink to="/staff/creators" title="Creator verification" />}
           {isAdmin && <QuickLink to="/admin" title="Admin console" />}
           <QuickLink to="/news" title="Public news" />
         </ul>
@@ -311,6 +311,7 @@ function AnnouncementList({
   empty,
   userId,
   isAdmin,
+  canPublish,
   onEdit,
   onStatus,
   onRemove,
@@ -320,6 +321,7 @@ function AnnouncementList({
   empty: string;
   userId: AnyUserId;
   isAdmin: boolean;
+  canPublish: boolean;
   onEdit: (item: (typeof items)[number]) => void;
   onStatus: (item: (typeof items)[number]) => void;
   onRemove: (item: (typeof items)[number]) => void;
@@ -353,9 +355,11 @@ function AnnouncementList({
                       <Pencil className="size-3.5" />
                       Edit
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => onStatus(item)}>
-                      {item.status === "published" ? "Unpublish" : "Publish"}
-                    </Button>
+                    {canPublish && (
+                      <Button size="sm" variant="outline" onClick={() => onStatus(item)}>
+                        {item.status === "published" ? "Unpublish" : "Publish"}
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" className="text-slate-500 hover:text-red-700" onClick={() => onRemove(item)}>
                       <Trash2 className="size-3.5" />
                       Delete
@@ -373,9 +377,11 @@ function AnnouncementList({
 
 function AnnouncementsPanel({
   isAdmin,
+  canPublish,
   userId,
 }: {
   isAdmin: boolean;
+  canPublish: boolean;
   userId: AnyUserId;
 }) {
   const announcements = useQuery(api.staff.announcements);
@@ -771,10 +777,14 @@ function AnnouncementsPanel({
             {busy ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
             Save draft
           </Button>
-          <Button type="button" size="sm" disabled={busy || uploading} onClick={() => void save("published")}>
-            <Send className="size-4" />
-            Publish
-          </Button>
+          {canPublish ? (
+            <Button type="button" size="sm" disabled={busy || uploading} onClick={() => void save("published")}>
+              <Send className="size-4" />
+              Publish
+            </Button>
+          ) : (
+            <span className="max-w-xs text-xs text-slate-500">Your department can save drafts. Publishing is limited to Communications, Community Operations, Executive Leadership, or an administrator.</span>
+          )}
         </div>
       </div>
 
@@ -790,6 +800,7 @@ function AnnouncementsPanel({
             empty="No drafts yet."
             userId={userId}
             isAdmin={isAdmin}
+            canPublish={canPublish}
             onEdit={edit}
             onStatus={(item) => void changeStatus(item, "published")}
             onRemove={(item) => void remove(item)}
@@ -800,6 +811,7 @@ function AnnouncementsPanel({
             empty="No public announcements yet."
             userId={userId}
             isAdmin={isAdmin}
+            canPublish={canPublish}
             onEdit={edit}
             onStatus={(item) => void changeStatus(item, "draft")}
             onRemove={(item) => void remove(item)}
@@ -947,16 +959,21 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const location = useLocation();
   const me = useQuery(api.staff.me);
   const moderationAccess = useQuery(api.moderation.myAccess);
+  const adminView = isAdmin || me?.isAdmin === true;
   const tabs = [
     { id: "overview" as const, label: "Workspace" },
     { id: "departments" as const, label: "Departments" },
     { id: "announcements" as const, label: "Announcements" },
     { id: "messages" as const, label: "Team board" },
   ];
+  const resourceLinks = [
+    ...(moderationAccess?.canView ? [{ to: "/moderation", label: "Moderation" }] : []),
+    ...(adminView ? [{ to: "/staff/creators", label: "Creator verification" }] : []),
+    ...(adminView ? [{ to: "/admin", label: "Admin console" }] : []),
+  ];
 
   const selectedTab: StaffSection =
     tabs.find((tab) => location.pathname.endsWith("/staff/" + tab.id))?.id ?? "overview";
-  const adminView = isAdmin || me?.isAdmin === true;
   return (
     <div className="staff-workspace min-h-screen bg-white pb-12">
       <header className="staff-masthead px-5 py-6 sm:px-8">
@@ -968,13 +985,19 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         </div>
       </header>
       <div className={`mx-auto ${selectedTab === "departments" ? "max-w-7xl" : "max-w-4xl"} px-5 py-6 sm:px-8`}>
-        <nav className="mb-6 flex flex-wrap gap-5 border-b border-slate-200 pb-3 text-sm" aria-label="Staff workspace">
+        <nav className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-slate-200 pb-3 text-sm" aria-label="Staff workspace">
           {tabs.map(({ id, label }) => (
             <Link
               key={id}
               to={`/staff/${id}`}
               className={selectedTab === id ? "font-semibold text-[#14583c]" : "text-slate-500 hover:text-slate-900"}
             >
+              {label}
+            </Link>
+          ))}
+          {resourceLinks.length > 0 && <span className="hidden h-4 border-l border-slate-200 sm:inline" aria-hidden="true" />}
+          {resourceLinks.map(({ to, label }) => (
+            <Link key={to} to={to} className="text-slate-500 hover:text-slate-900">
               {label}
             </Link>
           ))}
@@ -987,7 +1010,11 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
       ) : selectedTab === "departments" ? (
         <DepartmentHub />
       ) : selectedTab === "announcements" ? (
-        <AnnouncementsPanel isAdmin={adminView} userId={userId ?? (me?.userId ?? "")} />
+        <AnnouncementsPanel
+          isAdmin={adminView}
+          canPublish={Boolean(me?.canPublishAnnouncements)}
+          userId={userId ?? (me?.userId ?? "")}
+        />
       ) : (
         <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}

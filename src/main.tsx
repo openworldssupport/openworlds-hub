@@ -273,9 +273,9 @@ createRoot(document.getElementById("root")!).render(
                 path="/staff/creators"
                 element={
                   <RequireAuth
-                    title="Sign in"
-                    description="Sign in with your OpenWorlds account. Staff access is detected automatically."
-                    accessLevel="staff"
+                    title="Admin sign in"
+                    description="Creator verification is limited to verified administrators."
+                    accessLevel="admin"
                   >
                     <CreatorVerification />
                   </RequireAuth>

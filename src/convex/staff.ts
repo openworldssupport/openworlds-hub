@@ -4,7 +4,7 @@ import { isAdmin, requireAdmin, requireRoleAdministrator } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { canonicalDepartmentName, deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { recordSecurityViolation } from "./security";
@@ -52,6 +52,19 @@ export async function isStaff(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   return !user.isSiteBanned && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
 }
 
+/** Departments whose staff may publish public announcements; everyone else can draft. */
+const ANNOUNCEMENT_PUBLISH_DEPARTMENTS = new Set([
+  "Executive Leadership",
+  "Marketing & Growth",
+  "Community Operations & Player Engagement",
+]);
+
+function canPublishAnnouncementsFor(user: Doc<"users"> | null | undefined, admin: boolean) {
+  if (!user || user.isSiteBanned) return false;
+  if (admin) return true;
+  return ANNOUNCEMENT_PUBLISH_DEPARTMENTS.has(canonicalDepartmentName(user.department));
+}
+
 /** The portal header data: who you are, your department/position, your badge. */
 const CURRENT_STAFF_WELCOME_VERSION = 2;
 
@@ -71,6 +84,7 @@ export const me = query({
         position: null as string | null,
         badge: null as PublicBadge | null,
         memberStatus: null as "volunteer-thank-you" | null,
+        canPublishAnnouncements: false,
         welcome: null as { department: string; position: string; isAdmin: boolean } | null,
       };
     }
@@ -87,6 +101,7 @@ export const me = query({
       isAdmin: admin,
       isBanned: user.isSiteBanned === true,
       memberStatus: staff ? user.memberStatus ?? null : null,
+      canPublishAnnouncements: staff && canPublishAnnouncementsFor(user, admin),
       name: staff && !isEmailAddress(user.name) ? user.name?.trim() || null : null,
       nickname: staff && !isEmailAddress(user.nickname) ? user.nickname?.trim() || null : null,
       department: staff ? department : null,
@@ -615,6 +630,10 @@ export const saveAnnouncement = mutation({
     }
     const user = await currentUser(ctx);
     if (!user || !(await isStaffUnlocked(ctx))) return { restricted: true };
+    const admin = await isAdmin(ctx);
+    if (args.status === "published" && !canPublishAnnouncementsFor(user, admin)) {
+      throw new Error("Your department can save drafts but cannot publish public announcements. Ask an administrator or the communications team to publish it.");
+    }
     const title = args.title.trim();
     const summary = args.summary.trim();
     const body = args.body.trim();
@@ -652,8 +671,11 @@ export const saveAnnouncement = mutation({
     if (args.announcementId) {
       const existing = await ctx.db.get(args.announcementId);
       if (!existing) throw new Error("Announcement not found.");
-      if (existing.authorId !== userId && !(await isAdmin(ctx))) {
+      if (existing.authorId !== userId && !admin) {
         throw new Error("You can only edit your own announcements.");
+      }
+      if (!canPublishAnnouncementsFor(user, admin) && existing.status === "published") {
+        throw new Error("Your department can save drafts but cannot edit a published announcement. Ask a publisher or an administrator to change it.");
       }
       await validateAnnouncementAssets(ctx, args.media, existing.authorId, args.announcementId);
       const nextIds = new Set(args.media.map((asset) => asset.storageId));
@@ -771,10 +793,14 @@ export const setAnnouncementStatus = mutation({
     if (args.status === "published" && (!user || !(await isStaffUnlocked(ctx)))) {
       return { ok: false, restricted: true };
     }
+    const admin = await isAdmin(ctx);
+    if (!canPublishAnnouncementsFor(user, admin)) {
+      throw new Error("Your department can save drafts but cannot publish or unpublish public announcements.");
+    }
     const announcement = await ctx.db.get(args.announcementId);
     if (!announcement) throw new Error("Announcement not found.");
     const userId = await getAuthUserId(ctx);
-    if (announcement.authorId !== userId && !(await isAdmin(ctx))) {
+    if (announcement.authorId !== userId && !admin) {
       throw new Error("You can only manage your own announcements.");
     }
     await ctx.db.patch(args.announcementId, {
