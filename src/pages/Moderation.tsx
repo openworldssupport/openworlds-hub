@@ -838,7 +838,7 @@ function PermissionsPanel({ access }: { access: Access }) {
           <div>
             <h2 className="font-semibold">Moderation permissions</h2>
             <p className="mt-1 text-sm leading-6 text-slate-600">
-              Choose a department and position, then tick the exact powers it should have. Administrators keep every capability. Changes apply on the next request and every change is written to the audit log.
+              Only administrators can edit these grants. Choose a department and position, then tick the exact powers it should have. Administrators keep every capability. Changes apply on the next request and every change is written to the audit log.
             </p>
           </div>
         </div>

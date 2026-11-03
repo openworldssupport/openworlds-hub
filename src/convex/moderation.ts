@@ -15,8 +15,7 @@ import {
   requireModerationCapability,
   type ModerationCapability,
 } from "./moderationAccess";
-import { requireAdmin } from "./admin";
-import { requirePermissionVerification } from "./adminRoster";
+import { requireRoleAdministrator } from "./admin";
 import type { Doc, Id } from "./_generated/dataModel";
 
 const reportCategory = v.union(
@@ -724,8 +723,7 @@ export const setRolePermissions = mutation({
     )),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    const actor = await requireRoleAdministrator(ctx);
     const department = args.department.trim();
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
@@ -738,9 +736,7 @@ export const setRolePermissions = mutation({
     // view permission, so add it instead of saving a silently broken role.
     if (requested.size > 0) requested.add("view");
     const capabilities = [...requested] as ModerationCapability[];
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
-    if (!actorId || !actor) throw new Error("Not authorized.");
+    const actorId = actor._id;
     const departmentKey = department.trim().toLowerCase().replace(/\s+/g, " ");
     const positionKey = position.trim().toLowerCase().replace(/\s+/g, " ");
     const existing = await ctx.db.query("moderationRolePermissions")
@@ -771,8 +767,7 @@ export const setRolePermissions = mutation({
 export const resetRolePermissions = mutation({
   args: { department: v.string(), position: v.string() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    const actor = await requireRoleAdministrator(ctx);
     const department = args.department.trim();
     const position = args.position.trim();
     const departmentKey = department.trim().toLowerCase().replace(/\s+/g, " ");
@@ -781,12 +776,9 @@ export const resetRolePermissions = mutation({
       .withIndex("by_keys", (q) => q.eq("departmentKey", departmentKey).eq("positionKey", positionKey))
       .unique();
     if (!existing) return { ok: true as const };
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
-    if (!actorId || !actor) throw new Error("Not authorized.");
     await ctx.db.delete(existing._id);
     await recordAudit(ctx, {
-      actorId,
+      actorId: actor._id,
       actorLabel: accountLabel(actor),
       action: "permissions-updated",
       targetLabel: `${department} / ${position}`,

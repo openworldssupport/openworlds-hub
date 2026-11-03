@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
 
@@ -29,6 +30,20 @@ export async function requireCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<
   if (!user || user.emailVerificationTime === undefined || user.isSiteBanned || (user.role !== "admin" && !bootstrapAdmin)) {
     throw new Error("Not authorized.");
   }
+}
+
+/**
+ * The single guard for changing an account's role, department, position, or
+ * moderation capability grants. Requires a verified, unbanned administrator
+ * and a live authenticator unlock for this browser session.
+ */
+export async function requireRoleAdministrator(ctx: MutationCtx): Promise<Doc<"users">> {
+  await requireCompanyAdmin(ctx);
+  await requirePermissionVerification(ctx);
+  const userId = await getAuthUserId(ctx);
+  const user = userId ? await ctx.db.get(userId) : null;
+  if (!user) throw new Error("Not authorized.");
+  return user;
 }
 
 async function isCompanyAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
@@ -90,10 +105,7 @@ export const inviteCompanyAccount = mutation({
     memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
   },
   handler: async (ctx, args) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
+    const actor = await requireRoleAdministrator(ctx);
     const email = args.email.trim().toLowerCase();
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Enter a valid company email address.");
@@ -130,7 +142,7 @@ export const inviteCompanyAccount = mutation({
       accessLevel: args.accessLevel,
       ...(args.memberStatus === "volunteer-thank-you" ? { memberStatus: "volunteer-thank-you" as const } : {}),
       invitedAt: Date.now(),
-      invitedBy: (await getAuthUserId(ctx))!,
+      invitedBy: actor._id,
     };
     if (existing) await ctx.db.replace(existing._id, values);
     else await ctx.db.insert("companyAccess", values);
@@ -169,10 +181,7 @@ export const inviteCompanyAccount = mutation({
 export const revokeCompanyAccount = mutation({
   args: { accountId: v.id("companyAccess") },
   handler: async (ctx, { accountId }) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
+    const actor = await requireRoleAdministrator(ctx);
     const invitation = await ctx.db.get(accountId);
     if (!invitation) return { ok: true };
     const normalized = invitation.email.trim().toLowerCase();

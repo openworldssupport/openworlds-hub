@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { isAdmin, requireAdmin, requireCompanyAdmin } from "./admin";
+import { isAdmin, requireAdmin, requireRoleAdministrator } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
@@ -247,8 +247,7 @@ export const listMembers = query({
 export const setOfficialCreator = mutation({
   args: { userId: v.id("users"), isOfficialCreator: v.boolean() },
   handler: async (ctx, { userId, isOfficialCreator }) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    const actor = await requireRoleAdministrator(ctx);
     const target = await ctx.db.get(userId);
     if (!target || target.role !== "user" || target.isSiteBanned || target.recoveryEmailVerifiedAt === undefined) {
       throw new Error("Choose an active player account with a verified recovery email.");
@@ -271,18 +270,14 @@ export const setOfficialCreator = mutation({
       if (linked) await ctx.db.patch(linked._id, { linkedUserId: undefined, updatedAt: Date.now() });
       await ctx.db.patch(userId, { isOfficialCreator: undefined });
     }
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
-    if (actor) {
-      await recordAudit(ctx, {
-        actorId: actor._id,
-        actorLabel: accountLabel(actor),
-        action: "permissions-updated",
-        targetId: target._id,
-        targetLabel: accountLabel(target),
-        reason: `Official creator badge ${isOfficialCreator ? "granted" : "removed"} by an administrator.`,
-      });
-    }
+    await recordAudit(ctx, {
+      actorId: actor._id,
+      actorLabel: accountLabel(actor),
+      action: "permissions-updated",
+      targetId: target._id,
+      targetLabel: accountLabel(target),
+      reason: `Official creator badge ${isOfficialCreator ? "granted" : "removed"} by an administrator.`,
+    });
     return { ok: true, isOfficialCreator };
   },
 });
@@ -293,8 +288,7 @@ export const setMemberStatus = mutation({
     memberStatus: v.union(v.literal("none"), v.literal("volunteer-thank-you")),
   },
   handler: async (ctx, args) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
+    await requireRoleAdministrator(ctx);
     const target = await ctx.db.get(args.userId);
     if (!target) throw new Error("Account not found.");
     if (target.role !== "admin" && target.email?.trim().toLowerCase() !== "contact@openworlds.dk") {
@@ -318,10 +312,7 @@ export const setAssignment = mutation({
     memberStatus: v.optional(v.union(v.literal("none"), v.literal("volunteer-thank-you"))),
   },
   handler: async (ctx, args) => {
-    await requireCompanyAdmin(ctx);
-    await requirePermissionVerification(ctx);
-    const actorId = await getAuthUserId(ctx);
-    const actor = actorId ? await ctx.db.get(actorId) : null;
+    const actor = await requireRoleAdministrator(ctx);
     const department = args.department.trim();
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
