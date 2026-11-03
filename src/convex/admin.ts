@@ -83,14 +83,28 @@ export const listCompanyAccess = query({
     if (!(await isCompanyAdmin(ctx))) return null;
     await requireRosterVerification(ctx);
     const accounts = await ctx.db.query("companyAccess").withIndex("by_email").take(1000);
-    return accounts.map(({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => ({
-      _id,
-      department: canonicalDepartmentName(department) || null,
-      position,
-      publicBadge,
-      accessLevel,
-      memberStatus: memberStatus ?? null,
-      email,
+    return await Promise.all(accounts.map(async ({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("email", (q) => q.eq("email", email))
+        .first();
+      const isActive = Boolean(
+        user &&
+        user.emailVerificationTime !== undefined &&
+        !user.isSiteBanned &&
+        (user.role === "admin" || user.role === "member" || user.staffAccess || user.department?.trim() || user.position?.trim()),
+      );
+      return {
+        _id,
+        department: canonicalDepartmentName(department) || null,
+        position,
+        publicBadge,
+        accessLevel,
+        memberStatus: memberStatus ?? null,
+        email,
+        username: user?.playerLogin ?? null,
+        isActive,
+      };
     }));
   },
 });

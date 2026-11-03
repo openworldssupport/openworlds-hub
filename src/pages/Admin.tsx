@@ -51,6 +51,16 @@ type ConvertiblePlayer = {
   suggestedEmail: string | null;
 };
 
+type CompanyAccessAccount = {
+  _id: Id<"companyAccess">;
+  email: string;
+  username: string | null;
+  department: string | null;
+  position: string;
+  accessLevel: "staff" | "admin";
+  isActive: boolean;
+};
+
 type TeamRowProps = {
   member: TeamMember;
   busy: boolean;
@@ -139,6 +149,7 @@ function TeamPanel() {
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
+      <PendingStaffPanel canChange={isPermissionVerified} />
       <PlayerConversionPanel canChange={isPermissionVerified} />
       <StaffInvitePanel canChange={isPermissionVerified} />
       {members.length === 0 ? (
@@ -170,6 +181,56 @@ function TeamPanel() {
       {status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(50)}>Load more accounts</Button>}
       {status === "LoadingMore" && <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-slate-400" /></div>}
     </div>
+  );
+}
+
+function PendingStaffPanel({ canChange }: { canChange: boolean }) {
+  const accounts = useQuery(api.admin.listCompanyAccess, canChange ? {} : "skip");
+  const revoke = useMutation(api.admin.revokeCompanyAccount);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const pending = (accounts ?? []).filter((account) => !account.isActive);
+
+  async function handleRevoke(accountId: Id<"companyAccess">) {
+    setError("");
+    setBusyId(accountId);
+    try {
+      await revoke({ accountId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove that pending staff account.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (!canChange || pending.length === 0) return null;
+
+  return (
+    <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-5">
+      <h2 className="font-semibold">New staff waiting to sign in</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-600">These people have been added but are not active in the directory yet. They appear in the staff directory after signing in with the email code sent to their company email.</p>
+      <ul className="mt-3 space-y-2">
+        {pending.map((account: CompanyAccessAccount) => (
+          <li key={account._id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm">
+            <span>
+              <span className="font-medium">{account.email}</span>
+              {account.username ? <span className="text-slate-500"> · @{account.username}</span> : null}
+              <span className="text-slate-500"> — {account.department ?? "No department"} / {account.position}{account.accessLevel === "admin" ? " / admin" : ""}</span>
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busyId === account._id}
+              onClick={() => void handleRevoke(account._id)}
+            >
+              {busyId === account._id ? "Removing…" : "Remove"}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {error && <p role="alert" className="mt-3 rounded-sm border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+    </section>
   );
 }
 
@@ -310,16 +371,13 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
 }
 
 function StaffInvitePanel({ canChange }: { canChange: boolean }) {
-  const invites = useQuery(api.admin.listCompanyAccess, canChange ? {} : "skip");
   const invite = useMutation(api.admin.inviteCompanyAccount);
-  const revoke = useMutation(api.admin.revokeCompanyAccount);
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
   const [badge, setBadge] = useState<"staff" | "dev">("staff");
   const [accessLevel, setAccessLevel] = useState<"staff" | "admin">("staff");
   const [busy, setBusy] = useState(false);
-  const [revokingId, setRevokingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
 
@@ -347,19 +405,6 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
       setError(err instanceof Error ? err.message : "Could not add that staff account.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function handleRevoke(accountId: Id<"companyAccess">) {
-    setError("");
-    setSaved("");
-    setRevokingId(accountId);
-    try {
-      await revoke({ accountId });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove that staff account.");
-    } finally {
-      setRevokingId(null);
     }
   }
 
@@ -438,37 +483,6 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
       </form>
       {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {saved && <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{saved}</p>}
-      {(invites?.length ?? 0) > 0 && (
-        <div className="mt-5 border-t border-slate-100 pt-4">
-          <p className="text-sm font-medium">Staff accounts added</p>
-          <ul className="mt-2 space-y-2">
-            {invites!.map((account) => (
-              <li
-                key={account._id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-              >
-                <span>
-                  <span className="font-medium">{account.email}</span>
-                  <span className="text-slate-500">
-                    {" — "}
-                    {account.department} / {account.position}
-                    {account.accessLevel === "admin" ? " / admin" : ""}
-                  </span>
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!canChange || revokingId === account._id}
-                  onClick={() => void handleRevoke(account._id)}
-                >
-                  {revokingId === account._id ? "Removing…" : "Remove"}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   );
 }
