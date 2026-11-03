@@ -82,9 +82,14 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-5 text-slate-900">
         <section className="w-full max-w-xl rounded-xl border border-amber-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-semibold">Website access restricted</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Our security system restricted this account after repeated failed verification attempts. If you think this was a mistake, submit an appeal for staff review.</p>
+          <h1 className="text-2xl font-semibold">Account restricted</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">OpenWorlds moderation has restricted this account. If you believe the decision was unfair, you can submit an appeal for the contact team to review.</p>
           {siteAccess.reason && <p className="mt-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Reason: {siteAccess.reason}</p>}
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            {siteAccess.banType === "temporary" && siteAccess.banExpiresAt
+              ? `This is a temporary ban. Access returns automatically on ${new Date(siteAccess.banExpiresAt).toLocaleString()} unless an appeal changes it.`
+              : "This is a permanent ban. The contact team can review it, and you can appeal below."}
+          </p>
           {appealSent || siteAccess.hasPendingAppeal ? (
             <p className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{appealSent ? "Your appeal has been sent for review." : "Your appeal is awaiting staff review."}</p>
           ) : isAuthenticated ? (

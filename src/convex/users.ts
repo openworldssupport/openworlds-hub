@@ -6,6 +6,7 @@ import { deriveBadge, isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
+import { findSignupBlock } from "./bans";
 
 /**
  * Get the current signed in user. Returns null if the user is not signed in.
@@ -665,6 +666,7 @@ export const claimPlayerUsername = mutation({
     if (existing) throw new Error("That username is already in use.");
     const reservedCreator = await ctx.db.query("officialCreators").withIndex("by_username", (q) => q.eq("username", username)).first();
     if (reservedCreator) throw new Error("That username belongs to a verified creator.");
+    if (await findSignupBlock(ctx, { username })) throw new Error("That username belongs to a banned account and cannot be used.");
     await ctx.db.patch(userId, { playerLogin: username, profileDiscoverable: true });
     return { username };
   },

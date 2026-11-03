@@ -73,6 +73,11 @@ const schema = defineSchema(
       isSiteBanned: v.optional(v.boolean()),
       siteBanReason: v.optional(v.string()),
       siteBannedAt: v.optional(v.number()),
+      // Moderation bans are temporary or permanent. Temporary bans store an
+      // expiry and are lifted automatically; permanent bans also block new
+      // account creation with the same email or username (bannedIdentities).
+      banType: v.optional(v.union(v.literal("temporary"), v.literal("permanent"))),
+      banExpiresAt: v.optional(v.number()),
       securityViolationCount: v.optional(v.number()),
       lastSecurityViolationAt: v.optional(v.number()),
       newsPostingVerifiedUntil: v.optional(v.number()),
@@ -128,6 +133,70 @@ const schema = defineSchema(
     })
       .index("by_user", ["userId"])
       .index("by_status_created", ["status", "createdAt"]),
+
+    // Player reports reviewed by the contact team (staff and admins).
+    playerReports: defineTable({
+      reporterId: v.id("users"),
+      reporterLabel: v.string(),
+      targetId: v.id("users"),
+      targetLabel: v.string(),
+      targetUsername: v.optional(v.string()),
+      category: v.union(
+        v.literal("harassment"),
+        v.literal("hate-speech"),
+        v.literal("scam"),
+        v.literal("cheating"),
+        v.literal("inappropriate-content"),
+        v.literal("other"),
+      ),
+      message: v.string(),
+      status: v.union(v.literal("open"), v.literal("closed")),
+      resolution: v.optional(v.union(v.literal("no-action"), v.literal("warned"), v.literal("banned"))),
+      resolutionNote: v.optional(v.string()),
+      resolvedAt: v.optional(v.number()),
+      resolvedBy: v.optional(v.id("users")),
+      createdAt: v.number(),
+    })
+      .index("by_status_created", ["status", "createdAt"])
+      .index("by_target", ["targetId"])
+      .index("by_reporter_created", ["reporterId", "createdAt"]),
+
+    // Emails and usernames tied to a ban. Used to stop banned accounts from
+    // signing up again. Rows are removed when the ban is lifted.
+    bannedIdentities: defineTable({
+      userId: v.id("users"),
+      email: v.optional(v.string()),
+      username: v.optional(v.string()),
+      reason: v.string(),
+      expiresAt: v.optional(v.number()),
+      createdAt: v.number(),
+      createdBy: v.id("users"),
+    })
+      .index("by_email", ["email"])
+      .index("by_username", ["username"])
+      .index("by_user", ["userId"]),
+
+    // Append-only record of every moderation decision, so staff and admins
+    // can be held accountable for what they did and why.
+    moderationLog: defineTable({
+      actorId: v.id("users"),
+      actorLabel: v.string(),
+      action: v.union(
+        v.literal("ban-temporary"),
+        v.literal("ban-permanent"),
+        v.literal("unban"),
+        v.literal("report-dismissed"),
+        v.literal("report-warned"),
+        v.literal("report-banned"),
+        v.literal("appeal-approved"),
+        v.literal("appeal-declined"),
+      ),
+      targetId: v.optional(v.id("users")),
+      targetLabel: v.string(),
+      reason: v.string(),
+      reportId: v.optional(v.id("playerReports")),
+      createdAt: v.number(),
+    }).index("by_created", ["createdAt"]),
 
     // Legacy: news posting now uses the session unlock in staffUnlocks.
     newsPostingCodes: defineTable({

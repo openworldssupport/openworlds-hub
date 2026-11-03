@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ArrowLeft, BadgeCheck, Compass, ExternalLink, Loader2, MessageCircle, Pencil, UserPlus, UserRound, Users } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Compass, ExternalLink, Flag, Loader2, MessageCircle, Pencil, UserPlus, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { SiteNav } from "@/components/SiteNav";
@@ -23,7 +25,14 @@ export default function PlayerProfile() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [messageBody, setMessageBody] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportCategory, setReportCategory] = useState<"harassment" | "hate-speech" | "scam" | "cheating" | "inappropriate-content" | "other">("harassment");
+  const [reportText, setReportText] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportMessage, setReportMessage] = useState("");
   const profile = useQuery(api.users.publicPlayerProfile, { username });
+  const reportState = useQuery(api.moderation.reportState, profile?.username ? { username: profile.username } : "skip");
+  const submitReport = useMutation(api.moderation.submitPlayerReport);
   const friendStatus = useQuery(api.users.friendStatus, { username });
   const friends = useQuery(api.users.publicFriendList, { username });
   const conversation = useQuery(api.users.playerConversation, friendStatus?.status === "friends" ? { username } : "skip");
@@ -68,6 +77,22 @@ export default function PlayerProfile() {
       setMessage(error instanceof Error ? error.message : "Could not remove this connection.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function sendReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setReportBusy(true);
+    setReportMessage("");
+    try {
+      await submitReport({ username, category: reportCategory, message: reportText });
+      setReportText("");
+      setReportOpen(false);
+      setReportMessage("Report sent to the contact team. They review reports and can act on the account.");
+    } catch (error) {
+      setReportMessage(error instanceof Error ? error.message : "Could not send the report.");
+    } finally {
+      setReportBusy(false);
     }
   }
 
@@ -278,13 +303,53 @@ export default function PlayerProfile() {
                     {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-[#176b45] hover:underline">{profile.socialPlatform || "Social profile"}<ExternalLink className="size-4" /></a>}
                     {profile.isCompanyStaff && <Link to="/careers" className="block font-medium text-[#176b45] hover:underline">Open roles at OpenWorlds</Link>}
                     <Link to="/support" className="block text-slate-600 hover:text-[#176b45] hover:underline">Contact support</Link>
+                    {profile.username && !profile.isSelf && reportState?.canReport && !reportState.reported && (
+                      <button type="button" onClick={() => setReportOpen(true)} className="inline-flex items-center gap-2 text-slate-500 hover:text-[#b42318] hover:underline">
+                        <Flag className="size-4" /> Report this player
+                      </button>
+                    )}
+                    {reportState?.reported && <p className="text-xs text-slate-500">Report under review by the contact team.</p>}
+                    {profile.username && !profile.isSelf && reportState && !reportState.signedIn && <p className="text-xs text-slate-500"><Link to="/player-login" className="font-medium text-[#176b45] hover:underline">Sign in</Link> to report this player.</p>}
                   </div>
+                  {reportMessage && <p role="status" className="mt-3 text-sm text-slate-600">{reportMessage}</p>}
                 </section>
               </aside>
             </div>
           </div>
         )}
       </section>
+
+      <Dialog open={reportOpen} onOpenChange={(open) => { setReportOpen(open); if (!open) setReportMessage(""); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Report @{profile?.username}</DialogTitle>
+            <DialogDescription>Reports go to the OpenWorlds contact team. Only staff and admins reviewing reports can see this.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={sendReport} className="space-y-3">
+            <div className="space-y-2">
+              <label htmlFor="report-category" className="text-sm font-medium">What happened?</label>
+              <select id="report-category" value={reportCategory} onChange={(event) => setReportCategory(event.target.value as typeof reportCategory)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm">
+                <option value="harassment">Harassment or threats</option>
+                <option value="hate-speech">Hate speech</option>
+                <option value="scam">Scam or fraud</option>
+                <option value="cheating">Cheating or exploits</option>
+                <option value="inappropriate-content">Inappropriate content</option>
+                <option value="other">Something else</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="report-details" className="text-sm font-medium">Details</label>
+              <Textarea id="report-details" rows={5} minLength={20} maxLength={1500} required value={reportText} onChange={(event) => setReportText(event.target.value)} placeholder="What happened, when, and where? Include links or message text if it helps." />
+              <p className="text-xs text-slate-500">False reports can also lead to action on your account.</p>
+            </div>
+            {reportMessage && <p role="alert" className="text-sm text-[#b42318]">{reportMessage}</p>}
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={reportBusy || reportText.trim().length < 20}>{reportBusy ? "Sending…" : "Send report"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

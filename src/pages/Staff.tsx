@@ -55,7 +55,7 @@ type StaffSection = "overview" | "announcements" | "messages";
 function MoreStaffTools() {
   return (
     <details className="mb-6 border-y border-slate-200">
-      <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools</summary>
+      <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools <span className="ml-2 text-xs font-normal text-slate-500">player reports, bans, site status</span></summary>
       <div className="space-y-6 border-t border-slate-200 py-4">
         <SiteStatusControl />
         <StaffSecurityPanel />
@@ -1021,18 +1021,189 @@ function SiteStatusControl() {
   );
 }
 
+const REPORT_CATEGORIES: Record<string, string> = {
+  harassment: "Harassment",
+  "hate-speech": "Hate speech",
+  scam: "Scam or fraud",
+  cheating: "Cheating",
+  "inappropriate-content": "Inappropriate content",
+  other: "Other",
+};
+
+const MODERATION_ACTIONS: Record<string, string> = {
+  "ban-temporary": "Temporary ban",
+  "ban-permanent": "Permanent ban",
+  unban: "Ban lifted",
+  "report-dismissed": "Report dismissed",
+  "report-warned": "Player warned",
+  "report-banned": "Banned from report",
+  "appeal-approved": "Appeal approved",
+  "appeal-declined": "Appeal declined",
+};
+
+type ReportItem = {
+  _id: Id<"playerReports">;
+  category: string;
+  message: string;
+  createdAt: number;
+  reporterLabel: string;
+  targetLabel: string;
+  targetUsername: string | null;
+  targetId: Id<"users">;
+};
+
+type BanItem = {
+  userId: Id<"users">;
+  name: string;
+  email: string;
+  username: string | null;
+  reason: string;
+  banType: string;
+  expiresAt: number | null;
+  bannedAt: number;
+};
+
+function ReportCard({ report, isAdmin }: { report: ReportItem; isAdmin: boolean }) {
+  const review = useMutation(api.moderation.reviewReport);
+  const [note, setNote] = useState("");
+  const [days, setDays] = useState(7);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const ready = note.trim().length >= 10;
+
+  async function decide(decision: "dismiss" | "warn" | "ban-temporary" | "ban-permanent") {
+    setBusy(true);
+    setError("");
+    try {
+      await review({ reportId: report._id, decision, reason: note, days });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save this decision.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="border-t border-slate-200 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">{report.targetLabel}{report.targetUsername ? ` · @${report.targetUsername}` : ""}</p>
+          <p className="text-xs text-slate-500">Reported by {report.reporterLabel} · {new Date(report.createdAt).toLocaleString()}</p>
+        </div>
+        <span className="rounded border border-slate-200 px-2 py-0.5 text-xs text-slate-600">{REPORT_CATEGORIES[report.category] ?? report.category}</span>
+      </div>
+      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{report.message}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem]">
+        <div className="space-y-1">
+          <Label htmlFor={`report-note-${report._id}`} className="text-xs">Review note (saved to the audit log)</Label>
+          <Input id={`report-note-${report._id}`} value={note} maxLength={300} minLength={10} onChange={(event) => setNote(event.target.value)} placeholder="What did you decide and why?" />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`report-days-${report._id}`} className="text-xs">Temp ban days</Label>
+          <Input id={`report-days-${report._id}`} type="number" min={1} max={90} value={days} onChange={(event) => setDays(Number(event.target.value))} />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" disabled={busy || !ready} onClick={() => void decide("dismiss")}>Dismiss</Button>
+        <Button size="sm" variant="outline" disabled={busy || !ready} onClick={() => void decide("warn")}>Warn player</Button>
+        <Button size="sm" disabled={busy || !ready} onClick={() => void decide("ban-temporary")}>{busy ? <Loader2 className="size-4 animate-spin" /> : null} Temp ban</Button>
+        {isAdmin && <Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" disabled={busy || !ready} onClick={() => void decide("ban-permanent")}>Permanent ban</Button>}
+      </div>
+      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+    </article>
+  );
+}
+
+function BanRow({ ban, isAdmin }: { ban: BanItem; isAdmin: boolean }) {
+  const unban = useMutation(api.moderation.unbanAccount);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const permanent = ban.banType === "permanent";
+
+  async function lift() {
+    setBusy(true);
+    setError("");
+    try {
+      await unban({ userId: ban.userId, reason });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not lift this ban.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <li className="p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">{ban.name}{ban.username ? ` · @${ban.username}` : ""}</p>
+          <p className="text-xs text-slate-500">{[ban.email, ban.reason, new Date(ban.bannedAt).toLocaleDateString()].filter(Boolean).join(" · ")}</p>
+        </div>
+        <span className={`rounded border px-2 py-0.5 text-xs ${permanent ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+          {permanent ? "Permanent" : `Until ${ban.expiresAt ? new Date(ban.expiresAt).toLocaleDateString() : "soon"}`}
+        </span>
+      </div>
+      {permanent && !isAdmin ? (
+        <p className="mt-2 text-xs text-slate-500">Permanent bans can only be lifted by an administrator.</p>
+      ) : (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} aria-label="Reason for lifting the ban" placeholder="Reason for lifting" className="max-w-64" />
+          <Button size="sm" variant="outline" disabled={busy || reason.trim().length < 10} onClick={() => void lift()}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Lift ban</Button>
+        </div>
+      )}
+      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+    </li>
+  );
+}
+
+function DirectBanForm({ isAdmin }: { isAdmin: boolean }) {
+  const banAccount = useMutation(api.moderation.banAccount);
+  const [username, setUsername] = useState("");
+  const [type, setType] = useState<"temporary" | "permanent">("temporary");
+  const [days, setDays] = useState(7);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    try {
+      await banAccount({ username, type, days, reason });
+      setUsername("");
+      setReason("");
+      setMessage("Ban applied and recorded in the audit log.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not apply this ban.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={(event) => void submit(event)} className="mt-4 grid gap-2 border-t border-slate-200 pt-4 sm:grid-cols-2">
+      <div className="space-y-1"><Label htmlFor="ban-username" className="text-xs">Username</Label><Input id="ban-username" value={username} onChange={(event) => setUsername(event.target.value.replace(/^@/, ""))} maxLength={64} required placeholder="player-name" /></div>
+      <div className="space-y-1"><Label htmlFor="ban-type" className="text-xs">Ban type</Label><select id="ban-type" value={type} onChange={(event) => setType(event.target.value as "temporary" | "permanent")} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"><option value="temporary">Temporary</option><option value="permanent">Permanent (admin only)</option></select></div>
+      {type === "temporary" && <div className="space-y-1"><Label htmlFor="ban-days" className="text-xs">Days (1–90)</Label><Input id="ban-days" type="number" min={1} max={90} value={days} onChange={(event) => setDays(Number(event.target.value))} /></div>}
+      <div className="space-y-1 sm:col-span-2"><Label htmlFor="ban-reason" className="text-xs">Reason (10–300 characters, shown to the player)</Label><Input id="ban-reason" value={reason} onChange={(event) => setReason(event.target.value)} minLength={10} maxLength={300} required /></div>
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-2"><Button type="submit" size="sm" disabled={busy || username.trim().length < 2 || reason.trim().length < 10}>{busy ? "Applying…" : "Apply ban"}</Button>{!isAdmin && <span className="text-xs text-slate-500">Permanent bans need an admin.</span>}{message && <p role="status" className="text-sm text-slate-600">{message}</p>}</div>
+    </form>
+  );
+}
+
 function StaffSecurityPanel() {
-  const data = useQuery(api.security.listBansAndAppeals);
-  const setBan = useMutation(api.security.setBan);
+  const data = useQuery(api.moderation.queue);
   const reviewAppeal = useMutation(api.security.reviewAppeal);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function perform(id: string, action: () => Promise<unknown>) {
+  async function decideAppeal(id: Id<"securityAppeals">, decision: "approved" | "declined") {
     setBusyId(id);
     setError("");
-    try { await action(); }
-    catch { setError("Could not complete moderation action. Please try again."); }
+    try { await reviewAppeal({ appealId: id, decision }); }
+    catch (err) { setError(err instanceof Error ? err.message : "Could not save this appeal decision."); }
     finally { setBusyId(null); }
   }
 
@@ -1040,13 +1211,25 @@ function StaffSecurityPanel() {
   return (
     <section>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="font-semibold">Website access review</h2><p className="mt-1 text-sm text-slate-600">Remove a ban or approve an appeal to restore access.</p></div>
-        <span className="text-xs text-slate-500">{data.bans.length} active · {data.appeals.length} appeals</span>
+        <div><h2 className="font-semibold">Reports &amp; moderation</h2><p className="mt-1 text-sm text-slate-600">Player reports land here for the contact team. Every decision is saved with your account for review.</p></div>
+        <span className="text-xs text-slate-500">{data.reports.length} open · {data.bans.length} bans · {data.appeals.length} appeals</span>
       </div>
       <div className="mt-3"><StaffUnlock description="Moderation actions need an authenticator unlock." /></div>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-      {data.appeals.length > 0 && <div className="divide-y divide-slate-200 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "approved" }))}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void perform(appeal._id, () => reviewAppeal({ appealId: appeal._id, decision: "declined" }))}><XCircle className="size-4" /> Decline</Button></div></article>)}</div>}
-      {data.appeals.length === 0 && data.bans.length === 0 ? <p className="mt-4 text-sm text-slate-500">No restrictions or appeals need attention.</p> : data.bans.length > 0 && <ul className="mt-4 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <li key={ban.userId} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-medium">{ban.name}</p><p className="text-sm text-slate-500">{ban.email} · {ban.reason}</p></div><Button size="sm" variant="outline" disabled={busyId === ban.userId} onClick={() => void perform(ban.userId, () => setBan({ userId: ban.userId, banned: false }))}>{busyId === ban.userId ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Unban</Button></li>)}</ul>}
+
+      <h3 className="mt-5 text-sm font-semibold">Open player reports</h3>
+      {data.reports.length === 0 ? <p className="mt-2 text-sm text-slate-500">No open reports.</p> : <div className="mt-2 border-t border-slate-200">{data.reports.map((report) => <ReportCard key={report._id} report={report} isAdmin={data.isAdmin} />)}</div>}
+
+      <h3 className="mt-6 text-sm font-semibold">Pending appeals</h3>
+      {data.appeals.length === 0 ? <p className="mt-2 text-sm text-slate-500">No appeals waiting.</p> : <div className="mt-2 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex flex-wrap items-center gap-2"><Button size="sm" disabled={busyId === appeal._id || (!data.isAdmin && appeal.banType === "permanent")} onClick={() => void decideAppeal(appeal._id, "approved")}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void decideAppeal(appeal._id, "declined")}><XCircle className="size-4" /> Decline</Button>{!data.isAdmin && appeal.banType === "permanent" && <span className="text-xs text-slate-500">Permanent bans need an admin to lift.</span>}</div></article>)}</div>}
+
+      <h3 className="mt-6 text-sm font-semibold">Active bans</h3>
+      {data.bans.length === 0 ? <p className="mt-2 text-sm text-slate-500">No active bans.</p> : <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <BanRow key={ban.userId} ban={ban} isAdmin={data.isAdmin} />)}</ul>}
+      <DirectBanForm isAdmin={data.isAdmin} />
+
+      <h3 className="mt-6 text-sm font-semibold">Recent moderation decisions</h3>
+      <p className="mt-1 text-xs text-slate-500">Who acted, on which account, and why. This log is append-only.</p>
+      {data.audit.length === 0 ? <p className="mt-2 text-sm text-slate-500">No moderation decisions recorded yet.</p> : <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">{data.audit.map((entry) => <li key={entry._id} className="py-2.5 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span className="font-medium">{entry.actorLabel} → {MODERATION_ACTIONS[entry.action] ?? entry.action} → {entry.targetLabel}</span><span className="text-xs text-slate-500">{new Date(entry.createdAt).toLocaleString()}</span></div><p className="mt-1 text-xs text-slate-500">{entry.reason}</p></li>)}</ul>}
     </section>
   );
 }

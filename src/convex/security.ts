@@ -5,7 +5,9 @@ import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { requireSiteAvailable } from "./siteStatus";
-import { staffUnlockState } from "./staffUnlock";
+import { requireStaffUnlock, staffUnlockState } from "./staffUnlock";
+import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
+import type { Doc, Id } from "./_generated/dataModel";
 
 async function requireSecurityStaff(ctx: QueryCtx | MutationCtx, verifyAdminPermission = true) {
   const userId = await getAuthUserId(ctx);
@@ -69,6 +71,8 @@ export const accessStatus = query({
       isAdmin,
       isBanned: !isAdmin && user.isSiteBanned === true,
       reason: !isAdmin && user.isSiteBanned ? user.siteBanReason ?? null : null,
+      banType: !isAdmin && user.isSiteBanned ? user.banType ?? "permanent" : null,
+      banExpiresAt: !isAdmin && user.isSiteBanned ? user.banExpiresAt ?? null : null,
       hasPendingAppeal: (await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", userId)).order("desc").take(10)).some((appeal) => appeal.status === "pending"),
     };
   },
@@ -123,30 +127,70 @@ export const setBan = mutation({
   args: { userId: v.id("users"), banned: v.boolean(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await requireSecurityStaff(ctx);
+    const actorId = await getAuthUserId(ctx);
+    const actor = actorId ? await ctx.db.get(actorId) : null;
+    if (!actor) throw new Error("Not authorized.");
     const user = await ctx.db.get(args.userId);
     if (!user) throw new Error("Account not found.");
     if (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk") {
       throw new Error("Admin accounts cannot be banned through this control.");
     }
+    if (args.banned && (user.staffAccess || user.department?.trim() || user.position?.trim()) && !(await isAdmin(ctx))) {
+      throw new Error("Only an administrator can restrict another staff account.");
+    }
     const reason = args.reason?.trim();
     if (reason && reason.length > 300) throw new Error("Keep the reason under 300 characters.");
-    await ctx.db.patch(args.userId, args.banned
-      ? { isSiteBanned: true, siteBanReason: reason || "Staff review", siteBannedAt: Date.now() }
-      : { isSiteBanned: undefined, siteBanReason: undefined, siteBannedAt: undefined, securityViolationCount: 0 });
+    const actorLabel = accountLabel(actor);
+    if (args.banned) {
+      await applyBan(ctx, { actorId: actor._id, actorLabel, target: user, reason: reason || "Staff review", type: "permanent" });
+    } else if (isBanActive(user)) {
+      await liftBan(ctx, { actorId: actor._id, actorLabel, target: user, reason: reason || "Restriction lifted during staff review" });
+    }
     return { ok: true };
   },
 });
+
+async function recordAppealAudit(
+  ctx: MutationCtx,
+  decision: "approved" | "declined",
+  target: Doc<"users">,
+  reviewerId: Id<"users">,
+  reviewerLabel: string,
+) {
+  await recordAudit(ctx, {
+    actorId: reviewerId,
+    actorLabel: reviewerLabel,
+    action: decision === "approved" ? "appeal-approved" : "appeal-declined",
+    targetId: target._id,
+    targetLabel: accountLabel(target),
+    reason: decision === "approved"
+      ? "Appeal approved; the ban was lifted after staff review."
+      : "Appeal declined after staff review.",
+  });
+}
 
 export const reviewAppeal = mutation({
   args: { appealId: v.id("securityAppeals"), decision: v.union(v.literal("approved"), v.literal("declined")) },
   handler: async (ctx, args) => {
     await requireSecurityStaff(ctx);
+    await requireStaffUnlock(ctx);
     const appeal = await ctx.db.get(args.appealId);
     if (!appeal || appeal.status !== "pending") throw new Error("This appeal is no longer awaiting review.");
     const user = await ctx.db.get(appeal.userId);
-    await ctx.db.patch(appeal._id, { status: args.decision, reviewedAt: Date.now(), reviewedBy: await getAuthUserId(ctx) ?? undefined });
+    if (args.decision === "approved" && user && (user.banType ?? "permanent") === "permanent" && !(await isAdmin(ctx))) {
+      throw new Error("Only an administrator can lift a permanent ban.");
+    }
+    const reviewerId = await getAuthUserId(ctx);
+    const reviewer = reviewerId ? await ctx.db.get(reviewerId) : null;
+    const reviewerLabel = accountLabel(reviewer);
+    await ctx.db.patch(appeal._id, { status: args.decision, reviewedAt: Date.now(), reviewedBy: reviewerId ?? undefined });
+    if (user && reviewer) {
+      await recordAppealAudit(ctx, args.decision, user, reviewer._id, reviewerLabel);
+    }
     if (args.decision === "approved" && user) {
-      await ctx.db.patch(user._id, { isSiteBanned: undefined, siteBanReason: undefined, siteBannedAt: undefined, securityViolationCount: 0 });
+      await ctx.db.patch(user._id, { isSiteBanned: undefined, siteBanReason: undefined, siteBannedAt: undefined, banType: undefined, banExpiresAt: undefined, securityViolationCount: 0 });
+      const identityRows = await ctx.db.query("bannedIdentities").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+      await Promise.all(identityRows.map((row) => ctx.db.delete(row._id)));
       const remainingAppeals = await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
       const reviewerId = await getAuthUserId(ctx);
       await Promise.all(remainingAppeals.filter((item) => item.status === "pending" && item._id !== appeal._id).map((item) => ctx.db.patch(item._id, { status: "approved", reviewedAt: Date.now(), reviewedBy: reviewerId ?? undefined })));

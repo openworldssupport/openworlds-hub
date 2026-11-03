@@ -9,6 +9,7 @@ import { emailOtp } from "./auth/emailOtp";
 import { SUPPORT_EMAIL } from "./admin";
 import { internal } from "./_generated/api";
 import { requireSiteAvailableForUser } from "./siteStatus";
+import { assertSignupAllowed } from "./bans";
 
 const PLAYER_LOGIN_DOMAIN = "players.openworlds.invalid";
 
@@ -84,7 +85,7 @@ export const playerPassword = ConvexCredentials({
 
     if (flow !== "signIn" && flow !== "twoFactorSignIn") throw new Error("This sign-in flow is not available.");
     const account = await retrieveAccount(ctx, { provider: "player-password", account: { id: accountId, secret: password } }).catch(() => null);
-    if (!account || account.user.role !== "user" || account.user.isSiteBanned) {
+    if (!account || account.user.role !== "user") {
       throw new Error("Username/email or password is incorrect.");
     }
     const recoveryEmailVerified = Boolean(account.user.recoveryEmail && account.user.recoveryEmailVerifiedAt !== undefined);
@@ -111,6 +112,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   callbacks: {
     async beforeSessionCreation(ctx, { userId }) {
       await requireSiteAvailableForUser(ctx, userId);
+      // Banned accounts may still sign in; the site-wide restriction screen
+      // blocks the product and offers the appeal form.
     },
     async createOrUpdateUser(ctx, { existingUserId, profile, type, provider }) {
       const email = typeof profile.email === "string" ? profile.email.trim().toLowerCase() : "";
@@ -133,6 +136,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         if (!existingUserId) {
           const normalizedEmail = email.trim().toLowerCase();
           const playerLogin = typeof profile.playerLogin === "string" ? profile.playerLogin : undefined;
+          // Banned emails, recovery emails, and usernames cannot be reused for a new account.
+          await assertSignupAllowed(ctx, {
+            email,
+            username: playerLogin,
+            recoveryEmail: typeof profile.pendingRecoveryEmail === "string" ? profile.pendingRecoveryEmail : undefined,
+          });
           if (playerLogin) {
             const existingLogin = await ctx.db.query("users").filter((q) => q.eq(q.field("playerLogin"), playerLogin)).first();
             if (existingLogin) throw new Error("That player name is already in use.");
@@ -189,6 +198,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const invitation = await ctx.db.query("companyAccess").filter((q) => q.eq(q.field("email"), email)).first();
       const existingUser = existingUserId ? await ctx.db.get(existingUserId) : null;
       const userByEmail = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), email)).first();
+      if (!existingUser && !userByEmail) await assertSignupAllowed(ctx, { email });
       const assignedUser = existingUser ?? userByEmail;
       if (assignedUser?.role === "user" && !invitation) throw new Error("This email is already used by a player account. Use a different email for company access.");
       const assignedAdmin = assignedUser?.role === "admin";
