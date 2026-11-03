@@ -90,6 +90,25 @@ export const careerBranches: CareerBranch[] = [
     ],
   },
   {
+    slug: "support",
+    title: "Player Support & Service",
+    summary: "Help players get unstuck, answer account and technical questions, and keep support replies clear and quick.",
+    roles: [
+      role("player-support-specialist", "Player Support Specialist", "Player Support & Service", "Answer player questions and help resolve everyday problems with the game and website.", ["Reply to player messages and support tickets in a clear, friendly tone.", "Follow published procedures for common account, access, and technical questions.", "Record recurring issues so the team can fix them at the source."], ["Clear, patient written communication.", "Comfortable following written procedures consistently.", "Interest in games and online communities."]),
+      role("technical-support-specialist", "Technical Support Specialist", "Player Support & Service", "Work through installation, performance, and connectivity problems with players.", ["Troubleshoot installation, performance, and connection issues with players.", "Ask useful questions and gather the details developers need to reproduce a problem.", "Keep troubleshooting notes current so answers stay consistent."], ["Comfortable troubleshooting Windows and basic networking.", "Able to explain technical steps to non-technical players.", "Patient, methodical approach to diagnosing problems."]),
+      role("support-escalations-coordinator", "Support Escalations Coordinator", "Player Support & Service", "Take on difficult or high-impact support cases and keep response times on track.", ["Take on complex or high-impact cases from the wider support team.", "Keep response and resolution times visible to the support lead.", "Pass clear, factual summaries to the relevant team when a case needs them."], ["Calm judgement when a case is urgent or unclear.", "Organized tracking of open cases and follow-ups.", "Discreet handling of private player information."], "Open", 1),
+    ],
+  },
+  {
+    slug: "quality",
+    title: "Quality Assurance & Release Testing",
+    summary: "Test builds before release, report reproducible problems, and help updates ship without surprises.",
+    roles: [
+      role("quality-assurance-tester", "Quality Assurance Tester", "Quality Assurance & Release Testing", "Play through new builds and report clear, reproducible problems before players see them.", ["Work through new builds against a simple test checklist.", "Report problems with clear steps, expected results, and screenshots where useful.", "Re-test fixes and confirm whether an issue is actually resolved."], ["Careful, methodical attention to detail.", "Clear written reports other contributors can act on.", "Comfortable repeating the same steps to confirm a result."]),
+      role("release-readiness-coordinator", "Release Readiness Coordinator", "Quality Assurance & Release Testing", "Keep track of known issues and coordinate the checks that happen before an update.", ["Maintain the list of known issues ahead of an update.", "Coordinate final checks with testers and developers.", "Summarize what is ready, what is delayed, and what needs a decision."], ["Organized tracking of tasks and deadlines.", "Clear summaries that separate facts from guesses.", "Comfortable asking for status updates and following up."]),
+    ],
+  },
+  {
     slug: "data",
     title: "Data Science, Analytics & Research",
     summary: "Platform insight, contributor research, user behavior analysis, and metrics.",
@@ -154,5 +173,6 @@ export function careerPositionAliases(role: CareerRole) {
 }
 
 // Restored to the original position list from the project's first careers page
-// (11 original departments, 16 original positions, no legal roles). Statuses keep
-// the owner's confirmation: every position is open except Business Strategy Associate, which is filled.
+// (11 original departments, 16 original positions, no legal roles), with Player Support
+// and Quality Assurance added later. Statuses keep the owner's confirmation: every position
+// is open except Business Strategy Associate, which is filled.
