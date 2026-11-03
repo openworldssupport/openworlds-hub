@@ -32,7 +32,6 @@ const MORE_LINKS = [
 export function SiteNav() {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
   const staffInfo = useQuery(api.staff.me, isAuthenticated ? {} : "skip");
-  const seasonTheme = useQuery(api.seasonTheme.get);
   const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
   const isStaffAccount = Boolean(staffInfo?.isStaff);
   const welcomeDetails = isStaffAccount ? staffInfo?.welcome : null;
@@ -102,13 +101,11 @@ export function SiteNav() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div
-        className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-xs font-medium"
-        style={{ background: seasonTheme?.barBackground, color: seasonTheme?.barInk }}
-      >
-        <span aria-hidden="true">{seasonTheme?.glyph ?? "✦"}</span>
-        <span>{seasonTheme?.greeting ?? "OpenWorlds is in development"}</span>
-        <span aria-hidden="true">{seasonTheme?.glyph ?? "✦"}</span>
+      <div className="holiday-greeting flex items-center justify-center gap-2 px-4 py-1.5 text-center text-xs font-medium">
+        <span aria-hidden="true">✦</span>
+        <span>Merry Christmas from OpenWorlds</span>
+        <span aria-hidden="true">❄</span>
+        <span aria-hidden="true">✦</span>
       </div>
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-3 sm:px-8" aria-label="Main navigation">
         <Link to="/" className="flex items-center gap-2.5" aria-label="OpenWorlds home">

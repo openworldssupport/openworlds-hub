@@ -136,7 +136,6 @@
   isolation: isolate;
 }
 
-/* Colours come from the current season theme; this is the fallback. */
 .holiday-greeting {
   background: #104b35;
   color: #f7e7bd;

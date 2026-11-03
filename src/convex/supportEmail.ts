@@ -5,7 +5,6 @@ import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { currentSeasonTheme } from "./seasonTheme";
 
 const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
 const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -306,36 +305,45 @@ export const sendAdminReadyForReviewAlert = internalAction({
   },
 });
 
-/* Email palette mirrors the site: paper white, deep green, and the
- * red/green/gold rule that marks OpenWorlds pages. */
-const EMAIL_INK = "#101c16";
-const EMAIL_BODY = "#3d4a43";
-const EMAIL_MUTED = "#69776f";
-const EMAIL_RULE = "#e6eae6";
-const EMAIL_RED = "#a52234";
-const EMAIL_GREEN = "#176b45";
-const EMAIL_GOLD = "#d6a63b";
-const EMAIL_BLUE = "#0875d1";
-const EMAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-const EMAIL_MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace";
+/**
+ * Every colour in outgoing email comes from this object. The values are the
+ * site theme's own tokens (--ow-green, --ow-red, --ow-gold and the paper/ink
+ * tones from src/index.css), so a message always looks like the version of
+ * openworlds.dk it was sent from. When the site theme changes, change this
+ * object in the same pass — nothing else in this file hardcodes a colour.
+ */
+const SITE_THEME = {
+  paper: "#ffffff", // white page background
+  ink: "#0f172a", // slate-900 headings
+  body: "#475569", // slate-600 copy
+  muted: "#64748b", // slate-500 secondary text
+  hairline: "#e2e8f0", // slate-200 borders
+  tint: "#f8fafc", // slate-50 panel fill
+  green: "#176b45", // --ow-green
+  red: "#a52234", // --ow-red
+  gold: "#d6a63b", // --ow-gold
+  logoPlate: "#0875d1", // brand plate
+  font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+  mono: "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace",
+} as const;
 
 function emailRule(): string {
   const cell = (background: string, width: string) =>
     `<td height="3" width="${width}" style="height:3px;line-height:3px;font-size:0;background:${background}">&nbsp;</td>`;
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(EMAIL_RED, "34%")}${cell(EMAIL_GREEN, "49%")}${cell(EMAIL_GOLD, "17%")}</tr></table>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(SITE_THEME.red, "34%")}${cell(SITE_THEME.green, "49%")}${cell(SITE_THEME.gold, "17%")}</tr></table>`;
 }
 
 /** The globe plate, drawn with borders so it renders without a hosted image. */
-function emailLogo(subtitle: string, accent: string): string {
+function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:${EMAIL_BLUE};border-radius:9px">
-      <div style="width:22px;height:22px;margin:0 auto;border:2px solid #ffffff;border-radius:50%;line-height:0;font-size:0">
-        <div style="width:18px;height:2px;margin:8px auto 0;background:#ffffff;line-height:0;font-size:0">&nbsp;</div>
+    <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:${SITE_THEME.logoPlate};border-radius:9px">
+      <div style="width:22px;height:22px;margin:0 auto;border:2px solid ${SITE_THEME.paper};border-radius:50%;line-height:0;font-size:0">
+        <div style="width:18px;height:2px;margin:8px auto 0;background:${SITE_THEME.paper};line-height:0;font-size:0">&nbsp;</div>
       </div>
     </td>
     <td valign="middle" style="padding-left:12px">
-      <div style="font:700 17px/1.2 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">OpenWorlds</div>
-      <div style="padding-top:3px;font:600 11px/1.4 ${EMAIL_FONT};color:${accent};letter-spacing:0.4px">${escapeHtml(subtitle)}</div>
+      <div style="font:700 17px/1.2 ${SITE_THEME.font};color:${SITE_THEME.ink};letter-spacing:-0.2px">OpenWorlds</div>
+      <div style="padding-top:3px;font:400 11px/1.4 ${SITE_THEME.font};color:${SITE_THEME.muted};letter-spacing:0.4px">openworlds.dk</div>
     </td>
   </tr></table>`;
 }
@@ -353,7 +361,6 @@ function emailShell({
   footerAddress: string;
   footer?: string;
 }): string {
-  const season = currentSeasonTheme();
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -363,24 +370,24 @@ function emailShell({
 <meta name="supported-color-schemes" content="light" />
 <title>${escapeHtml(title)}</title>
 </head>
-<body style="margin:0;padding:0;background:#ffffff">
-${preheader ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#ffffff">${escapeHtml(preheader)}</div>` : ""}
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#ffffff">
+<body style="margin:0;padding:0;background:${SITE_THEME.paper}">
+${preheader ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:${SITE_THEME.paper}">${escapeHtml(preheader)}</div>` : ""}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:${SITE_THEME.paper}">
   <tr>
     <td align="center" style="padding:0 12px">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;border-collapse:collapse">
         <tr><td style="padding:0">${emailRule()}</td></tr>
-        <tr><td style="padding:28px 24px 22px">${emailLogo(season.greeting, season.accent)}</td></tr>
+        <tr><td style="padding:28px 24px 22px">${emailLogo()}</td></tr>
         <tr>
-          <td style="border-top:1px solid ${EMAIL_RULE};padding:26px 24px 24px">
-            <h1 style="margin:0 0 16px;font:600 20px/1.35 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
+          <td style="border-top:1px solid ${SITE_THEME.hairline};padding:26px 24px 24px">
+            <h1 style="margin:0 0 16px;font:600 20px/1.35 ${SITE_THEME.font};color:${SITE_THEME.ink};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
             ${body}
           </td>
         </tr>
         <tr>
-          <td style="border-top:1px solid ${EMAIL_RULE};padding:16px 24px 28px">
-            <p style="margin:0;font:400 12px/1.6 ${EMAIL_FONT};color:${EMAIL_MUTED}">OpenWorlds · ${escapeHtml(footerAddress)}</p>
-            ${footer ? `<p style="margin:6px 0 0;font:400 12px/1.6 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(footer)}</p>` : ""}
+          <td style="border-top:1px solid ${SITE_THEME.hairline};padding:16px 24px 28px">
+            <p style="margin:0;font:400 12px/1.6 ${SITE_THEME.font};color:${SITE_THEME.muted}">OpenWorlds · ${escapeHtml(footerAddress)}</p>
+            ${footer ? `<p style="margin:6px 0 0;font:400 12px/1.6 ${SITE_THEME.font};color:${SITE_THEME.muted}">${escapeHtml(footer)}</p>` : ""}
           </td>
         </tr>
       </table>
@@ -395,7 +402,7 @@ function emailParagraphs(paragraphs: string[]): string {
   return paragraphs
     .map(
       (paragraph) =>
-        `<p style="margin:0 0 14px;font:400 15px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY}">${escapeHtml(paragraph)}</p>`,
+        `<p style="margin:0 0 14px;font:400 15px/1.65 ${SITE_THEME.font};color:${SITE_THEME.body}">${escapeHtml(paragraph)}</p>`,
     )
     .join("");
 }
@@ -405,24 +412,22 @@ function emailDetails(rows: ReadonlyArray<readonly [string, string]>): string {
   const body = rows
     .map(
       ([label, value]) =>
-        `<tr><td width="130" style="width:130px;padding:9px 12px 9px 0;border-bottom:1px solid ${EMAIL_RULE};font:400 13px/1.5 ${EMAIL_FONT};color:${EMAIL_MUTED};vertical-align:top">${escapeHtml(label)}</td><td style="padding:9px 0;border-bottom:1px solid ${EMAIL_RULE};font:400 13px/1.5 ${EMAIL_FONT};color:${EMAIL_INK};vertical-align:top">${escapeHtml(value)}</td></tr>`,
+        `<tr><td width="130" style="width:130px;padding:9px 12px 9px 0;border-bottom:1px solid ${SITE_THEME.hairline};font:400 13px/1.5 ${SITE_THEME.font};color:${SITE_THEME.muted};vertical-align:top">${escapeHtml(label)}</td><td style="padding:9px 0;border-bottom:1px solid ${SITE_THEME.hairline};font:400 13px/1.5 ${SITE_THEME.font};color:${SITE_THEME.ink};vertical-align:top">${escapeHtml(value)}</td></tr>`,
     )
     .join("");
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:4px 0 20px">${body}</table>`;
 }
 
 function emailQuote(text: string, label?: string): string {
-  const season = currentSeasonTheme();
-  return `<div style="margin:18px 0 0;padding:14px 16px;border-left:3px solid ${season.accent};background:${season.wash}">${label ? `<div style="padding-bottom:6px;font:600 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(label)}</div>` : ""}<div style="font:400 14px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY};white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div></div>`;
+  return `<div style="margin:18px 0 0;padding:14px 16px;border-left:3px solid ${SITE_THEME.green};background:${SITE_THEME.tint}">${label ? `<div style="padding-bottom:6px;font:600 11px/1.4 ${SITE_THEME.font};color:${SITE_THEME.muted}">${escapeHtml(label)}</div>` : ""}<div style="font:400 14px/1.65 ${SITE_THEME.font};color:${SITE_THEME.body};white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div></div>`;
 }
 
 function emailCode(code: string): string {
-  const season = currentSeasonTheme();
-  return `<div style="margin:18px 0 20px;padding:16px;border:1px solid ${EMAIL_RULE};background:${season.wash};text-align:center"><span style="font:600 26px/1.3 ${EMAIL_MONO};letter-spacing:6px;color:${season.accent}">${escapeHtml(code)}</span></div>`;
+  return `<div style="margin:18px 0 20px;padding:16px;border:1px solid ${SITE_THEME.hairline};background:${SITE_THEME.tint};text-align:center"><span style="font:600 26px/1.3 ${SITE_THEME.mono};letter-spacing:6px;color:${SITE_THEME.green}">${escapeHtml(code)}</span></div>`;
 }
 
 function emailSignature(name: string): string {
-  return `<p style="margin:22px 0 0;font:400 15px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY}">Regards,<br><strong style="color:${EMAIL_INK}">${escapeHtml(name)}</strong></p>`;
+  return `<p style="margin:22px 0 0;font:400 15px/1.65 ${SITE_THEME.font};color:${SITE_THEME.body}">Regards,<br><strong style="color:${SITE_THEME.ink}">${escapeHtml(name)}</strong></p>`;
 }
 
 function readyForReviewHtml(body: string, footerAddress = DEFAULT_SUPPORT_EMAIL): string {
@@ -744,7 +749,7 @@ function emailTemplate({
     footerAddress,
     footer,
     body: [
-      `<p style="margin:0 0 14px;font:600 15px/1.7 ${EMAIL_FONT};color:${EMAIL_INK}">${escapeHtml(greeting)}</p>`,
+      `<p style="margin:0 0 14px;font:600 15px/1.7 ${SITE_THEME.font};color:${SITE_THEME.ink}">${escapeHtml(greeting)}</p>`,
       emailParagraphs(paragraphs),
       details?.length ? emailDetails(details) : "",
       message ? emailQuote(message) : "",
