@@ -305,6 +305,8 @@ Convex stores accounts, profiles, friends, messages, moderation cases, and game 
 
 ## Backups
 
+In the Convex dashboard, open the project → deployment → **Settings → Backup & Restore**. Turn on **Backup automatically**, choose daily or weekly, pick a time, and enable **Include file storage**. Periodic backups require a Convex Pro plan; lower plans can still use **Backup Now** (two backups, kept 7 days). Restoring from that page is destructive and replaces the deployment's data, so restore into a dev deployment first.
+
 Export a full snapshot (including uploaded files) before risky changes and on a regular schedule. Run this against `--prod` for production, from the project root:
 
 ```bash
