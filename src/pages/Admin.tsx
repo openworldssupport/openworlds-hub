@@ -249,7 +249,7 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
     <section className="rounded-lg border border-slate-200 bg-white p-5">
       <h2 className="font-semibold">Add a staff account</h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
-        Staff accounts are created here only. The person signs in with a one-time code sent to this email; there is no public staff sign-up.
+        Staff accounts are created here only. The person signs in on the normal sign-in page with a one-time code sent to this email; there is no public staff sign-up.
       </p>
       <form onSubmit={handleAdd} className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">

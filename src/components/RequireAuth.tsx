@@ -81,7 +81,7 @@ export function RequireAuth({
               Sign in
             </Button>
             <p className="text-xs leading-5 text-muted-foreground">
-              Staff accounts are added by an OpenWorlds administrator.
+              Staff and company accounts use the same sign-in. Staff access is detected automatically.
             </p>
             <Button
               variant="ghost"

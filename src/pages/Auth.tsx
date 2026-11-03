@@ -8,17 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type AuthMode = "login" | "create" | "player-login" | "player-signup";
+type AuthMode = "login" | "signup" | "create" | "player-login" | "player-signup";
 
 interface AuthProps {
   mode?: AuthMode;
 }
 
+/**
+ * One sign-in page for everyone. Player and staff accounts use the same form;
+ * staff accounts can request a one-time email code instead of a password, and
+ * are recognised after sign-in so extra protections can be applied.
+ */
 export default function AuthPage({ mode = "login" }: AuthProps) {
-  if (mode === "player-login" || mode === "player-signup") {
-    return <PlayerAccountNotice mode={mode} />;
-  }
-  return <StaffAuthPage mode={mode} />;
+  const isSignup = mode === "signup" || mode === "create" || mode === "player-signup";
+  return <UnifiedAuthPage isSignup={isSignup} />;
 }
 
 function OpenWorldsLogo() {
@@ -42,11 +45,12 @@ function OpenWorldsLogo() {
   );
 }
 
-function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" }) {
-  const isSignup = mode === "player-signup";
+function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
   const { signIn } = useAuthActions();
   const passwordSignIn = useAction(api.accountSecurity.passwordSignIn);
   const completePasswordSignIn = useAction(api.accountSecurity.completePasswordSignIn);
+  const prepareStaffSignIn = useAction(api.accountSecurity.prepareStaffSignIn);
+  const requestStaffRecoveryDelivery = useMutation(api.accountSecurity.requestStaffRecoveryDelivery);
   const requestRecoveryEmailCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
   const beginPasswordReset = useAction(api.playerRecovery.beginPasswordReset);
   const resetPassword = useAction(api.playerRecovery.resetPassword);
@@ -55,23 +59,37 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
   const params = new URLSearchParams(location.search);
   const returnTo = params.get("returnTo");
   const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/dashboard";
+  const [method, setMethod] = useState<"password" | "email-code">("password");
+  const [emailStep, setEmailStep] = useState<"email" | "code" | "two-factor">("email");
   const [login, setLogin] = useState("");
   const [name, setName] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [authenticatorCode, setAuthenticatorCode] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [twoFactorToken, setTwoFactorToken] = useState("");
   const [twoFactorStep, setTwoFactorStep] = useState(false);
   const [resetStep, setResetStep] = useState<"closed" | "request" | "verify">("closed");
+  const [deliveryNote, setDeliveryNote] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function resetMessages() {
     setError("");
     setNotice("");
+    setDeliveryNote("");
+  }
+
+  async function finishSignIn() {
+    navigate(destination, { replace: true });
+  }
+
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    resetMessages();
     if (isSignup && password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -86,32 +104,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
           recoveryEmail: recoveryEmail.trim(),
           password,
         });
-        if (!result.signingIn) throw new Error("Player account creation did not complete.");
-      } else {
-        const result = await passwordSignIn({ login: login.trim().toLowerCase(), password });
-        if (result.required) {
-          setTwoFactorToken(result.token ?? "");
-          if (!result.recoveryEmailVerified) {
-            await signIn("player-password", {
-              flow: "twoFactorSignIn",
-              email: login.trim().toLowerCase(),
-              password,
-              twoFactorToken: result.token ?? "",
-            });
-            navigate("/dashboard", { replace: true });
-            return;
-          }
-          setTwoFactorStep(true);
-          return;
-        }
-        const signInResult = await signIn("player-password", {
-          flow: "signIn",
-          email: login.trim().toLowerCase(),
-          password,
-        });
-        if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
-      }
-      if (isSignup) {
+        if (!result.signingIn) throw new Error("Account creation did not complete.");
         if (recoveryEmail.trim()) {
           try {
             await requestRecoveryEmailCode({ email: recoveryEmail.trim() });
@@ -123,16 +116,45 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         navigate("/dashboard", { replace: true });
         return;
       }
-      navigate(destination, { replace: true });
-    } catch {
-      setError(isSignup ? "Could not create your account. That username may already be taken." : "Username or password is incorrect.");
+
+      const result = await passwordSignIn({ login: login.trim().toLowerCase(), password });
+      if (result.required) {
+        setTwoFactorToken(result.token ?? "");
+        if (!result.recoveryEmailVerified) {
+          await signIn("player-password", {
+            flow: "twoFactorSignIn",
+            email: login.trim().toLowerCase(),
+            password,
+            twoFactorToken: result.token ?? "",
+          });
+          await finishSignIn();
+          return;
+        }
+        setTwoFactorStep(true);
+        return;
+      }
+      const signInResult = await signIn("player-password", {
+        flow: "signIn",
+        email: login.trim().toLowerCase(),
+        password,
+      });
+      if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
+      await finishSignIn();
+    } catch (signInError) {
+      setError(signInError instanceof Error && !isSignup
+        ? signInError.message
+        : isSignup
+          ? "Could not create your account. That username may already be taken."
+          : "Username or password is incorrect.");
     } finally {
       setBusy(false);
     }
   }
 
   async function finishTwoFactor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError(""); setNotice("");
+    event.preventDefault();
+    setBusy(true);
+    resetMessages();
     try {
       await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: resetCode.trim().toUpperCase() });
       const signInResult = await signIn("player-password", {
@@ -142,17 +164,88 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
         twoFactorToken,
       });
       if (!signInResult.signingIn) throw new Error("Two-step sign-in did not complete.");
-      navigate(destination, { replace: true });
+      await finishSignIn();
     } catch (verifyError) {
       setError(verifyError instanceof Error ? verifyError.message : "Could not verify the authenticator code.");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestEmailCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    resetMessages();
+    try {
+      await signIn("email-otp", { email: login.trim().toLowerCase() });
+      setEmailStep("code");
+    } catch {
+      setError("Could not send a sign-in code. If this account is eligible, try again shortly.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestRecoveryEmailDelivery() {
+    setBusy(true);
+    resetMessages();
+    try {
+      await requestStaffRecoveryDelivery({ email: login.trim().toLowerCase() });
+      await signIn("email-otp", { email: login.trim().toLowerCase() });
+      setDeliveryNote("Your sign-in code was sent to the verified recovery email on this account.");
+      setEmailStep("code");
+    } catch (deliveryError) {
+      setError(deliveryError instanceof Error ? deliveryError.message : "Could not send a code to the recovery email.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyEmailCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    resetMessages();
+    try {
+      const result = await prepareStaffSignIn({ email: login.trim().toLowerCase(), emailCode: emailCode.trim() });
+      if (result.needsTwoFactor) {
+        setEmailStep("two-factor");
+        return;
+      }
+      const signInResult = await signIn("email-otp", { email: login.trim().toLowerCase(), code: emailCode.trim() });
+      if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
+      await finishSignIn();
+    } catch (codeError) {
+      setError(codeError instanceof Error ? codeError.message : "That code could not be verified. Check it and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishEmailTwoFactor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    resetMessages();
+    try {
+      const result = await prepareStaffSignIn({
+        email: login.trim().toLowerCase(),
+        emailCode: emailCode.trim(),
+        authenticatorCode: authenticatorCode.trim(),
+      });
+      if (result.needsTwoFactor) throw new Error("Enter a valid authenticator or recovery code.");
+      const signInResult = await signIn("email-otp", { email: login.trim().toLowerCase(), code: emailCode.trim() });
+      if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
+      await finishSignIn();
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Two-step verification failed. Check the code and try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function requestReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    setError("");
-    setNotice("");
+    resetMessages();
     try {
       await beginPasswordReset({ login: login.trim().toLowerCase() });
       setResetStep("verify");
@@ -171,8 +264,7 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
       return;
     }
     setBusy(true);
-    setError("");
-    setNotice("");
+    resetMessages();
     try {
       await resetPassword({ login: login.trim().toLowerCase(), code: resetCode.trim(), newPassword: password });
       setResetStep("closed");
@@ -187,28 +279,39 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
     }
   }
 
+  const heading = resetStep !== "closed"
+    ? "Reset your password"
+    : isSignup
+      ? "Create your OpenWorlds account"
+      : method === "email-code"
+        ? emailStep === "email" ? "Sign in with an email code" : "Check your email"
+        : "OpenWorlds sign in";
+
+  const intro = resetStep !== "closed"
+    ? "Enter the username or email on your account. We send the reset code to its verified recovery email."
+    : isSignup
+      ? "Pick a username and password. A recovery email is optional, and it must be verified before it can be used."
+      : method === "email-code"
+        ? emailStep === "email"
+          ? "For staff accounts and accounts without a password. We send a one-time code to the company email an administrator added."
+          : deliveryNote || "A one-time code was sent to the email address you entered. The code expires after 15 minutes."
+        : "One sign-in for players and OpenWorlds staff. Staff accounts are recognised automatically and get extra security.";
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <SiteNav />
       <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
           <OpenWorldsLogo />
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">{resetStep !== "closed" ? "Reset your password" : isSignup ? "Create your player account" : "Player sign in"}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{resetStep !== "closed" ? "Enter the username or email on your account. We send the reset code to its verified recovery email." : isSignup ? "Pick a username and password. A recovery email is optional, and it must be verified before it can be used." : "Sign in to your player profile and saved game progress."}</p>
-          {twoFactorStep ? (
-            <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
-              <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
-              <div className="space-y-2"><Label htmlFor="player-two-factor-code">Authenticator or recovery code</Label><Input id="player-two-factor-code" autoComplete="one-time-code" required value={resetCode} onChange={(event) => setResetCode(event.target.value.trim())} /></div>
-              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy || !resetCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
-              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setTwoFactorStep(false); setTwoFactorToken(""); setResetCode(""); }}>Back to password</button>
-            </form>
-          ) : resetStep === "request" ? (
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight">{heading}</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{intro}</p>
+
+          {resetStep === "request" ? (
             <form onSubmit={requestReset} className="mt-6 space-y-4">
               <div className="space-y-2"><Label htmlFor="reset-login">Username or email</Label><Input id="reset-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username or account email" /><p className="text-xs text-slate-500">The code goes to the verified recovery email, not to this address. No recovery email yet? Sign in and add one under Account recovery.</p></div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy}>{busy ? "Requesting…" : "Send recovery code"}</Button>
-              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("closed"); setError(""); }}>Back to sign in</button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("closed"); resetMessages(); }}>Back to sign in</button>
             </form>
           ) : resetStep === "verify" ? (
             <form onSubmit={finishReset} className="mt-6 space-y-4">
@@ -218,261 +321,71 @@ function PlayerAccountNotice({ mode }: { mode: "player-login" | "player-signup" 
               {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy || resetCode.length !== 6}>{busy ? "Updating…" : "Set new password"}</Button>
-              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); setError(""); }}>Request another code</button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); resetMessages(); }}>Request another code</button>
             </form>
-          ) : (
-            <form onSubmit={submit} className="mt-6 space-y-4">
-              {isSignup && <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>}
+          ) : isSignup ? (
+            <form onSubmit={submitPassword} className="mt-6 space-y-4">
+              <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>
               <div className="space-y-2"><Label htmlFor="player-login">Username</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={24} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username" /><p className="text-xs text-slate-500">3–24 letters, numbers, dots, hyphens or underscores.</p></div>
-              {isSignup && <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email (optional)</Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Only used to recover your account. You can add it later.</p></div>}
-              <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : 1} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} />{isSignup && <p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p>}</div>
-              {isSignup && <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>}
+              <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email (optional)</Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Only used to recover your account. You can add it later.</p></div>
+              <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /><p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p></div>
+              <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
               {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in"}</Button>
-              {!isSignup && <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); setError(""); setNotice(""); }}>Forgot password?</button>}
-            </form>
-          )}
-          {resetStep === "closed" && <p className="mt-5 text-center text-sm text-slate-600">{isSignup ? "Already have an account? " : "New to OpenWorlds? "}<Link to={isSignup ? "/player-login" : "/player-signup"} className="font-medium text-[#0066cc] hover:underline">{isSignup ? "Sign in" : "Create an account"}</Link></p>}
-          <p className="mt-5 border-t border-slate-100 pt-5 text-center text-xs leading-5 text-slate-500">Player accounts are separate from company staff access. <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">Staff sign in</Link></p>
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function StaffAuthPage({ mode = "login" }: AuthProps) {
-  const { signIn } = useAuthActions();
-  const prepareStaffSignIn = useAction(api.accountSecurity.prepareStaffSignIn);
-  const requestStaffRecoveryDelivery = useMutation(api.accountSecurity.requestStaffRecoveryDelivery);
-  const location = useLocation();
-  const navigate = useNavigate();
-  const params = new URLSearchParams(location.search);
-  const returnTo = params.get("returnTo");
-  const destination = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
-  const isCreate = mode === "create";
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [authenticatorCode, setAuthenticatorCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
-  const [twoFactorStep, setTwoFactorStep] = useState(false);
-  const [deliveryNote, setDeliveryNote] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function requestCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      await signIn("email-otp", { email: email.trim().toLowerCase() });
-      setDeliveryNote("");
-      setStep("code");
-    } catch (err) {
-      setError("Could not send a sign-in code. If this account is eligible, try again shortly.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function requestRecoveryCode() {
-    setBusy(true);
-    setError("");
-    try {
-      await requestStaffRecoveryDelivery({ email: email.trim().toLowerCase() });
-      await signIn("email-otp", { email: email.trim().toLowerCase() });
-      setDeliveryNote("Your sign-in code was sent to the verified recovery email on this account.");
-      setStep("code");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send a code to the recovery email.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verifyCode(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const result = await prepareStaffSignIn({ email: email.trim().toLowerCase(), emailCode: code.trim() });
-      if (result.needsTwoFactor) {
-        setTwoFactorStep(true);
-        return;
-      }
-      const signInResult = await signIn("email-otp", { email: email.trim().toLowerCase(), code: code.trim() });
-      if (!signInResult.signingIn) throw new Error("Staff sign-in did not complete.");
-      navigate(destination, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "That code could not be verified. Check it and try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finishStaffTwoFactor(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const normalizedEmail = email.trim().toLowerCase();
-      const result = await prepareStaffSignIn({
-        email: normalizedEmail,
-        emailCode: code.trim(),
-        authenticatorCode: authenticatorCode.trim(),
-      });
-      if (result.needsTwoFactor) throw new Error("Enter a valid authenticator or recovery code.");
-      const signInResult = await signIn("email-otp", { email: normalizedEmail, code: code.trim() });
-      if (!signInResult.signingIn) throw new Error("Staff sign-in did not complete.");
-      navigate(destination, { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Two-step verification failed. Check the code and try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <SiteNav />
-      <section className="mx-auto max-w-5xl px-5 py-12 sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
-          <OpenWorldsLogo />
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight">
-            {isCreate
-              ? "Public sign-up is closed"
-              : step === "email"
-                ? "Staff account sign in"
-                : "Check your email"}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {isCreate
-              ? "Public player accounts and sign-up are coming soon. Staff accounts are added by an administrator, then sign in with a verified staff email and one-time code."
-              : step === "email"
-                ? "Enter the staff email an administrator added for you. We’ll send a one-time code."
-                : deliveryNote || `A one-time code was sent to the email address you entered. The code expires after 15 minutes.`}
-          </p>
-
-          {isCreate ? (
-            <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-              Need company access? Ask an OpenWorlds admin to invite your email address. No public player account is created here.
-            </div>
-          ) : step === "email" ? (
-            <form onSubmit={requestCode} className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="company-email" className="text-sm font-medium">
-                  Staff email
-                </label>
-                <Input
-                  id="company-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  maxLength={254}
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="name@company.com"
-                />
-              </div>
-              {error && (
-                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                  {error}
-                </p>
-              )}
-              <Button type="submit" className="w-full" disabled={busy}>
-                {busy ? "Sending code…" : "Email me a code"}
-              </Button>
-              <Button type="button" variant="outline" className="w-full" disabled={busy || !email.trim()} onClick={() => void requestRecoveryCode()}>
-                Send to my recovery email instead
-              </Button>
-              <p className="text-xs leading-5 text-slate-500">Forgot your password? Staff accounts sign in with a one-time email code instead of a password, so there is nothing to reset here. Can’t reach your company inbox? The recovery button uses the verified recovery email on your account.</p>
+              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : "Create account"}</Button>
+              <p className="text-center text-sm text-slate-600">Already have an account? <Link to="/player-login" className="font-medium text-[#0066cc] hover:underline">Sign in</Link></p>
             </form>
           ) : twoFactorStep ? (
-            <form onSubmit={finishStaffTwoFactor} className="mt-6 space-y-4">
-              <p className="text-sm text-slate-600">Enter a current authenticator code or an unused recovery code.</p>
-              <div className="space-y-2">
-                <label htmlFor="staff-authenticator-code" className="text-sm font-medium">Authenticator or recovery code</label>
-                <Input
-                  id="staff-authenticator-code"
-                  autoComplete="one-time-code"
-                  required
-                  value={authenticatorCode}
-                  onChange={(event) => setAuthenticatorCode(event.target.value.trim().toUpperCase())}
-                  placeholder="Code"
-                />
-              </div>
+            <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
+              <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
+              <div className="space-y-2"><Label htmlFor="player-two-factor-code">Authenticator or recovery code</Label><Input id="player-two-factor-code" autoComplete="one-time-code" required value={resetCode} onChange={(event) => setResetCode(event.target.value.trim())} /></div>
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <Button type="submit" className="w-full" disabled={busy || !authenticatorCode.trim()}>
-                {busy ? "Verifying…" : "Verify and sign in"}
-              </Button>
-              <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setTwoFactorStep(false); setAuthenticatorCode(""); setError(""); }}>
-                Back to email code
-              </button>
+              <Button type="submit" className="w-full" disabled={busy || !resetCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setTwoFactorStep(false); setTwoFactorToken(""); setResetCode(""); resetMessages(); }}>Back to password</button>
             </form>
+          ) : method === "email-code" ? (
+            emailStep === "email" ? (
+              <form onSubmit={requestEmailCode} className="mt-6 space-y-4">
+                <div className="space-y-2"><Label htmlFor="code-email">Account email</Label><Input id="code-email" type="email" autoComplete="email" required maxLength={254} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="name@company.com" /></div>
+                {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                <Button type="submit" className="w-full" disabled={busy || !login.trim()}>{busy ? "Sending code…" : "Email me a code"}</Button>
+                <Button type="button" variant="outline" className="w-full" disabled={busy || !login.trim()} onClick={() => void requestRecoveryEmailDelivery()}>Send to my recovery email instead</Button>
+                <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setMethod("password"); setEmailStep("email"); resetMessages(); }}>Use a password instead</button>
+              </form>
+            ) : emailStep === "two-factor" ? (
+              <form onSubmit={finishEmailTwoFactor} className="mt-6 space-y-4">
+                <p className="text-sm text-slate-600">This account has two-step verification. Enter a current authenticator code or an unused recovery code.</p>
+                <div className="space-y-2"><Label htmlFor="staff-authenticator-code">Authenticator or recovery code</Label><Input id="staff-authenticator-code" autoComplete="one-time-code" required value={authenticatorCode} onChange={(event) => setAuthenticatorCode(event.target.value.trim().toUpperCase())} placeholder="Code" /></div>
+                {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                <Button type="submit" className="w-full" disabled={busy || !authenticatorCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
+                <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setEmailStep("code"); setAuthenticatorCode(""); resetMessages(); }}>Back to email code</button>
+              </form>
+            ) : (
+              <form onSubmit={verifyEmailCode} className="mt-6 space-y-4">
+                <div className="space-y-2"><Label htmlFor="company-code">One-time code</Label><Input id="company-code" inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={6} value={emailCode} onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" /></div>
+                {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+                <Button type="submit" className="w-full" disabled={busy || emailCode.length !== 6}>{busy ? "Verifying…" : "Sign in"}</Button>
+                <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setEmailStep("email"); setEmailCode(""); resetMessages(); }}>Use a different email</button>
+              </form>
+            )
           ) : (
-            <form onSubmit={verifyCode} className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="company-code" className="text-sm font-medium">
-                  One-time code
-                </label>
-                <Input
-                  id="company-code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  minLength={6}
-                  maxLength={6}
-                  value={code}
-                  onChange={(event) =>
-                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="6-digit code"
-                />
-              </div>
-              {error && (
-                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                  {error}
-                </p>
-              )}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={busy || code.length !== 6}
-              >
-                {busy ? "Verifying…" : "Sign in"}
-              </Button>
-              <button
-                type="button"
-                className="w-full text-sm text-slate-500 hover:text-slate-900"
-                onClick={() => {
-                  setStep("email");
-                  setCode("");
-                  setError("");
-                  setDeliveryNote("");
-                }}
-              >
-                Use a different email
+            <form onSubmit={submitPassword} className="mt-6 space-y-4">
+              <div className="space-y-2"><Label htmlFor="player-login">Username or email</Label><Input id="player-login" autoComplete="username" required value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username or account email" /></div>
+              <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete="current-password" required maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+              {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
+              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+              <Button type="submit" className="w-full" disabled={busy}>{busy ? "Please wait…" : "Sign in"}</Button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setResetStep("request"); resetMessages(); }}>Forgot password?</button>
+              <button type="button" className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => { setMethod("email-code"); setEmailStep("email"); resetMessages(); }}>
+                Sign in with an email code instead
               </button>
+              <p className="text-center text-sm text-slate-600">New to OpenWorlds? <Link to="/player-signup" className="font-medium text-[#0066cc] hover:underline">Create an account</Link></p>
             </form>
           )}
 
-          <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
-            <Link to="/" className="font-medium text-[#0066cc] hover:underline">
-              Back to OpenWorlds
-            </Link>
-            {!isCreate && <span className="mx-2">·</span>}
-            {!isCreate && (
-              <Link to="/create-account" className="hover:underline">
-                Public sign-up unavailable
-              </Link>
-            )}
-            {isCreate && <span className="mx-2">·</span>}
-            {isCreate && (
-              <Link to="/auth?returnTo=%2Fstaff" className="font-medium text-[#0066cc] hover:underline">
-                Staff sign in
-              </Link>
-            )}
-          </div>
+          <p className="mt-5 border-t border-slate-100 pt-5 text-center text-xs leading-5 text-slate-500">
+            Staff and company accounts use this same sign-in. When a staff account is detected, extra security protections and a sign-in notice apply.
+          </p>
         </div>
       </section>
     </main>

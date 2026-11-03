@@ -23,7 +23,7 @@ export function OfflinePage({ children }: { children: ReactNode }) {
           The site is under construction or currently unavailable.
         </h1>
         <p className="mt-7 text-sm text-slate-500">
-          Administrator? <Link to="/auth?returnTo=%2Fadmin" className="font-medium text-slate-800 underline underline-offset-4 hover:text-slate-600">Sign in</Link>
+          Have an account? <Link to="/auth?returnTo=%2Fadmin" className="font-medium text-slate-800 underline underline-offset-4 hover:text-slate-600">Sign in</Link>
         </p>
       </section>
     </main>

@@ -103,7 +103,7 @@ export default function CreatorVerification() {
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="font-semibold">Verified staff access required</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">Sign in with an approved, email-verified OpenWorlds staff or administrator account to manage creator verification.</p>
-            <Button asChild variant="outline" className="mt-4"><Link to="/auth?returnTo=%2Fstaff%2Fcreators">Staff sign in</Link></Button>
+            <Button asChild variant="outline" className="mt-4"><Link to="/auth?returnTo=%2Fstaff%2Fcreators">Sign in</Link></Button>
           </section>
         ) : (
           <>

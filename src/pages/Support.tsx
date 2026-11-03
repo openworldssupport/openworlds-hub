@@ -11,14 +11,14 @@ const faqs = [
       "World creation tools are not publicly available yet. This website does not currently provide a public world-creation flow.",
   },
   {
-    question: "How does company sign-in work?",
+    question: "How do staff sign in?",
     answer:
-      "Company accounts are invite-only and use a one-time email code. Public player accounts and sign-up are not available through this website yet.",
+      "Everyone uses the same sign-in page. Staff accounts are invite-only and can choose the one-time email code option there. Once signed in, staff accounts are detected automatically and extra security checks apply.",
   },
   {
     question: "How do I report a player or content?",
     answer:
-      "You can submit a support ticket about a person or content. Include only information needed to explain the concern; ticket details are available to authorized company staff.",
+      "Open the player's profile and choose Report this player while signed in. Reports go straight to the OpenWorlds contact team, who can review the account and take action. You can also send a support ticket about content.",
   },
   {
     question: "How can I contact the team?",

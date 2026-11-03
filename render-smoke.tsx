@@ -90,7 +90,7 @@ const routes: RouteEntry[] = [
   { path: "/support/status", name: "TicketStatus", load: () => import("./src/pages/TicketStatus.tsx") },
   { path: "/privacy", name: "Privacy", load: () => import("./src/pages/Privacy.tsx") },
   { path: "/terms", name: "Terms", load: () => import("./src/pages/Terms.tsx") },
-  { path: "/auth", name: "Auth", load: () => import("./src/pages/Auth.tsx") },
+  { path: "/auth", name: "Auth", load: () => import("./src/pages/Auth.tsx"), expect: ["OpenWorlds sign in", "email code"] },
   {
     path: "/player-signup",
     name: "PlayerSignup",
@@ -100,6 +100,7 @@ const routes: RouteEntry[] = [
     path: "/player-login",
     name: "PlayerLogin",
     load: () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-login" }) })),
+    expect: ["OpenWorlds sign in"],
   },
   { path: "/admin", name: "Admin", load: () => import("./src/pages/Admin.tsx") },
   { path: "/dashboard", name: "Dashboard (guarded)", load: async () => ({ default: GuardedDashboard }) },

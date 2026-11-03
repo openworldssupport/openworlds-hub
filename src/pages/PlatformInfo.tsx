@@ -42,7 +42,7 @@ const pages = {
     icon: Mail,
     sections: [
       { title: "Support contact", text: "Use the support form on this site and we’ll reply by email." },
-      { title: "Company sign-in", text: "Company accounts are invitation-only and use a one-time email code. Public player sign-up is closed." },
+      { title: "Sign-in", text: "Players and staff use the same sign-in page. Staff accounts are invitation-only and can use a one-time email code there; they are detected automatically so extra protections apply." },
     ],
   },
 } as const;

@@ -9,6 +9,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { Wordmark } from "@/components/Wordmark";
 import { LegalPolicyGate } from "@/components/LegalPolicyGate";
 import { OfflinePage } from "@/components/OfflinePage";
+import { StaffSignInNotice } from "@/components/StaffSignInNotice";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -236,6 +237,7 @@ createRoot(document.getElementById("root")!).render(
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <RouteSyncer />
+          <StaffSignInNotice />
           <OfflinePage>
             <LegalPolicyGate>
               <Suspense fallback={<RouteLoading />}>
@@ -261,8 +263,8 @@ createRoot(document.getElementById("root")!).render(
                 path="/staff/creators"
                 element={
                   <RequireAuth
-                    title="Staff sign in"
-                    description="Sign in with your approved staff account to verify OpenWorlds creators."
+                    title="Sign in"
+                    description="Sign in with your OpenWorlds account. Staff access is detected automatically."
                     accessLevel="staff"
                   >
                     <CreatorVerification />
@@ -306,8 +308,8 @@ createRoot(document.getElementById("root")!).render(
                 path="/staff"
                 element={
                   <RequireAuth
-                    title="Staff sign in"
-                    description="The OpenWorlds company portal is for approved staff accounts."
+                    title="Sign in"
+                    description="The OpenWorlds company portal is for approved staff accounts. Use your usual OpenWorlds sign-in."
                     accessLevel="staff"
                   >
                     <Staff isAdmin={false} userId={undefined as any} />

@@ -128,11 +128,7 @@ export function SiteNav() {
                   <Link to={link.to}>{link.label}</Link>
                 </DropdownMenuItem>
               ))}
-              {!user && (
-                <DropdownMenuItem asChild>
-                  <Link to="/auth?returnTo=%2Fstaff">Company Staff</Link>
-                </DropdownMenuItem>
-              )}
+
             </DropdownMenuContent>
           </DropdownMenu>
           {user?.canAccessCreatorSpace && <Link to="/creators" className="rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Creator Space</Link>}

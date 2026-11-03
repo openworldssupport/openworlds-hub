@@ -15,7 +15,7 @@ export const termsSections: Section[] = [
   {
     title: "2. The service",
     body: [
-      "OpenWorlds is a community project for creating, sharing, and exploring worlds. Website staff sign-in is invitation-only and uses a one-time email code. The game includes multiplayer features such as voice chat; use them respectfully and follow the community rules.",
+      "OpenWorlds is a community project for creating, sharing, and exploring worlds. Website staff access is invitation-only and uses the same sign-in page, with a one-time email code and extra security checks for staff accounts. The game includes multiplayer features such as voice chat; use them respectfully and follow the community rules.",
     ],
   },
   {
