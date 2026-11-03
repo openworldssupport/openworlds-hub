@@ -34,6 +34,9 @@ const schema = defineSchema(
       profileDiscoverable: v.optional(v.boolean()),
       publicBio: v.optional(v.string()),
       profileFriendsVisible: v.optional(v.boolean()),
+      // When false, new friend requests are refused. Existing connections and
+      // requests already sent are unaffected.
+      friendRequestsEnabled: v.optional(v.boolean()),
       profileImageStorageId: v.optional(v.id("_storage")),
       pendingRecoveryEmail: v.optional(v.string()),
       recoveryEmail: v.optional(v.string()),

@@ -133,7 +133,7 @@ export default function PlayerProfile() {
         ) : profile === null ? (
           <section className="mt-6 rounded border border-slate-200 bg-white p-6 sm:p-8">
             <h1 className="text-2xl font-semibold">Profile unavailable</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">This profile isn’t available for public discovery.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">This account doesn’t exist, is banned, or hasn’t chosen a public username yet.</p>
             <Link to="/worlds" className="mt-5 inline-block text-sm font-medium text-[#176b45] hover:underline">Search for another player</Link>
           </section>
         ) : (
@@ -254,7 +254,9 @@ export default function PlayerProfile() {
                     ) : friendStatus === undefined ? (
                       <p className="mt-2 text-sm text-slate-500">Checking connection…</p>
                     ) : friendStatus.status === "unavailable" ? (
-                      <p className="mt-2 text-sm leading-6 text-slate-600">This player isn’t available for friend requests right now.</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">This account can’t receive friend requests right now.</p>
+                    ) : friendStatus.status === "disabled" ? (
+                      <p className="mt-2 text-sm leading-6 text-slate-600">This player has paused new friend requests. You can still view their profile and worlds.</p>
                     ) : friendStatus.status === "none" ? (
                       <>
                         <p className="mt-2 text-sm leading-6 text-slate-600">Send a friend request. You can message each other once it’s accepted.</p>
@@ -272,7 +274,7 @@ export default function PlayerProfile() {
                       <>
                         <p className="mt-2 text-sm leading-6 text-slate-600">This player would like to connect with you.</p>
                         <div className="mt-4 flex flex-wrap gap-2">
-                          <Button type="button" size="sm" disabled={busy} onClick={() => void replyToRequest(true)}>Accept request</Button>
+                          <Button type="button" size="sm" disabled={busy} onClick={() => void replyToRequest(true)}>Accept friend request</Button>
                           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void replyToRequest(false)}>Decline</Button>
                         </div>
                       </>

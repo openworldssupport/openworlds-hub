@@ -30,6 +30,7 @@ const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Learning = lazy(() => import("./pages/Learning.tsx"));
 const Worlds = lazy(() => import("./pages/Worlds.tsx"));
 const PlayerProfile = lazy(() => import("./pages/PlayerProfile.tsx"));
+const Inbox = lazy(() => import("./pages/Inbox.tsx"));
 const WorldDetails = lazy(() => import("./pages/WorldDetails.tsx"));
 const Roadmap = lazy(() => import("./pages/Roadmap.tsx"));
 const Events = lazy(() => import("./pages/Events.tsx"));
@@ -306,6 +307,17 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/careers/apply/:roleSlug" element={<CareerApplicationPage />} />
               <Route path="/applications" element={<NotFound />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route
+                path="/inbox"
+                element={
+                  <RequireAuth
+                    title="Sign in to open your inbox"
+                    description="Friend requests and connection updates are private to you. Sign in with your OpenWorlds account to continue."
+                  >
+                    <Inbox />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/staff"
                 element={

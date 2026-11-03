@@ -32,6 +32,8 @@ const MORE_LINKS = [
 export function SiteNav() {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
   const staffInfo = useQuery(api.staff.me, isAuthenticated ? {} : "skip");
+  const inbox = useQuery(api.users.myInbox, isAuthenticated ? {} : "skip");
+  const pendingRequests = inbox && !inbox.needsUsername ? inbox.requests.length : 0;
   const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
   const isStaffAccount = Boolean(staffInfo?.isStaff);
   const welcomeDetails = isStaffAccount ? staffInfo?.welcome : null;
@@ -137,6 +139,7 @@ export function SiteNav() {
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
           ) : user ? (
             <>
+              <Link to="/inbox" className="relative rounded-md px-2.5 py-2 text-slate-600 hover:bg-slate-100">Inbox{pendingRequests > 0 && <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#176b45] px-1 text-[10px] font-semibold text-white" aria-label={`${pendingRequests} friend requests waiting`}>{pendingRequests}</span>}</Link>
               <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>
               <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label={isStaffAccount ? "Signed in as company staff" : "You are signed in"}>
                 {user.role === "user"

@@ -23,7 +23,7 @@ export default function Worlds() {
         <div className="mx-auto max-w-5xl">
           <p className="text-sm font-medium text-blue-100">OpenWorlds discovery</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Find players and worlds</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Search player profiles that have opted into discovery. Published community worlds will appear here when real listings are available.</p>
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Search every player account by username or display name. Published community worlds appear here once the game’s listing feed has them.</p>
         </div>
       </section>
 
@@ -31,7 +31,7 @@ export default function Worlds() {
         <div className="space-y-6">
         <div className="border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">Player profiles</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts by username or display name.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Search all player accounts by username or display name.</p>
           <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -43,7 +43,7 @@ export default function Worlds() {
             ) : profiles === undefined ? (
               <p className="py-6 text-sm text-slate-500">Searching player profiles…</p>
             ) : profiles.length === 0 ? (
-              <p className="py-6 text-sm text-slate-500">No public accounts found. Try a username or display name.</p>
+              <p className="py-6 text-sm text-slate-500">No player accounts found. Try a username or display name.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {profiles.map((profile) => (
@@ -101,11 +101,11 @@ export default function Worlds() {
 
         <aside className="h-fit border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">You choose what’s visible</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Player accounts appear only when they opt into discovery. Sign-in emails and private account details are never shown.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Every player account with a public username is searchable. Sign-in emails and private account details are never shown.</p>
           <Link to="/community" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#176b45] hover:underline">Visit community <ArrowRight className="size-4" /></Link>
         </aside>
       </section>
-      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Find discoverable players and published worlds.</footer>
+      <footer className="border-t border-slate-200 px-5 py-5 text-center text-sm text-slate-500">OpenWorlds © 2026 · Find players and published worlds.</footer>
     </main>
   );
 }

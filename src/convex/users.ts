@@ -264,11 +264,6 @@ function hasPublicUsername(user: { playerLogin?: string; isSiteBanned?: boolean 
   return !user.isSiteBanned && Boolean(user.playerLogin?.trim());
 }
 
-/** Staff profiles are public even before the account enables discovery. */
-function isProfilePublic(user: { profileDiscoverable?: boolean } & Parameters<typeof isPublicCompanyStaff>[0]) {
-  return user.profileDiscoverable === true || isPublicCompanyStaff(user);
-}
-
 export const publicPlayerProfile = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
@@ -291,7 +286,6 @@ export const publicPlayerProfile = query({
     const officialCreator = await ctx.db.query("officialCreators")
       .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
       .first();
-    if (!isProfilePublic(user) && !officialCreator) return null;
     const publicName = isCompanyStaff
       ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
       : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
@@ -366,7 +360,7 @@ export const friendStatus = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const target = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!target || !hasPublicUsername(target) || target.profileDiscoverable !== true) return { status: "unavailable" as const };
+    if (!target || !hasPublicUsername(target)) return { status: "unavailable" as const };
     const viewerId = await getAuthUserId(ctx);
     if (!viewerId) return { status: "signed-out" as const };
     if (viewerId === target._id) return { status: "self" as const };
@@ -378,7 +372,7 @@ export const friendStatus = query({
     ]);
     const relation = [...outgoing, ...incoming].find((r) =>
       (r.senderId === viewerId && r.receiverId === target._id) || (r.senderId === target._id && r.receiverId === viewerId));
-    if (!relation) return { status: "none" as const };
+    if (!relation) return target.friendRequestsEnabled === false ? { status: "disabled" as const } : { status: "none" as const };
     if (relation.status === "accepted") return { status: "friends" as const };
     return { status: relation.senderId === viewerId ? "outgoing" as const : "incoming" as const, requestId: relation._id };
   },
@@ -389,8 +383,9 @@ export const sendFriendRequest = mutation({
   handler: async (ctx, { username }) => {
     const sender = await requirePlayerProfile(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || !hasPublicUsername(receiver) || receiver.profileDiscoverable !== true) throw new Error("That player is not available for friend requests.");
+    if (!receiver || !hasPublicUsername(receiver)) throw new Error("That account is not available for friend requests.");
     if (sender._id === receiver._id) throw new Error("You cannot send a friend request to yourself.");
+    if (receiver.friendRequestsEnabled === false) throw new Error("This player is not accepting friend requests right now.");
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect(),
       ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).collect(),
@@ -459,7 +454,7 @@ export const myFriends = query({
       image: friend.profileImageStorageId ? null : friend.image ?? null,
     } : null;
     const friendProfiles = await Promise.all(friends.map(async (friend) => {
-      if (!friend || !hasPublicUsername(friend) || friend.profileDiscoverable !== true) return null;
+      if (!friend || !hasPublicUsername(friend)) return null;
       return {
         username: friend.playerLogin!.trim(),
         displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
@@ -480,12 +475,12 @@ export const publicFriendList = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const owner = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!owner || !hasPublicUsername(owner) || owner.profileDiscoverable !== true || owner.profileFriendsVisible !== true) return [];
+    if (!owner || !hasPublicUsername(owner) || owner.profileFriendsVisible !== true) return [];
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", owner._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", owner._id)).collect();
     const ids = [...new Set([...outgoing, ...incoming].filter((r) => r.status === "accepted").map((r) => r.senderId === owner._id ? r.receiverId : r.senderId))];
     const friends = await Promise.all(ids.map((id) => ctx.db.get(id)));
-    const visibleFriends = friends.filter((friend) => friend && hasPublicUsername(friend) && friend.profileDiscoverable === true);
+    const visibleFriends = friends.filter((friend) => friend && hasPublicUsername(friend));
     return await Promise.all(visibleFriends.map(async (friend) => ({
       username: friend!.playerLogin!.trim(),
       displayName: isEmailAddress(friend!.name) ? null : friend!.name?.trim() || null,
@@ -500,7 +495,7 @@ export const sendPlayerMessage = mutation({
   handler: async (ctx, { username, body }) => {
     const sender = await requirePlayerProfile(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || !hasPublicUsername(receiver) || receiver.profileDiscoverable !== true || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
+    if (!receiver || !hasPublicUsername(receiver) || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).collect();
     if (!acceptedFriendship(sender._id, receiver._id, [...outgoing, ...incoming])) throw new Error("You can message this player only after they accept your friend request.");
@@ -557,9 +552,9 @@ export const searchPlayerProfiles = query({
     const matches = [...unique.values()]
       .filter((user) => {
         if (user.isSiteBanned) return false;
-        // Player discovery lists player accounts only. Staff profiles stay
-        // reachable directly but are not shown in player search results.
-        return user.role === "user" && user.profileDiscoverable === true && hasPublicUsername(user);
+        // Player discovery lists every player account with a public username.
+        // Staff profiles stay reachable directly but are not listed here.
+        return user.role === "user" && hasPublicUsername(user);
       })
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;
@@ -645,7 +640,7 @@ export const currentProfilePrivacy = query({
     const staffName = [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? "";
     return {
       username: user.playerLogin ?? null,
-      discoverable: user.profileDiscoverable === true,
+      allowFriendRequests: user.friendRequestsEnabled !== false,
       recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined),
       displayName: user.role === "user" ? (isEmailAddress(user.name) ? "" : user.name?.trim() ?? "") : staffName,
       about: user.publicBio ?? "",
@@ -702,17 +697,64 @@ export const updatePublicProfile = mutation({
   },
 });
 
-export const setProfileDiscoverability = mutation({
-  args: { discoverable: v.boolean() },
-  handler: async (ctx, { discoverable }) => {
+export const setFriendRequestsEnabled = mutation({
+  args: { enabled: v.boolean() },
+  handler: async (ctx, { enabled }) => {
     await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Sign in to update your profile privacy.");
+    if (!userId) throw new Error("Sign in to update your friend request settings.");
     const user = await ctx.db.get(userId);
-    if (!user || user.isSiteBanned) throw new Error("Sign in to update your profile privacy.");
+    if (!user || user.isSiteBanned) throw new Error("Sign in to update your friend request settings.");
 
-    await ctx.db.patch(userId, { profileDiscoverable: discoverable });
-    return { discoverable };
+    await ctx.db.patch(userId, { friendRequestsEnabled: enabled });
+    return { enabled };
+  },
+});
+
+/** Everything waiting in the signed-in player's inbox: incoming and sent requests. */
+export const myInbox = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
+    const userId = await getAuthUserId(ctx);
+    const user = userId ? await ctx.db.get(userId) : null;
+    if (!user || user.isSiteBanned) return null;
+    if (!hasPublicUsername(user)) return { needsUsername: true as const, requests: [], sent: [] };
+
+    const [outgoing, incoming] = await Promise.all([
+      ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect(),
+      ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect(),
+    ]);
+
+    const describe = async (otherId: typeof user._id) => {
+      const other = await ctx.db.get(otherId);
+      if (!other || !hasPublicUsername(other)) return null;
+      const publicName = other.role === "user" ? other.name : other.nickname ?? other.name;
+      return {
+        username: other.playerLogin!.trim(),
+        displayName: isEmailAddress(publicName) ? null : publicName?.trim() || null,
+        image: other.profileImageStorageId ? await ctx.storage.getUrl(other.profileImageStorageId) : other.image ?? null,
+        presence: presenceState(other),
+      };
+    };
+
+    const requests = (await Promise.all(incoming
+      .filter((request) => request.status === "pending")
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(async (request) => {
+        const profile = await describe(request.senderId);
+        return profile ? { requestId: request._id, createdAt: request.createdAt, ...profile } : null;
+      }))).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+    const sent = (await Promise.all(outgoing
+      .filter((request) => request.status === "pending")
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(async (request) => {
+        const profile = await describe(request.receiverId);
+        return profile ? { requestId: request._id, createdAt: request.createdAt, ...profile } : null;
+      }))).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+    return { needsUsername: false as const, requests, sent };
   },
 });
 

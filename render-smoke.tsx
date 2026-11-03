@@ -6,11 +6,19 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RequireAuth } from "./src/components/RequireAuth";
 import DashboardPage from "./src/pages/Dashboard.tsx";
 import { StaffWorkspace } from "./src/pages/Staff.tsx";
+import InboxPage from "./src/pages/Inbox.tsx";
 
 /** Mirrors the real /dashboard route: page behind the RequireAuth guard. */
 const GuardedDashboard = () => (
   <RequireAuth title="Sign in to see your hub" description="Your OpenWorlds player hub is available to signed-in members.">
     <DashboardPage />
+  </RequireAuth>
+);
+
+/** Mirrors the real /inbox route: notifications behind the RequireAuth guard. */
+const GuardedInbox = () => (
+  <RequireAuth title="Sign in to open your inbox" description="Friend requests and connection updates are private to you.">
+    <InboxPage />
   </RequireAuth>
 );
 
@@ -104,6 +112,7 @@ const routes: RouteEntry[] = [
   },
   { path: "/admin", name: "Admin", load: () => import("./src/pages/Admin.tsx") },
   { path: "/dashboard", name: "Dashboard (guarded)", load: async () => ({ default: GuardedDashboard }) },
+  { path: "/inbox", name: "Inbox (guarded)", load: async () => ({ default: GuardedInbox }) },
   { path: "/staff", name: "Staff (guarded)", load: async () => ({ default: GuardedStaff }) },
   { path: "/platform-info", name: "PlatformInfo", load: () => import("./src/pages/PlatformInfo.tsx") },
   { path: "/nope", pattern: "*", name: "NotFound", load: () => import("./src/pages/NotFound.tsx") },

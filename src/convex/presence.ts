@@ -17,11 +17,6 @@ export function presenceState(user: Pick<Doc<"users">, "lastWebsiteSeenAt" | "la
   return "offline";
 }
 
-function isPublicCompanyStaff(user: Pick<Doc<"users">, "emailVerificationTime" | "isSiteBanned" | "role" | "staffAccess" | "department" | "position">) {
-  return user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-    (user.role === "admin" || user.staffAccess === true || Boolean(user.department?.trim() || user.position?.trim()));
-}
-
 /** Website heartbeat. Called while a signed-in tab is visible. */
 export const heartbeat = mutation({
   args: {},
@@ -62,7 +57,7 @@ export const reportGameActivity = mutation({
   },
 });
 
-/** Presence shown on a public profile. Hidden profiles return null. */
+/** Presence shown on a public profile. Missing or banned accounts return null. */
 export const publicPresence = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
@@ -71,7 +66,6 @@ export const publicPresence = query({
     if (!username || username.length > 64) return null;
     const user = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
     if (!user || user.isSiteBanned) return null;
-    if (user.profileDiscoverable !== true && !isPublicCompanyStaff(user)) return null;
     const state = presenceState(user);
     return {
       state,

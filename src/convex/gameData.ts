@@ -34,7 +34,7 @@ export const searchPublishedWorlds = query({
         title: world.title,
         description: world.description,
         image: world.imageStorageIds?.[0] ? await ctx.storage.getUrl(world.imageStorageIds[0]) : null,
-        ownerUsername: owner.profileDiscoverable ? owner.playerLogin ?? null : null,
+        ownerUsername: owner.playerLogin ?? null,
       };
     }));
     return results.filter((world) => world !== null);
@@ -56,7 +56,7 @@ export const publishedWorldDetails = query({
       description: world.description,
       images: (await Promise.all((world.imageStorageIds ?? []).map((storageId) => ctx.storage.getUrl(storageId)))).filter((url): url is string => Boolean(url)),
       createdAt: world.createdAt,
-      ownerUsername: owner.profileDiscoverable ? owner.playerLogin ?? null : null,
+      ownerUsername: owner.playerLogin ?? null,
     };
   },
 });

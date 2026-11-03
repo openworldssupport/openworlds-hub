@@ -21,6 +21,16 @@ const faqs = [
       "Profile photos are screened automatically before they are saved. If an image is flagged, it is held back instead of being set, photo uploads pause on that account, and the contact team is notified with the details. A person then reviews it and can approve and restore the image or keep the block. If you believe that was a mistake, contact support.",
   },
   {
+    question: "How do I add friends?",
+    answer:
+      "Open a player from the Worlds search or a profile link and choose Add friend. Requests appear in that player’s Inbox, where they can accept or decline. Once accepted, you can message each other and see each other’s online status.",
+  },
+  {
+    question: "How do I stop friend requests?",
+    answer:
+      "In your player hub, choose Pause friend requests. Your profile stays searchable and your existing friends are unaffected; new requests are refused until you allow them again.",
+  },
+  {
     question: "How do I report a player or content?",
     answer:
       "Open the player's profile and choose Report this player while signed in. Reports go straight to the OpenWorlds contact team, who can review the account and take action. You can also send a support ticket about content.",
