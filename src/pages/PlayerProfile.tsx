@@ -133,7 +133,7 @@ export default function PlayerProfile() {
         ) : profile === null ? (
           <section className="mt-6 rounded border border-slate-200 bg-white p-6 sm:p-8">
             <h1 className="text-2xl font-semibold">Profile unavailable</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">This account doesn’t exist, is banned, or hasn’t chosen a public username yet.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">This account doesn’t exist or is banned.</p>
             <Link to="/worlds" className="mt-5 inline-block text-sm font-medium text-[#176b45] hover:underline">Search for another player</Link>
           </section>
         ) : (
@@ -151,7 +151,7 @@ export default function PlayerProfile() {
                     {profile.isOfficialCreator && <BadgeCheck className="size-5 shrink-0 text-sky-600" aria-label="Official Content Creator" />}
                     {profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">{profile.username ? `@${profile.username}` : "OpenWorlds company account"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{profile.username ? `@${profile.username}` : profile.isCompanyStaff ? "OpenWorlds company account" : "No public username yet"}</p>
                   {presence && (
                     <p className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${presence.state === "in-game" ? "border-sky-200 bg-sky-50 text-sky-800" : presence.state === "online" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
                       <span className={`size-2 rounded-full ${presence.state === "in-game" ? "bg-sky-500" : presence.state === "online" ? "bg-emerald-500" : "bg-slate-400"}`} aria-hidden="true" />
@@ -314,11 +314,11 @@ export default function PlayerProfile() {
                 <section className="rounded border border-slate-200 bg-white p-5">
                   <h2 className="text-sm font-semibold">Details</h2>
                   <dl className="mt-3 space-y-2 text-sm">
-                    <div className="flex justify-between gap-3"><dt className="text-slate-500">Username</dt><dd className="truncate font-medium">{profile.username ? `@${profile.username}` : "Company account"}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-slate-500">Username</dt><dd className="truncate font-medium">{profile.username ? `@${profile.username}` : profile.isCompanyStaff ? "Company account" : "Not chosen"}</dd></div>
                     <div className="flex justify-between gap-3"><dt className="text-slate-500">Member since</dt><dd>{monthYear(profile.memberSince)}</dd></div>
                     {profile.hasPlayerAccount && <div className="flex justify-between gap-3"><dt className="text-slate-500">Worlds</dt><dd>{profile.publishedWorldCount}</dd></div>}
                     {profile.friendCount !== null && <div className="flex justify-between gap-3"><dt className="text-slate-500">Friends</dt><dd>{profile.friendCount}</dd></div>}
-                    <div className="flex justify-between gap-3"><dt className="text-slate-500">Account</dt><dd>{profile.isCompanyStaff ? "OpenWorlds team" : "Player"}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-slate-500">Account</dt><dd>{profile.isCompanyStaff ? "OpenWorlds team" : profile.username ? "Player" : "OpenWorlds account"}</dd></div>
                   </dl>
                   <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-sm">
                     {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-[#176b45] hover:underline">{profile.socialPlatform || "Social profile"}<ExternalLink className="size-4" /></a>}

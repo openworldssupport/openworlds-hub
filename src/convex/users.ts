@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { deriveBadge, isEmailAddress } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
-import { requireCompanyAdmin } from "./admin";
+import { requireCompanyAdmin, SUPPORT_EMAIL } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
 import { findSignupBlock } from "./bans";
 import { presenceState } from "./presence";
@@ -264,31 +264,50 @@ function hasPublicUsername(user: { playerLogin?: string; isSiteBanned?: boolean 
   return !user.isSiteBanned && Boolean(user.playerLogin?.trim());
 }
 
+/** The name another account is allowed to see in search and profiles. */
+function publicAccountName(user: { role?: string; name?: string; nickname?: string; email?: string }) {
+  const preferred = user.role === "user" ? user.name : user.nickname ?? user.name;
+  const clean = preferred?.trim();
+  if (clean && !isEmailAddress(clean)) return clean;
+  // Nameless company accounts fall back to their company email role, never the
+  // full address (e.g. support@openworlds.dk becomes "OpenWorlds Support").
+  const email = user.email?.trim().toLowerCase() ?? "";
+  if (email.endsWith("@openworlds.dk")) {
+    const local = email.split("@")[0]?.trim();
+    if (local) return `OpenWorlds ${local.charAt(0).toUpperCase()}${local.slice(1)}`;
+  }
+  if (email === SUPPORT_EMAIL) return "OpenWorlds Support";
+  return null;
+}
+
 export const publicPlayerProfile = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
     await requireSiteAvailable(ctx);
     const identifier = rawUsername.trim().replace(/^@/, "");
     if (!identifier || identifier.length > 64) return null;
+    // Username-less accounts (older players and some company accounts) are
+    // addressed by a stable account key so every account can have a profile.
+    const accountKeyId = identifier.startsWith("account-")
+      ? ctx.db.normalizeId("users", identifier.slice("account-".length))
+      : null;
     const staffProfileId = identifier.startsWith("staff-")
       ? ctx.db.normalizeId("users", identifier.slice("staff-".length))
       : null;
     const username = identifier.toLowerCase();
-    const user = staffProfileId
-      ? await ctx.db.get(staffProfileId)
+    const user = accountKeyId ?? staffProfileId
+      ? await ctx.db.get((accountKeyId ?? staffProfileId)!)
       : await ctx.db.query("users")
         .withIndex("by_player_login", (q) => q.eq("playerLogin", username))
         .unique();
-    if (!user || user.isSiteBanned) return null;
+    if (!user || user.isSiteBanned || user.isAnonymous) return null;
     const isCompanyStaff = isPublicCompanyStaff(user);
     const isPlayer = hasPublicUsername(user);
-    if (!isCompanyStaff && !isPlayer) return null;
+    if (!isCompanyStaff && !isPlayer && !accountKeyId && !staffProfileId) return null;
     const officialCreator = await ctx.db.query("officialCreators")
       .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
       .first();
-    const publicName = isCompanyStaff
-      ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
-      : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
+    const publicName = publicAccountName(user) ?? officialCreator?.displayName ?? null;
     const publishedWorlds = await ctx.db.query("publishedWorlds")
       .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .order("desc")
@@ -299,7 +318,7 @@ export const publicPlayerProfile = query({
     const viewerId = await getAuthUserId(ctx);
     return {
       username: user.playerLogin?.trim() ?? null,
-      profileKey: user.playerLogin?.trim() ?? `staff-${user._id}`,
+      profileKey: user.playerLogin?.trim() ?? `account-${user._id}`,
       hasPlayerAccount: hasPublicUsername(user),
       displayName: publicName,
       image: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
@@ -552,31 +571,33 @@ export const searchPlayerProfiles = query({
     const allUsers = await ctx.db.query("users").take(500);
     const normalizedTerm = term.toLowerCase();
     const substringMatches = allUsers.filter((user) => {
-      if (user.isSiteBanned || user.role !== "user" || !hasPublicUsername(user)) return false;
-      return [user.playerLogin, user.name, user.nickname]
+      if (user.isSiteBanned || user.isAnonymous) return false;
+      return [user.playerLogin, publicAccountName(user), user.nickname]
         .some((value) => value?.toLowerCase().includes(normalizedTerm));
     });
     const unique = new Map([...usernameMatches, ...nameMatches, ...nicknameMatches, ...substringMatches].map((user) => [user._id, user]));
     const matches = [...unique.values()]
       .filter((user) => {
-        if (user.isSiteBanned) return false;
-        // Player discovery lists every player account with a public username.
-        // Staff profiles stay reachable directly but are not listed here.
-        return user.role === "user" && hasPublicUsername(user);
+        if (user.isSiteBanned || user.isAnonymous) return false;
+        // Include every account type, including accounts that never chose a
+        // public username. Only their public name/username/nickname is matched.
+        const searchable = [user.playerLogin, publicAccountName(user), user.nickname]
+          .filter((value): value is string => Boolean(value?.trim()))
+          .join(" ")
+          .toLowerCase();
+        return Boolean(searchable) && searchable.includes(normalizedTerm);
       })
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;
         const isCompanyStaff = isPublicCompanyStaff(user);
-        const displayName = isCompanyStaff
-          ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
-          : isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const displayName = publicAccountName(user);
         const normalizedUsername = username?.toLowerCase() ?? "";
         const normalizedName = displayName?.toLowerCase() ?? "";
         const exact = normalizedUsername === normalizedTerm || normalizedName === normalizedTerm;
         const startsWith = normalizedUsername.startsWith(normalizedTerm) || normalizedName.startsWith(normalizedTerm);
         return {
           username,
-          profileKey: username ?? `staff-${user._id}`,
+          profileKey: username ?? `account-${user._id}`,
           hasPlayerAccount: hasPublicUsername(user),
           displayName,
           imageStorageId: user.profileImageStorageId,

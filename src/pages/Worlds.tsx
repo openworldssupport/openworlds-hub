@@ -25,7 +25,7 @@ export default function Worlds() {
         <div className="mx-auto max-w-5xl">
           <p className="text-sm font-medium text-blue-100">OpenWorlds discovery</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Find players and worlds</h1>
-          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Search every player account by username or display name. Published community worlds appear here once the game’s listing feed has them.</p>
+          <p className="mt-4 max-w-2xl leading-7 text-blue-50">Search every player and company account by username or display name. Published community worlds appear here once the game’s listing feed has them.</p>
         </div>
       </section>
 
@@ -33,14 +33,14 @@ export default function Worlds() {
         <div className="space-y-6">
         <div className="border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">Player profiles</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Search all player accounts by username or display name.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Search all player and company accounts by username or display name.</p>
           <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <Input id="profile-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search usernames or names…" className="h-11 pl-10" autoComplete="off" />
           </div>
           {user && !user.playerUsername && (
-            <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">Your account doesn’t have a public username yet, so it can’t appear in search. <Link to="/dashboard" className="font-medium underline">Choose one in your player hub</Link>.</p>
+            <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">Your account doesn’t have a public username yet. You can still be found by your display name, but <Link to="/dashboard" className="font-medium underline">choose a username in your player hub</Link> to receive friend requests and messages.</p>
           )}
           <div className="mt-5" aria-live="polite">
             {deferredSearch.length < 2 ? (
@@ -48,14 +48,14 @@ export default function Worlds() {
             ) : profiles === undefined ? (
               <p className="py-6 text-sm text-slate-500">Searching player profiles…</p>
             ) : profiles.length === 0 ? (
-              <p className="py-6 text-sm leading-6 text-slate-500">No player accounts found. Try a different username or display name. Accounts need a public username before they can appear in search.</p>
+              <p className="py-6 text-sm leading-6 text-slate-500">No accounts found. Try a different username or display name.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {profiles.map((profile) => (
                   <li key={profile.profileKey} className="flex items-center gap-3 px-4 py-3">
                     {profile.image ? <img src={profile.image} alt="" loading="lazy" className="size-11 shrink-0 rounded-full border border-slate-200 object-cover" /> : <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600">{(profile.displayName || profile.username || "O").slice(0, 1).toUpperCase()}</span>}
                     <button type="button" onClick={() => navigate(`/players/${encodeURIComponent(profile.profileKey)}`)} className="min-w-0 flex-1 text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#176b45]">
-                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.displayName || profile.username || "OpenWorlds team member"}{profile.exact && <span className="text-[10px] text-slate-500">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
+                      <p className="flex flex-wrap items-center gap-1.5 truncate font-medium text-slate-900">{profile.displayName || profile.username || "OpenWorlds account"}{profile.exact && <span className="text-[10px] text-slate-500">Exact match</span>}{profile.isOfficialCreator && <BadgeCheck className="size-4 shrink-0 text-sky-600" aria-label="Official Content Creator" />}{profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}</p>
                       {profile.username && <p className="truncate text-sm text-slate-500">@{profile.username}</p>}
                       <span className="mt-1 inline-block text-xs font-medium text-[#176b45]">View profile</span>
                     </button>
@@ -106,7 +106,7 @@ export default function Worlds() {
 
         <aside className="h-fit border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">You choose what’s visible</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">Every player account with a public username is searchable. Sign-in emails and private account details are never shown.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">Every player and company account is searchable by username or display name. Sign-in emails and private account details are never shown.</p>
           <Link to="/community" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#176b45] hover:underline">Visit community <ArrowRight className="size-4" /></Link>
         </aside>
       </section>

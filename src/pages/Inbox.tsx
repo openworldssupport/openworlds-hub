@@ -108,7 +108,7 @@ export default function Inbox() {
         ) : inbox.needsUsername ? (
           <section className="mt-8 rounded border border-amber-200 bg-amber-50/60 p-6">
             <h2 className="font-semibold">Choose a public username first</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-700">Friend requests need a public username so other players can find you. Choose one in your player hub.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">Friend requests need a public username so other players can add and message you. Choose one in your player hub.</p>
             <Button asChild className="mt-4" size="sm"><Link to="/dashboard">Open player hub</Link></Button>
           </section>
         ) : (
