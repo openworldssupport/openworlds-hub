@@ -5,6 +5,7 @@ import { action, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { currentSeasonTheme } from "./seasonTheme";
 
 const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
 const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -311,9 +312,8 @@ const EMAIL_INK = "#101c16";
 const EMAIL_BODY = "#3d4a43";
 const EMAIL_MUTED = "#69776f";
 const EMAIL_RULE = "#e6eae6";
-const EMAIL_TINT = "#f6f7f5";
-const EMAIL_GREEN = "#176b45";
 const EMAIL_RED = "#a52234";
+const EMAIL_GREEN = "#176b45";
 const EMAIL_GOLD = "#d6a63b";
 const EMAIL_BLUE = "#0875d1";
 const EMAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
@@ -326,7 +326,7 @@ function emailRule(): string {
 }
 
 /** The globe plate, drawn with borders so it renders without a hosted image. */
-function emailLogo(): string {
+function emailLogo(subtitle: string, accent: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
     <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:${EMAIL_BLUE};border-radius:9px">
       <div style="width:22px;height:22px;margin:0 auto;border:2px solid #ffffff;border-radius:50%;line-height:0;font-size:0">
@@ -335,7 +335,7 @@ function emailLogo(): string {
     </td>
     <td valign="middle" style="padding-left:12px">
       <div style="font:700 17px/1.2 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">OpenWorlds</div>
-      <div style="padding-top:3px;font:400 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED};letter-spacing:0.4px">openworlds.dk</div>
+      <div style="padding-top:3px;font:600 11px/1.4 ${EMAIL_FONT};color:${accent};letter-spacing:0.4px">${escapeHtml(subtitle)}</div>
     </td>
   </tr></table>`;
 }
@@ -353,6 +353,7 @@ function emailShell({
   footerAddress: string;
   footer?: string;
 }): string {
+  const season = currentSeasonTheme();
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -369,7 +370,7 @@ ${preheader ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden
     <td align="center" style="padding:0 12px">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;border-collapse:collapse">
         <tr><td style="padding:0">${emailRule()}</td></tr>
-        <tr><td style="padding:28px 24px 22px">${emailLogo()}</td></tr>
+        <tr><td style="padding:28px 24px 22px">${emailLogo(season.greeting, season.accent)}</td></tr>
         <tr>
           <td style="border-top:1px solid ${EMAIL_RULE};padding:26px 24px 24px">
             <h1 style="margin:0 0 16px;font:600 20px/1.35 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
@@ -411,11 +412,13 @@ function emailDetails(rows: ReadonlyArray<readonly [string, string]>): string {
 }
 
 function emailQuote(text: string, label?: string): string {
-  return `<div style="margin:18px 0 0;padding:14px 16px;border-left:3px solid ${EMAIL_GREEN};background:${EMAIL_TINT}">${label ? `<div style="padding-bottom:6px;font:600 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(label)}</div>` : ""}<div style="font:400 14px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY};white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div></div>`;
+  const season = currentSeasonTheme();
+  return `<div style="margin:18px 0 0;padding:14px 16px;border-left:3px solid ${season.accent};background:${season.wash}">${label ? `<div style="padding-bottom:6px;font:600 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(label)}</div>` : ""}<div style="font:400 14px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY};white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div></div>`;
 }
 
 function emailCode(code: string): string {
-  return `<div style="margin:18px 0 20px;padding:16px;border:1px solid ${EMAIL_RULE};background:${EMAIL_TINT};text-align:center"><span style="font:600 26px/1.3 ${EMAIL_MONO};letter-spacing:6px;color:${EMAIL_GREEN}">${escapeHtml(code)}</span></div>`;
+  const season = currentSeasonTheme();
+  return `<div style="margin:18px 0 20px;padding:16px;border:1px solid ${EMAIL_RULE};background:${season.wash};text-align:center"><span style="font:600 26px/1.3 ${EMAIL_MONO};letter-spacing:6px;color:${season.accent}">${escapeHtml(code)}</span></div>`;
 }
 
 function emailSignature(name: string): string {
