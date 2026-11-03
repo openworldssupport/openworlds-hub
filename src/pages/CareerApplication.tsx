@@ -12,11 +12,11 @@ const careerSections: ApplicationSection[] = [
   {
     title: "About you",
     fields: [
-      { name: "fullName", label: "Full name", maxLength: 100, placeholder: "How we should address you" },
+      { name: "fullName", label: "Full name", required: true, maxLength: 100, placeholder: "How we should address you" },
       { name: "email", label: "Email", type: "email", required: true, maxLength: 254, placeholder: "you@example.com" },
       { name: "username", label: "OpenWorlds username", maxLength: 32, placeholder: "If you already have an account" },
-      { name: "country", label: "Country or region", maxLength: 80 },
-      { name: "timezone", label: "Time zone", maxLength: 60, placeholder: "e.g. Central European Time (UTC+1)" },
+      { name: "country", label: "Country or region", required: true, maxLength: 80 },
+      { name: "timezone", label: "Time zone", required: true, maxLength: 60, placeholder: "e.g. Central European Time (UTC+1)" },
       { name: "portfolio", label: "Portfolio or profile link", type: "url", maxLength: 500, placeholder: "https://…" },
     ],
   },
@@ -24,9 +24,9 @@ const careerSections: ApplicationSection[] = [
     title: "Volunteer availability",
     fields: [
       { name: "hoursPerWeek", label: "Hours you can volunteer each week", type: "select", required: true, options: ["1–3 hours", "4–6 hours", "7–10 hours", "11–15 hours", "16+ hours"] },
-      { name: "startDate", label: "Earliest date you could start", type: "date" },
-      { name: "commitment", label: "How long would you like to volunteer?", type: "select", options: ["1–3 months", "3–6 months", "6–12 months", "12+ months", "Open-ended"] },
-      { name: "languages", label: "Languages you work in", maxLength: 120, placeholder: "e.g. English, Danish" },
+      { name: "startDate", label: "Earliest date you could start", type: "date", required: true },
+      { name: "commitment", label: "How long would you like to volunteer?", type: "select", required: true, options: ["1–3 months", "3–6 months", "6–12 months", "12+ months", "Open-ended"] },
+      { name: "languages", label: "Languages you work in", required: true, maxLength: 120, placeholder: "e.g. English, Danish" },
     ],
   },
   {
@@ -35,7 +35,7 @@ const careerSections: ApplicationSection[] = [
       { name: "experience", label: "Relevant experience", required: true, minLength: 10, maxLength: 2500, rows: 5, placeholder: "Share the experience, projects, or skills that relate to this position." },
       { name: "skills", label: "Skills, tools, and software you use", maxLength: 800, rows: 3, placeholder: "Anything you would bring to the work day to day." },
       { name: "projects", label: "Previous projects or work you are proud of", maxLength: 1500, rows: 4, placeholder: "Short descriptions, with links if they are public." },
-      { name: "teamExperience", label: "Have you worked in a remote or volunteer team before?", type: "select", options: ["Yes, extensively", "Yes, briefly", "No, but I would like to"] },
+      { name: "teamExperience", label: "Have you worked in a remote or volunteer team before?", type: "select", required: true, options: ["Yes, extensively", "Yes, briefly", "No, but I would like to"] },
     ],
   },
   {
