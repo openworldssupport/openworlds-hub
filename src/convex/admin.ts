@@ -2,16 +2,35 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
 import { canonicalDepartmentName, isEmailAddress } from "../lib/staff";
+import { hashValue } from "./secondFactor";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
 
 /** The verified support address that is allowed to administer the site. */
 export const SUPPORT_EMAIL = "contact@openworlds.dk";
+
+const STAFF_CONVERSION_TTL_MS = 24 * 60 * 60 * 1000;
+const STAFF_CONVERSION_MAX_ATTEMPTS = 10;
+
+function makeStaffConversionCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+function normalizeStaffConversionCode(code: string) {
+  return code.replace(/[^a-z0-9]/gi, "").toUpperCase();
+}
+
+async function hashStaffConversionCode(userId: Id<"users">, code: string) {
+  return await hashValue(`${userId}:${normalizeStaffConversionCode(code)}`);
+}
 
 /** Verified company administrator (the support mailbox is the bootstrap admin). */
 export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
@@ -281,10 +300,10 @@ export const searchPlayerAccountsForCompany = query({
 });
 
 /**
- * Upgrade an existing player account in place. The user id never changes, so
- * profile fields, friendships, messages, and saved game data stay attached.
- * Access is activated immediately on that same account: an already signed-in
- * player does not need to sign out or verify a second time.
+ * Request an in-place player-to-staff conversion. Nothing changes on the
+ * account until the signed-in player confirms the one-time code shown to the
+ * administrator. The user id never changes, so profile fields, friendships,
+ * messages, and saved game data stay attached after confirmation.
  */
 export const convertPlayerToCompany = mutation({
   args: {
@@ -320,28 +339,37 @@ export const convertPlayerToCompany = mutation({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
-    const invitationValues = {
+    if (existingInvitation) throw new Error("That email already has a staff invitation. Revoke it before converting this player.");
+
+    const pendingForEmail = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+    if (pendingForEmail && pendingForEmail.userId !== target._id) {
+      throw new Error("That email is already reserved by another pending staff conversion.");
+    }
+
+    const confirmationCode = makeStaffConversionCode();
+    const now = Date.now();
+    const values = {
+      userId: target._id,
       email,
       department,
       position,
       publicBadge: args.publicBadge,
       accessLevel,
-      invitedAt: Date.now(),
+      codeHash: await hashStaffConversionCode(target._id, confirmationCode),
       invitedBy: actor._id,
+      createdAt: now,
+      expiresAt: now + STAFF_CONVERSION_TTL_MS,
+      attempts: 0,
     };
-    if (existingInvitation) await ctx.db.replace(existingInvitation._id, invitationValues);
-    else await ctx.db.insert("companyAccess", invitationValues);
-
-    await ctx.db.patch(target._id, {
-      email,
-      emailVerificationTime: target.emailVerificationTime ?? Date.now(),
-      role: accessLevel === "admin" ? "admin" : "member",
-      department,
-      position,
-      publicBadge: args.publicBadge,
-      staffAccess: true,
-      ...(target.pendingRecoveryEmail?.trim().toLowerCase() === email ? { pendingRecoveryEmail: undefined } : {}),
-    });
+    const existingPending = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_user", (q) => q.eq("userId", target._id))
+      .first();
+    if (existingPending) await ctx.db.replace(existingPending._id, values);
+    else await ctx.db.insert("staffConversions", values);
 
     await recordAudit(ctx, {
       actorId: actor._id,
@@ -349,9 +377,206 @@ export const convertPlayerToCompany = mutation({
       action: "permissions-updated",
       targetId: target._id,
       targetLabel: accountLabel(target),
-      reason: `Player account converted to company access · ${department} / ${position}; staff access activated in place.`,
+      reason: `Player account conversion requested · ${department} / ${position}; waiting for account-holder confirmation.`,
     });
 
-    return { ok: true, email, pendingEmailVerification: false };
+    return { ok: true, email, department, position, confirmationCode, expiresAt: values.expiresAt };
+  },
+});
+
+/** The signed-in account holder's pending conversion, without the secret code. */
+export const myPendingStaffConversion = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const pending = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!pending) return null;
+    return {
+      email: pending.email,
+      department: canonicalDepartmentName(pending.department) || pending.department,
+      position: pending.position,
+      createdAt: pending.createdAt,
+      expiresAt: pending.expiresAt,
+      expired: pending.expiresAt <= Date.now(),
+    };
+  },
+});
+
+/** Admin-only list of conversions waiting for the account holder's code. */
+export const listPendingStaffConversions = query({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await isCompanyAdmin(ctx))) return null;
+    await requireRosterVerification(ctx);
+    const pending = await ctx.db.query("staffConversions").withIndex("by_user").take(100);
+    return await Promise.all(pending.map(async (conversion) => {
+      const target = await ctx.db.get(conversion.userId);
+      return {
+        userId: conversion.userId,
+        email: conversion.email,
+        username: target?.playerLogin ?? null,
+        displayName: target && !isEmailAddress(target.name) ? target.name?.trim() || null : null,
+        department: canonicalDepartmentName(conversion.department) || conversion.department,
+        position: conversion.position,
+        accessLevel: conversion.accessLevel,
+        createdAt: conversion.createdAt,
+        expiresAt: conversion.expiresAt,
+        expired: conversion.expiresAt <= Date.now(),
+      };
+    })).then((rows) => rows.sort((a, b) => b.createdAt - a.createdAt));
+  },
+});
+
+/** Admin-only: replace a lost or expired confirmation code with a new one. */
+export const regenerateStaffConversionCode = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const actor = await requireRoleAdministrator(ctx);
+    const pending = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!pending) throw new Error("That staff conversion is no longer pending.");
+    const target = await ctx.db.get(userId);
+    if (!target || target.role !== "user" || target.isSiteBanned) {
+      throw new Error("That account is no longer eligible for staff conversion.");
+    }
+    const code = makeStaffConversionCode();
+    const now = Date.now();
+    const expiresAt = now + STAFF_CONVERSION_TTL_MS;
+    await ctx.db.patch(pending._id, {
+      codeHash: await hashStaffConversionCode(userId, code),
+      createdAt: now,
+      expiresAt,
+      attempts: 0,
+    });
+    await recordAudit(ctx, {
+      actorId: actor._id,
+      actorLabel: accountLabel(actor),
+      action: "permissions-updated",
+      targetId: userId,
+      targetLabel: accountLabel(target),
+      reason: "Staff conversion confirmation code reissued.",
+    });
+    return { ok: true, email: pending.email, confirmationCode: code, expiresAt };
+  },
+});
+
+/** Admin-only: cancel a conversion before the account holder confirms it. */
+export const cancelStaffConversion = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const actor = await requireRoleAdministrator(ctx);
+    const pending = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!pending) return { ok: true };
+    const target = await ctx.db.get(userId);
+    await ctx.db.delete(pending._id);
+    await recordAudit(ctx, {
+      actorId: actor._id,
+      actorLabel: accountLabel(actor),
+      action: "permissions-updated",
+      targetId: userId,
+      targetLabel: accountLabel(target),
+      reason: "Pending staff conversion cancelled by an administrator.",
+    });
+    return { ok: true };
+  },
+});
+
+/**
+ * Account-holder confirmation. The player must be signed in to the exact
+ * account being converted and enter the code the administrator received.
+ */
+export const confirmStaffConversion = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Sign in to the account being converted first.");
+    const target = await ctx.db.get(userId);
+    if (!target || target.isAnonymous) throw new Error("Sign in to the account being converted first.");
+    if (target.role !== "user") throw new Error("This account is already a staff account.");
+    if (target.isSiteBanned) throw new Error("A restricted account cannot be converted to staff.");
+
+    const pending = await ctx.db
+      .query("staffConversions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!pending) throw new Error("No staff conversion is waiting for this account.");
+    if (pending.expiresAt <= Date.now()) {
+      throw new Error("That confirmation code expired. Ask an administrator for a new code.");
+    }
+    if (pending.attempts >= STAFF_CONVERSION_MAX_ATTEMPTS) {
+      throw new Error("Too many incorrect codes. Ask an administrator for a new code.");
+    }
+
+    const submittedHash = await hashStaffConversionCode(userId, code);
+    if (submittedHash !== pending.codeHash) {
+      const attempts = pending.attempts + 1;
+      await ctx.db.patch(pending._id, { attempts });
+      throw new Error(attempts >= STAFF_CONVERSION_MAX_ATTEMPTS
+        ? "Too many incorrect codes. Ask an administrator for a new code."
+        : "That confirmation code is incorrect. Check the code with the administrator.");
+    }
+
+    const emailOwner = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", pending.email))
+      .first();
+    if (emailOwner && emailOwner._id !== target._id) {
+      throw new Error("That company email is now used by another account. Ask an administrator to restart the conversion.");
+    }
+
+    const existingInvitation = await ctx.db
+      .query("companyAccess")
+      .withIndex("by_email", (q) => q.eq("email", pending.email))
+      .first();
+    const invitationValues = {
+      email: pending.email,
+      department: pending.department,
+      position: pending.position,
+      publicBadge: pending.publicBadge,
+      accessLevel: pending.accessLevel,
+      invitedAt: Date.now(),
+      invitedBy: pending.invitedBy,
+    };
+    if (existingInvitation) await ctx.db.replace(existingInvitation._id, invitationValues);
+    else await ctx.db.insert("companyAccess", invitationValues);
+
+    await ctx.db.patch(target._id, {
+      email: pending.email,
+      emailVerificationTime: target.emailVerificationTime ?? Date.now(),
+      role: pending.accessLevel === "admin" ? "admin" : "member",
+      department: pending.department,
+      position: pending.position,
+      publicBadge: pending.publicBadge,
+      staffAccess: true,
+      staffWelcomeVersion: undefined,
+      ...(target.pendingRecoveryEmail?.trim().toLowerCase() === pending.email ? { pendingRecoveryEmail: undefined } : {}),
+    });
+    await ctx.db.delete(pending._id);
+
+    await recordAudit(ctx, {
+      actorId: target._id,
+      actorLabel: accountLabel(target),
+      action: "permissions-updated",
+      targetId: target._id,
+      targetLabel: accountLabel(target),
+      reason: `Account holder confirmed staff conversion · ${pending.department} / ${pending.position}.`,
+    });
+
+    return {
+      ok: true,
+      email: pending.email,
+      department: pending.department,
+      position: pending.position,
+      accessLevel: pending.accessLevel,
+    };
   },
 });

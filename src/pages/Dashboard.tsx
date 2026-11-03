@@ -28,6 +28,11 @@ export default function Dashboard() {
     api.playerRecovery.recoveryStatus,
     user?.role === "user" ? {} : "skip",
   );
+  const pendingStaffConversion = useQuery(
+    api.admin.myPendingStaffConversion,
+    user ? {} : "skip",
+  );
+  const confirmStaffConversion = useMutation(api.admin.confirmStaffConversion);
   const requestRecoveryCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
   const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
   const [usernameDraft, setUsernameDraft] = useState("");
@@ -43,6 +48,10 @@ export default function Dashboard() {
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const [changingRecoveryEmail, setChangingRecoveryEmail] = useState(false);
+  const [staffConversionCode, setStaffConversionCode] = useState("");
+  const [staffConversionMessage, setStaffConversionMessage] = useState("");
+  const [staffConversionBusy, setStaffConversionBusy] = useState(false);
+  const [staffConversionComplete, setStaffConversionComplete] = useState(false);
 
   useEffect(() => {
     if (!profilePrivacy) return;
@@ -131,6 +140,27 @@ export default function Dashboard() {
     }
   }
 
+  async function submitStaffConversion(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = staffConversionCode.replace(/[^a-z0-9]/gi, "").toUpperCase();
+    if (code.length !== 8) {
+      setStaffConversionMessage("Enter the 8-character confirmation code from the administrator.");
+      return;
+    }
+    setStaffConversionBusy(true);
+    setStaffConversionMessage("");
+    try {
+      const result = await confirmStaffConversion({ code });
+      setStaffConversionComplete(true);
+      setStaffConversionCode("");
+      setStaffConversionMessage(`Staff access confirmed for ${result.email}. Your account is unchanged except for the new staff role and assignment.`);
+    } catch (error) {
+      setStaffConversionMessage(error instanceof Error ? error.message : "Could not confirm the staff conversion.");
+    } finally {
+      setStaffConversionBusy(false);
+    }
+  }
+
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -183,6 +213,45 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your OpenWorlds hub</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Manage your public profile, friends, and worlds. Signed in as {user.playerUsername ? `@${user.playerUsername}` : user.playerName}.</p>
         </motion.div>
+
+        {staffConversionComplete ? (
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 font-semibold tracking-tight text-emerald-950"><ShieldCheck className="size-4 text-emerald-700" /> Staff access confirmed</h2>
+            <p className="mt-2 text-sm leading-6 text-emerald-900">{staffConversionMessage}</p>
+            <Button asChild className="mt-4"><Link to="/staff">Open staff workspace</Link></Button>
+          </motion.section>
+        ) : pendingStaffConversion ? (
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/70 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 font-semibold tracking-tight text-amber-950"><ShieldCheck className="size-4 text-amber-700" /> Confirm your staff conversion</h2>
+            <p className="mt-2 text-sm leading-6 text-amber-950/80">
+              An administrator requested staff access for this account: <strong>{pendingStaffConversion.department} / {pendingStaffConversion.position}</strong>, using <strong>{pendingStaffConversion.email}</strong>. Nothing changes until you enter the private confirmation code they give you.
+            </p>
+            {pendingStaffConversion.expired ? (
+              <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">This code expired. Ask the administrator to generate a new one.</p>
+            ) : (
+              <form onSubmit={submitStaffConversion} className="mt-4 flex flex-wrap items-end gap-3">
+                <div className="w-full max-w-xs space-y-2">
+                  <Label htmlFor="staff-conversion-code">Confirmation code</Label>
+                  <Input
+                    id="staff-conversion-code"
+                    autoComplete="off"
+                    required
+                    maxLength={9}
+                    value={staffConversionCode}
+                    onChange={(event) => {
+                      const raw = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+                      setStaffConversionCode(raw.length > 4 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw);
+                    }}
+                    placeholder="ABCD-EFGH"
+                  />
+                </div>
+                <Button type="submit" disabled={staffConversionBusy || staffConversionCode.replace(/[^A-Z0-9]/g, "").length !== 8}>{staffConversionBusy ? "Confirming…" : "Confirm staff access"}</Button>
+              </form>
+            )}
+            {staffConversionMessage && <p role="status" className="mt-3 text-sm text-amber-950">{staffConversionMessage}</p>}
+            <p className="mt-3 text-xs leading-5 text-amber-900/80">Only enter a code you received directly from an OpenWorlds administrator. The code expires {new Date(pendingStaffConversion.expiresAt).toLocaleString()} and only works for your account.</p>
+          </motion.section>
+        ) : null}
 
         {moderationWarnings?.warnings.length ? (
           <motion.section id="account-warnings" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 scroll-mt-24 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">

@@ -61,6 +61,23 @@ type CompanyAccessAccount = {
   isActive: boolean;
 };
 
+type PendingStaffConversion = {
+  userId: Id<"users">;
+  email: string;
+  username: string | null;
+  displayName: string | null;
+  department: string;
+  position: string;
+  accessLevel: "staff" | "admin";
+  createdAt: number;
+  expiresAt: number;
+  expired: boolean;
+};
+
+function formatConversionCode(code: string) {
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
+
 type TeamRowProps = {
   member: TeamMember;
   busy: boolean;
@@ -208,7 +225,7 @@ function PendingStaffPanel({ canChange }: { canChange: boolean }) {
   return (
     <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-5">
       <h2 className="font-semibold">New staff waiting to sign in</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-600">These invited emails are not active yet. They appear in the staff directory after their first email-code sign-in. Converted player accounts activate immediately and appear below without another sign-in.</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">These invited emails are not active yet. They appear in the staff directory after their first email-code sign-in. Player conversions are managed under “Convert a player account” until the player confirms the code.</p>
       <ul className="mt-3 space-y-2">
         {pending.map((account: CompanyAccessAccount) => (
           <li key={account._id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm">
@@ -244,12 +261,26 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [confirmation, setConfirmation] = useState<{
+    userId: Id<"users">;
+    email: string;
+    code: string;
+    expiresAt: number;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [pendingBusyId, setPendingBusyId] = useState<string | null>(null);
   const term = search.trim();
   const results = useQuery(
     api.admin.searchPlayerAccountsForCompany,
     canChange && term.length >= 2 ? { search: term } : "skip",
   );
+  const pendingConversions = useQuery(
+    api.admin.listPendingStaffConversions,
+    canChange ? {} : "skip",
+  );
   const convert = useMutation(api.admin.convertPlayerToCompany);
+  const regenerateCode = useMutation(api.admin.regenerateStaffConversionCode);
+  const cancelConversion = useMutation(api.admin.cancelStaffConversion);
 
   function choosePlayer(player: ConvertiblePlayer) {
     setSelected(player);
@@ -268,14 +299,21 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
     setError("");
     setMessage("");
     try {
-      await convert({
+      const result = await convert({
         userId: selected.userId,
         email,
         department,
         position,
         publicBadge: badge,
       });
-      setMessage(`${selected.username ? `@${selected.username}` : selected.displayName ?? "The player account"} keeps the same account and data. Staff access is active now, so if they are already signed in they do not need to sign in again. If they are signed out, they sign in with an email code sent to ${email}.`);
+      setConfirmation({
+        userId: selected.userId,
+        email: result.email,
+        code: result.confirmationCode,
+        expiresAt: result.expiresAt,
+      });
+      setCopied(false);
+      setMessage(`${selected.username ? `@${selected.username}` : selected.displayName ?? "The player account"} has NOT been converted yet. Give them the confirmation code below through a private channel. They must open their dashboard while signed in and enter it.`);
       setSelected(null);
       setSearch("");
       setEmail("");
@@ -288,11 +326,59 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
     }
   }
 
+  async function copyConfirmationCode() {
+    if (!confirmation) return;
+    try {
+      await navigator.clipboard.writeText(formatConversionCode(confirmation.code));
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function handleRegenerate(userId: Id<"users">) {
+    setError("");
+    setMessage("");
+    setPendingBusyId(userId);
+    try {
+      const result = await regenerateCode({ userId });
+      setConfirmation({
+        userId,
+        email: result.email,
+        code: result.confirmationCode,
+        expiresAt: result.expiresAt,
+      });
+      setCopied(false);
+      setMessage(`A new confirmation code was generated for ${result.email}. The previous code no longer works.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate a new confirmation code.");
+    } finally {
+      setPendingBusyId(null);
+    }
+  }
+
+  async function handleCancel(userId: Id<"users">) {
+    setError("");
+    setMessage("");
+    setPendingBusyId(userId);
+    try {
+      await cancelConversion({ userId });
+      if (confirmation?.userId === userId) setConfirmation(null);
+      setMessage("The pending staff conversion was cancelled. The player account was not changed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not cancel the pending conversion.");
+    } finally {
+      setPendingBusyId(null);
+    }
+  }
+
+  const pendingRows = pendingConversions ?? [];
+
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
       <h2 className="font-semibold">Convert a player account</h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
-        Search by OpenWorlds username, display name, or account email. The same account stays in place, including its profile, friends, messages, and game data. Staff access activates immediately, so an already signed-in player keeps their session and does not need to sign in again.
+        Search by OpenWorlds username, display name, or account email. The same account stays in place, including its profile, friends, messages, and game data. Converting takes two confirmations: you start it here, then the signed-in player enters the one-time code you receive. Nothing changes until they confirm.
       </p>
       <div className="mt-4 max-w-md space-y-1">
         <Label htmlFor="convert-player-search">Find a player account</Label>
@@ -357,7 +443,7 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={!canChange || busy || !email.trim() || !department.trim() || !position.trim()}>
-              {busy ? "Converting…" : "Convert to company account"}
+              {busy ? "Starting…" : "Start conversion"}
             </Button>
             <Button type="button" variant="outline" disabled={busy} onClick={() => setSelected(null)}>Cancel</Button>
           </div>
@@ -365,6 +451,39 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
       )}
       {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       {message && <p role="status" className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
+      {confirmation && (
+        <div className="mt-4 rounded-lg border border-emerald-300 bg-emerald-50 p-4">
+          <p className="text-sm font-semibold text-emerald-950">Confirmation code for {confirmation.email}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <code className="rounded-md border border-emerald-300 bg-white px-4 py-2 font-mono text-xl font-semibold tracking-[0.18em] text-emerald-950">{formatConversionCode(confirmation.code)}</code>
+            <Button type="button" size="sm" variant="outline" onClick={() => void copyConfirmationCode()}>{copied ? "Copied" : "Copy code"}</Button>
+          </div>
+          <p className="mt-2 text-xs leading-5 text-emerald-900">Share this privately with the account holder. It expires {new Date(confirmation.expiresAt).toLocaleString()} and only works for their signed-in account.</p>
+        </div>
+      )}
+      {canChange && pendingRows.length > 0 && (
+        <div className="mt-5 border-t border-slate-200 pt-4">
+          <h3 className="text-sm font-semibold">Conversions waiting for staff confirmation</h3>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Nothing has changed on these accounts yet. Generate a new code if the old one was lost or expired, or cancel the request.</p>
+          <ul className="mt-3 space-y-2">
+            {pendingRows.map((conversion: PendingStaffConversion) => (
+              <li key={conversion.userId} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                <span className="min-w-0">
+                  <span className="font-medium text-slate-900">{conversion.username ? `@${conversion.username}` : conversion.displayName ?? conversion.email}</span>
+                  <span className="text-slate-500"> · {conversion.email} — {conversion.department} / {conversion.position}</span>
+                  {conversion.expired && <span className="font-medium text-red-700"> · code expired</span>}
+                </span>
+                <span className="flex shrink-0 gap-2">
+                  <Button type="button" size="sm" variant="outline" disabled={pendingBusyId === conversion.userId} onClick={() => void handleRegenerate(conversion.userId)}>
+                    {pendingBusyId === conversion.userId ? "Generating…" : "New code"}
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={pendingBusyId === conversion.userId} onClick={() => void handleCancel(conversion.userId)}>Cancel</Button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {!canChange && <p className="mt-3 text-sm text-slate-500">Unlock admin tools to convert a player account.</p>}
     </section>
   );

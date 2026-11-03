@@ -140,6 +140,24 @@ const schema = defineSchema(
       invitedBy: v.id("users"),
     }).index("by_email", ["email"]),
 
+    // Two-party staff conversion: an administrator requests the change and the
+    // signed-in account holder confirms it with a one-time code.
+    staffConversions: defineTable({
+      userId: v.id("users"),
+      email: v.string(),
+      department: v.string(),
+      position: v.string(),
+      publicBadge: v.union(v.literal("staff"), v.literal("dev")),
+      accessLevel: v.union(v.literal("admin"), v.literal("staff")),
+      codeHash: v.string(),
+      invitedBy: v.id("users"),
+      createdAt: v.number(),
+      expiresAt: v.number(),
+      attempts: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_email", ["email"]),
+
     securityAppeals: defineTable({
       userId: v.id("users"),
       email: v.string(),
