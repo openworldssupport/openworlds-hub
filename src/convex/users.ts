@@ -780,7 +780,7 @@ export const myInbox = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || user.isSiteBanned) return null;
-    if (!hasPublicUsername(user)) return { needsUsername: true as const, requests: [], sent: [] };
+    if (!hasPublicUsername(user)) return { needsUsername: true as const, requests: [], sent: [], conversations: [] };
 
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).take(500),
@@ -814,7 +814,41 @@ export const myInbox = query({
         return profile ? { requestId: request._id, createdAt: request.createdAt, ...profile } : null;
       }))).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
-    return { needsUsername: false as const, requests, sent };
+    // Accepted friends are the inbox conversation list. A friend with no
+    // messages yet still appears so either person can start the thread.
+    const friendRows = new Map<string, { otherId: typeof user._id; since: number }>();
+    for (const request of [...outgoing, ...incoming]) {
+      if (request.status !== "accepted") continue;
+      const otherId = request.senderId === user._id ? request.receiverId : request.senderId;
+      const existing = friendRows.get(otherId);
+      if (!existing || request.updatedAt > existing.since) {
+        friendRows.set(otherId, { otherId, since: request.updatedAt });
+      }
+    }
+    const conversations = (await Promise.all([...friendRows.values()]
+      .sort((a, b) => b.since - a.since)
+      .slice(0, 50)
+      .map(async ({ otherId, since }) => {
+        const profile = await describe(otherId);
+        if (!profile) return null;
+        const [participantA, participantB] = [user._id, otherId].sort((a, b) => String(a).localeCompare(String(b)));
+        const lastMessage = await ctx.db.query("playerMessages")
+          .withIndex("by_pair_created", (q) => q.eq("participantA", participantA).eq("participantB", participantB))
+          .order("desc")
+          .first();
+        return {
+          ...profile,
+          lastActivityAt: Math.max(since, lastMessage?.createdAt ?? 0),
+          lastMessage: lastMessage ? {
+            body: lastMessage.body,
+            sentByMe: lastMessage.senderId === user._id,
+            createdAt: lastMessage.createdAt,
+          } : null,
+        };
+      }))).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+
+    return { needsUsername: false as const, requests, sent, conversations };
   },
 });
 

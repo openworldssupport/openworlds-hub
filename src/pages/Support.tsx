@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "How do I add friends?",
     answer:
-      "Open a player from the Worlds search or a profile link and choose Add friend. Requests appear in that player’s Inbox, where they can accept or decline. Once accepted, you can message each other and see each other’s online status.",
+      "Open a player from the Worlds search or a profile link and choose Add friend. Your Inbox lists pending requests you can accept or decline, plus conversations with accepted friends. Once accepted, you can message each other from the Inbox or their profile and see each other’s online status.",
   },
   {
     question: "How do I stop friend requests?",
