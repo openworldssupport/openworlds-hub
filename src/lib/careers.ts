@@ -194,6 +194,38 @@ export const careerBranches: CareerBranch[] = [
     summary: "Internal documentation, contributor workflows, systems organization, and tooling.",
     roles: [
       role("documentation-workflow-specialist", "Documentation & Workflow Specialist", "Operations & Internal Systems", "Keep internal documentation, processes, and contributor workflows clear and up to date.", ["Write and maintain internal documentation and guides.", "Map contributor workflows and remove confusing steps.", "Keep ownership, hand-offs, and checklists current."], ["Clear, structured writing.", "Organized follow-through on details.", "Comfortable asking contributors for the facts."]),
+      role(
+        "operations-coordinator",
+        "Operations Coordinator",
+        "Operations & Internal Systems",
+        "Keep recurring operational work across departments scheduled, documented, and moving.",
+        ["Maintain the operating calendar, meeting notes, and cross-team action list.", "Follow up on open decisions and flag work that is blocked or at risk.", "Help new contributors find the right process and point of contact."],
+        ["Organized with schedules, notes, and follow-ups.", "Comfortable coordinating across different teams.", "Clear, concise written communication."],
+      ),
+      role(
+        "internal-systems-administrator",
+        "Internal Systems Administrator",
+        "Operations & Internal Systems",
+        "Maintain the internal tools, permissions, and integrations the team relies on.",
+        ["Administer internal accounts, groups, and access for staff systems.", "Keep integrations and automations documented, tested, and recoverable.", "Review tool usage and remove stale accounts or unused services."],
+        ["Comfortable administering accounts, permissions, and small integrations.", "Careful with access control and sensitive information.", "Able to document fixes and recovery steps."],
+      ),
+      role(
+        "process-improvement-analyst",
+        "Process Improvement Analyst",
+        "Operations & Internal Systems",
+        "Study how work actually moves and recommend practical changes that reduce friction.",
+        ["Map current workflows and identify repeated delays or manual steps.", "Measure the impact of proposed changes with simple, honest metrics.", "Work with contributors to test improvements and update process documentation."],
+        ["Able to break a workflow into clear steps.", "Comfortable with basic measurement and comparison.", "Patient when changing habits and agreed processes."],
+      ),
+      role(
+        "vendor-procurement-coordinator",
+        "Vendor & Procurement Coordinator",
+        "Operations & Internal Systems",
+        "Coordinate service providers, renewals, and purchasing so the team has what it needs without waste.",
+        ["Track vendors, contracts, renewals, and recurring costs.", "Collect requirements and compare practical options before purchases.", "Keep procurement records and approval steps clear and current."],
+        ["Organized with contracts, dates, and cost records.", "Comfortable asking vendors and internal teams direct questions.", "Good judgement about cost, risk, and unnecessary tooling."],
+      ),
     ],
   },
   {
