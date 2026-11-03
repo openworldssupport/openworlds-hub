@@ -10,7 +10,10 @@ function PositionRow({ role, isOpen }: { role: CareerRole; isOpen: boolean }) {
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <h3 className="font-semibold text-slate-900">{role.title}</h3>
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h3 className="font-semibold text-slate-900">{role.title}</h3>
+          <span className="text-xs text-slate-500">Voluntary · unpaid</span>
+        </div>
         <p className="mt-1 text-sm leading-6 text-slate-600">{role.summary}</p>
       </div>
       <div className="flex shrink-0 items-center gap-4">

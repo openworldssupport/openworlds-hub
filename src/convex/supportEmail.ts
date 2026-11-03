@@ -212,6 +212,9 @@ export const sendCareerEnquiry = internalAction({
         : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
       "",
       "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
+      ...(isApplication && !isCreatorApplication
+        ? ["", "Contributor roles at OpenWorlds are voluntary and unpaid."]
+        : []),
       "",
       "Regards,",
       "OpenWorlds Careers Bot",
@@ -226,6 +229,7 @@ export const sendCareerEnquiry = internalAction({
             : `Thank you for your interest in the ${args.roleTitle ?? "OpenWorlds"} position. Your application has been sent to the Careers team. They will review your submission and contact you by email if they need anything further.`
           : "Thank you for contacting the OpenWorlds Careers team. Your question has been sent to the Careers inbox, and the team will reply by email as soon as possible.",
         "This message confirms delivery to our Careers inbox; it is not an offer or confirmation of selection.",
+        ...(isApplication && !isCreatorApplication ? ["Contributor roles at OpenWorlds are voluntary and unpaid."] : []),
       ],
       details: args.roleTitle ? [["Position", args.roleTitle] as [string, string]] : [],
       signature: "OpenWorlds Careers Bot",
