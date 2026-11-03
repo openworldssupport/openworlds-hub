@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
-import { canonicalDepartmentName } from "../lib/staff";
+import { canonicalDepartmentName, isEmailAddress } from "../lib/staff";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -216,5 +216,124 @@ export const revokeCompanyAccount = mutation({
       });
     }
     return { ok: true };
+  },
+});
+
+/** Admin-only lookup for a normal player account that should become staff. */
+export const searchPlayerAccountsForCompany = query({
+  args: { search: v.string() },
+  handler: async (ctx, { search }) => {
+    await requireRosterVerification(ctx);
+    const term = search.trim().slice(0, 80);
+    if (term.length < 2) return [];
+    const normalizedTerm = term.toLowerCase();
+    const usernameTerm = normalizedTerm.replace(/^@/, "");
+    const [byUsername, byName, byEmail] = await Promise.all([
+      ctx.db.query("users")
+        .withSearchIndex("search_players_by_username", (q) => q.search("playerLogin", usernameTerm).eq("role", "user"))
+        .take(25),
+      ctx.db.query("users")
+        .withSearchIndex("search_players_by_name", (q) => q.search("name", term).eq("role", "user"))
+        .take(25),
+      normalizedTerm.includes("@")
+        ? ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalizedTerm)).first()
+        : Promise.resolve(null),
+    ]);
+    const unique = new Map(
+      [...byUsername, ...byName, ...(byEmail ? [byEmail] : [])]
+        .filter((user) => user.role === "user" && !user.isAnonymous && !user.isSiteBanned)
+        .map((user) => [user._id, user]),
+    );
+    return [...unique.values()]
+      .map((user) => {
+        const username = user.playerLogin?.trim() ?? null;
+        const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
+        const accountEmail = user.email?.trim().toLowerCase() ?? "";
+        const realAccountEmail = accountEmail && !accountEmail.endsWith("@players.openworlds.invalid") ? accountEmail : null;
+        const verifiedRecoveryEmail = user.recoveryEmailVerifiedAt !== undefined ? user.recoveryEmail?.trim().toLowerCase() ?? null : null;
+        const exact = username?.toLowerCase() === usernameTerm || displayName?.toLowerCase() === normalizedTerm;
+        return {
+          userId: user._id,
+          username,
+          displayName,
+          suggestedEmail: verifiedRecoveryEmail ?? realAccountEmail,
+          exact,
+        };
+      })
+      .sort((a, b) => Number(b.exact) - Number(a.exact) || (a.username ?? a.displayName ?? "").localeCompare(b.username ?? b.displayName ?? ""))
+      .slice(0, 20)
+      .map(({ exact: _exact, ...player }) => player);
+  },
+});
+
+/**
+ * Upgrade an existing player account in place. The user id never changes, so
+ * profile fields, friendships, messages, and saved game data stay attached.
+ * Staff sign-in is activated by the invitation's email code, not by creating
+ * a second account.
+ */
+export const convertPlayerToCompany = mutation({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    department: v.string(),
+    position: v.string(),
+    publicBadge: v.union(v.literal("staff"), v.literal("dev")),
+    accessLevel: v.optional(v.union(v.literal("staff"), v.literal("admin"))),
+  },
+  handler: async (ctx, args) => {
+    const actor = await requireRoleAdministrator(ctx);
+    const target = await ctx.db.get(args.userId);
+    if (!target) throw new Error("Account not found.");
+    if (target.role !== "user") throw new Error("This account is already a staff account. Manage it from the staff directory.");
+    if (target.isSiteBanned) throw new Error("This account is restricted and cannot be converted.");
+
+    const email = args.email.trim().toLowerCase();
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid company email address.");
+    if (email.endsWith("@players.openworlds.invalid")) throw new Error("Enter the person's real company email, not their player login address.");
+    if (email === SUPPORT_EMAIL) throw new Error("The bootstrap admin is managed separately and cannot be assigned here.");
+
+    const emailOwner = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
+    if (emailOwner && emailOwner._id !== target._id) throw new Error("That email is already used by another account.");
+
+    const department = canonicalDepartmentName(args.department);
+    const position = args.position.trim();
+    if (!department || department.length > 80) throw new Error("Department must be 1-80 characters.");
+    if (!position || position.length > 100) throw new Error("Position must be 1-100 characters.");
+    const accessLevel = args.accessLevel ?? "staff";
+
+    const existingInvitation = await ctx.db
+      .query("companyAccess")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .unique();
+    const invitationValues = {
+      email,
+      department,
+      position,
+      publicBadge: args.publicBadge,
+      accessLevel,
+      invitedAt: Date.now(),
+      invitedBy: actor._id,
+    };
+    if (existingInvitation) await ctx.db.replace(existingInvitation._id, invitationValues);
+    else await ctx.db.insert("companyAccess", invitationValues);
+
+    const sameAccountEmail = target.email?.trim().toLowerCase() === email;
+    await ctx.db.patch(target._id, {
+      email,
+      ...(!sameAccountEmail ? { emailVerificationTime: undefined } : {}),
+      ...(target.pendingRecoveryEmail?.trim().toLowerCase() === email ? { pendingRecoveryEmail: undefined } : {}),
+    });
+
+    await recordAudit(ctx, {
+      actorId: actor._id,
+      actorLabel: accountLabel(actor),
+      action: "permissions-updated",
+      targetId: target._id,
+      targetLabel: accountLabel(target),
+      reason: `Player account converted to company access · ${department} / ${position}; email verification pending.`,
+    });
+
+    return { ok: true, email, pendingEmailVerification: true };
   },
 });

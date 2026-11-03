@@ -44,6 +44,13 @@ type TeamMember = {
   image: string | null;
 };
 
+type ConvertiblePlayer = {
+  userId: Id<"users">;
+  username: string | null;
+  displayName: string | null;
+  suggestedEmail: string | null;
+};
+
 type TeamRowProps = {
   member: TeamMember;
   busy: boolean;
@@ -155,11 +162,12 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. Viewing and changing assignments both need the authenticator unlock above.</p>
+      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
+      <PlayerConversionPanel canChange={isPermissionVerified} />
       <StaffInvitePanel canChange={isPermissionVerified} />
       {members.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p>
@@ -190,6 +198,142 @@ function TeamPanel() {
       {status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(50)}>Load more accounts</Button>}
       {status === "LoadingMore" && <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-slate-400" /></div>}
     </div>
+  );
+}
+
+function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<ConvertiblePlayer | null>(null);
+  const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("");
+  const [position, setPosition] = useState("");
+  const [badge, setBadge] = useState<"staff" | "dev">("staff");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const term = search.trim();
+  const results = useQuery(
+    api.admin.searchPlayerAccountsForCompany,
+    canChange && term.length >= 2 ? { search: term } : "skip",
+  );
+  const convert = useMutation(api.admin.convertPlayerToCompany);
+
+  function choosePlayer(player: ConvertiblePlayer) {
+    setSelected(player);
+    setEmail(player.suggestedEmail ?? "");
+    setDepartment("");
+    setPosition("");
+    setBadge("staff");
+    setError("");
+    setMessage("");
+  }
+
+  async function handleConvert(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || !canChange || busy) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await convert({
+        userId: selected.userId,
+        email,
+        department,
+        position,
+        publicBadge: badge,
+      });
+      setMessage(`${selected.username ? `@${selected.username}` : selected.displayName ?? "The player account"} keeps the same account and data. They can now use the email-code sign-in option with ${email} to activate staff access.`);
+      setSelected(null);
+      setSearch("");
+      setEmail("");
+      setDepartment("");
+      setPosition("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not convert that account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
+      <h2 className="font-semibold">Convert a player account</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-600">
+        Search by OpenWorlds username, display name, or account email. The same account stays in place, including its profile, friends, messages, and game data. Staff access activates after the person signs in with the emailed code.
+      </p>
+      <div className="mt-4 max-w-md space-y-1">
+        <Label htmlFor="convert-player-search">Find a player account</Label>
+        <Input
+          id="convert-player-search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          maxLength={80}
+          placeholder="Username or display name"
+          disabled={!canChange}
+        />
+        <p className="text-xs text-slate-500">Enter at least two characters.</p>
+      </div>
+      {canChange && term.length >= 2 && (
+        <div className="mt-3 max-w-xl space-y-1">
+          {results === undefined ? (
+            <p className="text-sm text-slate-500">Searching…</p>
+          ) : results.length === 0 ? (
+            <p className="text-sm text-slate-500">No player accounts matched that search.</p>
+          ) : (
+            results.map((player) => (
+              <button
+                key={player.userId}
+                type="button"
+                onClick={() => choosePlayer(player)}
+                className={`flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm ${selected?.userId === player.userId ? "border-[#14583c] bg-[#f4f8f5]" : "border-slate-200 hover:bg-slate-50"}`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-slate-900">{player.username ? `@${player.username}` : player.displayName ?? "Unnamed account"}</span>
+                  {player.displayName && player.username && <span className="block truncate text-xs text-slate-500">{player.displayName}</span>}
+                </span>
+                <span className="shrink-0 text-xs font-medium text-[#14583c]">{selected?.userId === player.userId ? "Selected" : "Select"}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      {selected && (
+        <form onSubmit={(event) => void handleConvert(event)} className="mt-5 border-t border-slate-200 pt-4">
+          <p className="text-sm font-medium">Converting {selected.username ? `@${selected.username}` : selected.displayName ?? "player account"}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="convert-email">Company email</Label>
+              <Input id="convert-email" type="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@company.com" />
+              <p className="text-xs text-slate-500">This becomes their staff sign-in. Use an address they control.</p>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="convert-department">Department</Label>
+              <Input id="convert-department" list="ow-departments" required maxLength={80} value={department} onChange={(event) => setDepartment(event.target.value)} placeholder="Engineering" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="convert-position">Position</Label>
+              <Input id="convert-position" list="ow-positions" required maxLength={100} value={position} onChange={(event) => setPosition(event.target.value)} placeholder="Developer" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="convert-badge">Badge</Label>
+              <select id="convert-badge" value={badge} onChange={(event) => setBadge(event.target.value as "staff" | "dev")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
+                <option value="staff">Staff</option>
+                <option value="dev">Dev</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Button type="submit" disabled={!canChange || busy || !email.trim() || !department.trim() || !position.trim()}>
+              {busy ? "Converting…" : "Convert to company account"}
+            </Button>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setSelected(null)}>Cancel</Button>
+          </div>
+        </form>
+      )}
+      {error && <p role="alert" className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {message && <p role="status" className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
+      {!canChange && <p className="mt-3 text-sm text-slate-500">Unlock admin tools to convert a player account.</p>}
+    </section>
   );
 }
 
@@ -249,9 +393,9 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="font-semibold">Add a staff account</h2>
+      <h2 className="font-semibold">Add a company email</h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
-        Staff accounts are created here only. The person signs in on the normal sign-in page with a one-time code sent to this email; there is no public staff sign-up.
+        Staff access is assigned here only; there is no public staff sign-up. Use this form for a new company email. If the person already has a player account, use “Convert a player account” above instead so their existing account stays intact. The person signs in on the normal sign-in page with a one-time code sent to this email.
       </p>
       <form onSubmit={handleAdd} className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1 sm:col-span-2">
