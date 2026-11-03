@@ -151,12 +151,12 @@ function StatCard({ label, value, detail, tone = "default" }: {
   tone?: "default" | "warning" | "danger";
 }) {
   const toneClass = tone === "danger"
-    ? "border-red-200 bg-red-50/70"
+    ? "border-red-200 border-t-[#a52234] bg-red-50/70"
     : tone === "warning"
-      ? "border-amber-200 bg-amber-50/70"
-      : "border-[#dce5df] bg-white";
+      ? "border-amber-200 border-t-[#d6a63b] bg-amber-50/70"
+      : "border-[#dce5df] border-t-[#176b45] bg-white";
   return (
-    <div className={`rounded-xl border p-4 ${toneClass}`}>
+    <div className={`rounded-xl border border-t-2 p-4 ${toneClass}`}>
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{detail}</p>
@@ -945,15 +945,15 @@ export default function ModerationPage() {
   }, [tab, visibleTabs, setTab]);
 
   return (
-    <div className="min-h-screen bg-[#f4f6f2] text-slate-900">
+    <div className="min-h-screen bg-[#f7f8f4] text-slate-900">
       <SiteNav />
-      <header className="border-b border-[#244435] bg-[#0d2f22] text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
+      <header className="ow-page-hero text-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8">
           <div className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15"><ShieldCheck className="size-6" /></span>
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#a9c8b6]">OpenWorlds Trust &amp; Safety</p>
-              <h1 className="text-xl font-semibold tracking-tight">Moderation console</h1>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#cfe0d5]">OpenWorlds · Trust &amp; Safety</p>
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Moderation console</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -1013,7 +1013,7 @@ export default function ModerationPage() {
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
                       <h2 className="text-2xl font-semibold tracking-tight">Today at a glance</h2>
-                      <p className="mt-1 text-sm text-slate-600">Reports and restrictions from across OpenWorlds.</p>
+                      <p className="mt-1 text-sm text-slate-600">Reports, restrictions, and appeals from across OpenWorlds.</p>
                     </div>
                     <Button size="sm" onClick={() => setTab("reports")}>Open report queue <ArrowRight className="size-4" /></Button>
                   </div>

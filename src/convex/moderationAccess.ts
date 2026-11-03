@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireStaffUnlock } from "./staffUnlock";
+import { canonicalDepartmentName } from "../lib/staff";
 
 /**
  * Moderation is capability-based. Administrators always have every capability;
@@ -102,8 +103,12 @@ function roleKey(value?: string | null) {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function departmentRoleKey(department?: string | null) {
+  return roleKey(canonicalDepartmentName(department));
+}
+
 export function moderationRoleKey(department?: string | null, position?: string | null) {
-  return `${roleKey(department)}|${roleKey(position)}`;
+  return `${departmentRoleKey(department)}|${roleKey(position)}`;
 }
 
 function normalizeCapabilities(values: readonly string[] | undefined): ModerationCapability[] {
@@ -176,7 +181,7 @@ export function defaultModerationAccess(user: Doc<"users"> | null | undefined): 
   if (!user) return noneAccess();
   if (isCompanyAdminAccount(user)) return adminAccess();
   if (!isVerifiedStaffAccount(user)) return noneAccess();
-  const department = user.department?.trim() || null;
+  const department = canonicalDepartmentName(user.department) || null;
   const position = user.position?.trim() || null;
   const capabilities = DEFAULT_BY_KEY.get(moderationRoleKey(department, position));
   return capabilities ? accessFromCapabilities([...capabilities], "default", department, position) : noneAccess();
@@ -186,6 +191,30 @@ export function defaultModerationAccess(user: Doc<"users"> | null | undefined): 
  * Resolve live access. This reads an exact department/position override when
  * one exists; otherwise it falls back to the built-in role table.
  */
+async function findRoleOverride(
+  ctx: QueryCtx | MutationCtx,
+  department: string | null,
+  position: string | null,
+) {
+  const exact = await ctx.db
+    .query("moderationRolePermissions")
+    .withIndex("by_keys", (q) =>
+      q.eq("departmentKey", departmentRoleKey(department)).eq("positionKey", roleKey(position)),
+    )
+    .unique();
+  if (exact) return exact;
+
+  // Read rows created before the Leadership/Executive Leadership alias was
+  // canonicalized, so an existing custom role keeps applying after the merge.
+  const legacyDepartmentKey = roleKey(department);
+  if (!legacyDepartmentKey || legacyDepartmentKey === departmentRoleKey(department)) return null;
+  const legacyRows = await ctx.db
+    .query("moderationRolePermissions")
+    .withIndex("by_department", (q) => q.eq("departmentKey", legacyDepartmentKey))
+    .take(50);
+  return legacyRows.find((row) => roleKey(row.position) === roleKey(position)) ?? null;
+}
+
 export async function resolveModerationAccess(
   ctx: QueryCtx | MutationCtx,
   user: Doc<"users"> | null | undefined,
@@ -193,14 +222,9 @@ export async function resolveModerationAccess(
   if (!user) return noneAccess();
   if (isCompanyAdminAccount(user)) return adminAccess();
   if (!isVerifiedStaffAccount(user)) return noneAccess();
-  const department = user.department?.trim() || null;
+  const department = canonicalDepartmentName(user.department) || null;
   const position = user.position?.trim() || null;
-  const override = await ctx.db
-    .query("moderationRolePermissions")
-    .withIndex("by_keys", (q) =>
-      q.eq("departmentKey", roleKey(department)).eq("positionKey", roleKey(position)),
-    )
-    .unique();
+  const override = await findRoleOverride(ctx, department, position);
   if (override) {
     return accessFromCapabilities(normalizeCapabilities(override.capabilities), "configured", department, position);
   }

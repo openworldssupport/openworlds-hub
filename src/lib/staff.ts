@@ -4,6 +4,22 @@ export type PublicBadge = "staff" | "dev";
 import { careerBranches, careerRoles } from "./careers";
 
 /**
+ * Department names that mean the same team should share one roster, role
+ * defaults, and permission key. Legacy assignments used "Leadership" before
+ * the careers page standardized on "Executive Leadership".
+ */
+const DEPARTMENT_ALIASES: Record<string, string> = {
+  leadership: "Executive Leadership",
+};
+
+/** Normalize a department name without changing its public spelling. */
+export function canonicalDepartmentName(value?: string | null): string {
+  const department = (value ?? "").trim().replace(/\s+/g, " ");
+  if (!department) return "";
+  return DEPARTMENT_ALIASES[department.toLowerCase()] ?? department;
+}
+
+/**
  * Company departments suggested in the admin panel (invite + team assignment).
  * Derived from the careers page so every department stays listed and assignable
  * before and after release, including departments with no current openings.
@@ -11,7 +27,7 @@ import { careerBranches, careerRoles } from "./careers";
  */
 export const DEPARTMENTS: string[] = [
   ...new Set([
-    ...careerBranches.map((branch) => branch.title),
+    ...careerBranches.map((branch) => canonicalDepartmentName(branch.title)),
     "Trust & Safety / Moderation",
   ]),
 ];

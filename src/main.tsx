@@ -4,7 +4,7 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Wordmark } from "@/components/Wordmark";
 import { LegalPolicyGate } from "@/components/LegalPolicyGate";
@@ -65,10 +65,6 @@ const StaffAnnouncements = lazy(
 const StaffMessages = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })),
-);
-const StaffAppeals = lazy(
-  () =>
-    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffAppeals })),
 );
 
 // Simple loading fallback for route transitions
@@ -357,7 +353,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/departments" element={<RequireAuth accessLevel="staff"><StaffDepartments /></RequireAuth>} />
               <Route path="/staff/announcements" element={<RequireAuth accessLevel="staff"><StaffAnnouncements /></RequireAuth>} />
               <Route path="/staff/messages" element={<RequireAuth accessLevel="staff"><StaffMessages /></RequireAuth>} />
-              <Route path="/staff/appeals" element={<RequireAuth accessLevel="staff"><StaffAppeals /></RequireAuth>} />
+              <Route path="/staff/appeals" element={<Navigate to="/moderation?tab=appeals" replace />} />
               <Route path="*" element={<NotFound />} />                </Routes>
               </Suspense>
             </LegalPolicyGate>

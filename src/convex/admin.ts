@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
+import { canonicalDepartmentName } from "../lib/staff";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -84,7 +85,7 @@ export const listCompanyAccess = query({
     const accounts = await ctx.db.query("companyAccess").withIndex("by_email").take(1000);
     return accounts.map(({ _id, email, department, position, publicBadge, accessLevel, memberStatus }) => ({
       _id,
-      department,
+      department: canonicalDepartmentName(department) || null,
       position,
       publicBadge,
       accessLevel,
@@ -116,7 +117,7 @@ export const inviteCompanyAccount = mutation({
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
     if (existingUser?.isSiteBanned) throw new Error("This account is restricted. Review the restriction before changing company access.");
     if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
-    const department = args.department.trim();
+    const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1–100 characters.");

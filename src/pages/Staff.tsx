@@ -51,15 +51,13 @@ function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-type StaffSection = "overview" | "departments" | "announcements" | "messages" | "appeals";
+type StaffSection = "overview" | "departments" | "announcements" | "messages";
 
 function MoreStaffTools() {
   const moderationAccess = useQuery(api.moderation.myAccess);
-  const toolSummary = moderationAccess?.canViewAppeals
-    ? "player reports, bans, appeals, site status"
-    : moderationAccess?.canView
-      ? "player reports, bans, site status"
-      : "site status";
+  const toolSummary = moderationAccess?.canView
+    ? "player reports, bans, site status"
+    : "site status";
   return (
     <details className="mb-6 border-y border-slate-200">
       <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools <span className="ml-2 text-xs font-normal text-slate-500">{toolSummary}</span></summary>
@@ -68,7 +66,7 @@ function MoreStaffTools() {
         {moderationAccess?.canView && (
           <section>
             <h2 className="font-semibold">Trust &amp; Safety console</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-600">Reports, account actions, appeals, network blocks, audit history, and capability permissions now live in the dedicated moderation workspace.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Reports, account actions, network blocks, audit history, and capability permissions live in the dedicated moderation workspace. Appeals are reviewed there too.</p>
             <Button asChild variant="outline" className="mt-3"><Link to="/moderation">Open moderation console</Link></Button>
           </section>
         )}
@@ -157,7 +155,6 @@ function WorkspaceOverview({
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
           {moderationAccess?.canView && <QuickLink to="/moderation" title="Trust & Safety console" />}
-          {moderationAccess?.canViewAppeals && <QuickLink to="/staff/appeals" title="Appeals" />}
           <QuickLink to="/staff/creators" title="Creator verification" />
           {isAdmin && <QuickLink to="/admin" title="Admin console" />}
           <QuickLink to="/news" title="Public news" />
@@ -955,7 +952,6 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
     { id: "departments" as const, label: "Departments" },
     { id: "announcements" as const, label: "Announcements" },
     { id: "messages" as const, label: "Team board" },
-    ...(moderationAccess?.canViewAppeals ? [{ id: "appeals" as const, label: "Appeals" }] : []),
   ];
 
   const selectedTab: StaffSection =
@@ -992,8 +988,6 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
         <DepartmentHub />
       ) : selectedTab === "announcements" ? (
         <AnnouncementsPanel isAdmin={adminView} userId={userId ?? (me?.userId ?? "")} />
-      ) : selectedTab === "appeals" ? (
-        <AppealsPanel />
       ) : (
         <StaffBoard canDeleteAny={adminView} userId={userId ?? (me?.userId ?? "")} />
       )}
@@ -1567,15 +1561,6 @@ export function StaffAnnouncements() {
 }
 
 export function StaffMessages() {
-  return (
-    <div className="staff-portal min-h-screen">
-      <SiteNav />
-      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
-    </div>
-  );
-}
-
-export function StaffAppeals() {
   return (
     <div className="staff-portal min-h-screen">
       <SiteNav />

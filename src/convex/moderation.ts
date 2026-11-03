@@ -16,6 +16,7 @@ import {
   type ModerationCapability,
 } from "./moderationAccess";
 import { requireRoleAdministrator } from "./admin";
+import { canonicalDepartmentName } from "../lib/staff";
 import type { Doc, Id } from "./_generated/dataModel";
 
 const reportCategory = v.union(
@@ -679,7 +680,7 @@ export const permissionMatrix = query({
     const { access } = await currentModerationAccess(ctx);
     if (!access.isAdmin) return null;
     const overrides = await ctx.db.query("moderationRolePermissions").take(500);
-    const byKeys = new Map(overrides.map((row) => [`${row.departmentKey}|${row.positionKey}`, row]));
+    const byKeys = new Map(overrides.map((row) => [moderationRoleKey(row.department, row.position), row]));
     const roles = DEFAULT_MODERATION_ROLES.map((role) => {
       const key = moderationRoleKey(role.department, role.position);
       const override = byKeys.get(key);
@@ -692,7 +693,7 @@ export const permissionMatrix = query({
       };
     });
     for (const override of overrides) {
-      if (DEFAULT_MODERATION_ROLES.some((role) => moderationRoleKey(role.department, role.position) === `${override.departmentKey}|${override.positionKey}`)) continue;
+      if (DEFAULT_MODERATION_ROLES.some((role) => moderationRoleKey(role.department, role.position) === moderationRoleKey(override.department, override.position))) continue;
       roles.push({
         department: override.department,
         position: override.position,
@@ -724,7 +725,7 @@ export const setRolePermissions = mutation({
   },
   handler: async (ctx, args) => {
     const actor = await requireRoleAdministrator(ctx);
-    const department = args.department.trim();
+    const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1–100 characters.");
@@ -768,9 +769,9 @@ export const resetRolePermissions = mutation({
   args: { department: v.string(), position: v.string() },
   handler: async (ctx, args) => {
     const actor = await requireRoleAdministrator(ctx);
-    const department = args.department.trim();
+    const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
-    const departmentKey = department.trim().toLowerCase().replace(/\s+/g, " ");
+    const departmentKey = canonicalDepartmentName(department).toLowerCase();
     const positionKey = position.trim().toLowerCase().replace(/\s+/g, " ");
     const existing = await ctx.db.query("moderationRolePermissions")
       .withIndex("by_keys", (q) => q.eq("departmentKey", departmentKey).eq("positionKey", positionKey))

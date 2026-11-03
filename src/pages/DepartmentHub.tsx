@@ -107,6 +107,10 @@ function isWebLink(value: string) {
   }
 }
 
+function departmentAnchor(key: string) {
+  return `department-${key.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 function SectionHeading({ icon: Icon, title, detail }: { icon: typeof Users; title: string; detail: string }) {
   return (
     <div className="flex items-start gap-2.5">
@@ -479,15 +483,20 @@ function DepartmentMeetings({
 }
 
 function DepartmentSection({ department, viewer }: { department: Department; viewer: HubData["viewer"] }) {
+  const isViewerTeam = viewer.departmentKey === department.key;
   return (
-    <section className="overflow-hidden rounded-2xl border border-[#dce5df] bg-white shadow-sm">
+    <section id={departmentAnchor(department.key)} className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#dce5df] bg-white shadow-sm">
+      <div className="h-1" style={{ background: "linear-gradient(90deg, #a52234 0 34%, #176b45 34% 83%, #d6a63b 83% 100%)" }} />
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8eeea] bg-[#f8faf8] px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#14583c] text-white">
             <Building2 className="size-5" />
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-semibold text-slate-900">{department.name}</h2>
+            <h2 className="flex flex-wrap items-center gap-2 truncate text-lg font-semibold text-slate-900">
+              {department.name}
+              {isViewerTeam && <span className="rounded-full bg-[#fbf2dc] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#795600]">Your team</span>}
+            </h2>
             <p className="mt-0.5 text-xs text-slate-500">
               {department.members.length} {department.members.length === 1 ? "person" : "people"} · {department.posts.length} updates · {department.meetings.length} meetings
             </p>
@@ -527,12 +536,17 @@ export function DepartmentHub() {
     );
   }
 
-  const totalMembers = data.departments.reduce((total, department) => total + department.members.length, 0);
-  const upcomingMeetings = data.departments.reduce((total, department) => total + department.meetings.filter((meeting) => meeting.startsAt >= Date.now()).length, 0);
+  const departments = [...data.departments].sort((a, b) => {
+    const aMine = data.viewer.departmentKey === a.key ? 0 : 1;
+    const bMine = data.viewer.departmentKey === b.key ? 0 : 1;
+    return aMine - bMine || a.name.localeCompare(b.name);
+  });
+  const totalMembers = departments.reduce((total, department) => total + department.members.length, 0);
+  const upcomingMeetings = departments.reduce((total, department) => total + department.meetings.filter((meeting) => meeting.startsAt >= Date.now()).length, 0);
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl bg-[#0d2f22] px-5 py-6 text-white shadow-sm sm:px-7">
+      <section className="ow-page-hero overflow-hidden rounded-2xl px-5 py-7 text-white shadow-sm sm:px-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-2xl">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#a9c8b6]">OpenWorlds company hub</p>
@@ -549,14 +563,32 @@ export function DepartmentHub() {
         </div>
       </section>
 
-      {data.departments.length === 0 ? (
+      {departments.length > 0 && (
+        <nav className="rounded-2xl border border-[#dce5df] bg-white p-3" aria-label="Jump to a department">
+          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jump to a department</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {departments.map((department) => (
+              <a
+                key={department.key}
+                href={`#${departmentAnchor(department.key)}`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition ${data.viewer.departmentKey === department.key ? "border-[#d6a63b] bg-[#fbf2dc] font-medium text-[#795600]" : "border-[#e3e9e5] text-slate-600 hover:border-[#b9d0bf] hover:bg-[#f8faf8] hover:text-[#14583c]"}`}
+              >
+                {department.name}
+                <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-500">{department.members.length}</span>
+              </a>
+            ))}
+          </div>
+        </nav>
+      )}
+
+      {departments.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-[#cfdad3] bg-white p-8 text-center">
           <Building2 className="mx-auto size-8 text-slate-400" />
           <h2 className="mt-3 font-semibold">No department rosters yet</h2>
           <p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-slate-600">An administrator can assign people to departments and positions from the admin console. Once a team has members, it will appear here.</p>
         </section>
       ) : (
-        data.departments.map((department) => <DepartmentSection key={department.key} department={department} viewer={data.viewer} />)
+        departments.map((department) => <DepartmentSection key={department.key} department={department} viewer={data.viewer} />)
       )}
     </div>
   );

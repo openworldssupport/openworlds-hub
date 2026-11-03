@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin, requireRoleAdministrator } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
-import { deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
+import { canonicalDepartmentName, deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -77,7 +77,7 @@ export const me = query({
 
     const admin = await isAdmin(ctx);
     const staff = (admin || (user.emailVerificationTime !== undefined && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim()))) && !user.isSiteBanned;
-    const department = user.department?.trim() || null;
+    const department = canonicalDepartmentName(user.department) || null;
     const position = user.position?.trim() || null;
 
     return {
@@ -153,7 +153,7 @@ export const post = mutation({
 
     const user = await currentUser(ctx);
     if (!user) throw new Error("Not authorized.");
-    const department = user.department?.trim() || undefined;
+    const department = canonicalDepartmentName(user.department) || undefined;
     const position = user.position?.trim() || undefined;
     await ctx.db.insert("staffMessages", {
       authorId: user._id,
@@ -211,7 +211,7 @@ export const listMembers = query({
       batches += 1;
       for (const user of batch.page) {
         if (user.isAnonymous === true) continue;
-        const department = user.department?.trim() || null;
+        const department = canonicalDepartmentName(user.department) || null;
         const position = user.position?.trim() || null;
         const assigned = Boolean(department || position);
         const isStaffAccount = assigned || user.staffAccess === true || user.role === "admin";
@@ -313,7 +313,7 @@ export const setAssignment = mutation({
   },
   handler: async (ctx, args) => {
     const actor = await requireRoleAdministrator(ctx);
-    const department = args.department.trim();
+    const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
     if (department.length > 80) throw new Error("Keep the department under 80 characters.");
     if (position.length > 100) throw new Error("Keep the position under 100 characters.");
@@ -631,7 +631,7 @@ export const saveAnnouncement = mutation({
     if (!user) throw new Error("Not authorized.");
     const userId = user._id;
     const now = Date.now();
-    const department = user.department?.trim() || undefined;
+    const department = canonicalDepartmentName(user.department) || undefined;
     const position = user.position?.trim() || undefined;
     const fields = {
       title,

@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { deriveBadge, displayNameFor } from "../lib/staff";
+import { canonicalDepartmentName, deriveBadge, displayNameFor } from "../lib/staff";
 import { SUPPORT_EMAIL } from "./admin";
 
 const MAX_POST_LENGTH = 2_000;
@@ -17,7 +17,7 @@ function departmentKey(value: string | null | undefined) {
 }
 
 function cleanDepartment(value: string) {
-  const department = value.trim().replace(/\s+/g, " ");
+  const department = canonicalDepartmentName(value);
   if (department.length < 2 || department.length > 80) {
     throw new Error("Department names must be 2–80 characters.");
   }
@@ -106,7 +106,7 @@ export const hub = query({
     if (!viewer) return null;
 
     const viewerIsAdmin = isCompanyAdmin(viewer);
-    const viewerDepartment = viewer.department?.trim() || null;
+    const viewerDepartment = canonicalDepartmentName(viewer.department) || null;
     const viewerKey = departmentKey(viewerDepartment);
     // Query staff indexes instead of scanning every player account. The two
     // sources cover both current assignments and older staff rows that only
@@ -131,7 +131,7 @@ export const hub = query({
 
     for (const user of rows) {
       if (!isStaffAccount(user)) continue;
-      const department = user.department?.trim();
+      const department = canonicalDepartmentName(user.department);
       if (!department) continue;
       const key = departmentKey(department);
       if (!key) continue;
