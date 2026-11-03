@@ -90,6 +90,24 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     resetMessages();
+    if (isSignup) {
+      if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,23}$/.test(login.trim())) {
+        setError("Choose a username with 3–24 letters, numbers, dots, hyphens, or underscores. Do not enter an email address here.");
+        return;
+      }
+      if (name.trim().length < 2 || name.trim().length > 32) {
+        setError("Display name must be 2–32 characters.");
+        return;
+      }
+      if (recoveryEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail.trim())) {
+        setError("Enter a valid email address, or leave the email field blank.");
+        return;
+      }
+      if (password.length < 12) {
+        setError("Use a password with at least 12 characters.");
+        return;
+      }
+    }
     if (isSignup && password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -141,10 +159,10 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
       if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
       await finishSignIn();
     } catch (signInError) {
-      setError(signInError instanceof Error && !isSignup
+      setError(signInError instanceof Error
         ? signInError.message
         : isSignup
-          ? "Could not create your account. That username may already be taken."
+          ? "Could not create your account."
           : "Username or password is incorrect.");
     } finally {
       setBusy(false);
@@ -290,7 +308,7 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
   const intro = resetStep !== "closed"
     ? "Enter the username or email on your account. We send the reset code to its verified recovery email."
     : isSignup
-      ? "Pick a username and password. A recovery email is optional, and it must be verified before it can be used."
+      ? "Choose a username, display name, and password. Email is optional and is only used to recover your account."
       : method === "email-code"
         ? emailStep === "email"
           ? "For staff accounts and accounts without a password. We send a one-time code to the company email an administrator added."
@@ -325,9 +343,9 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
             </form>
           ) : isSignup ? (
             <form onSubmit={submitPassword} className="mt-6 space-y-4">
-              <div className="space-y-2"><Label htmlFor="player-name">Player name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} /></div>
-              <div className="space-y-2"><Label htmlFor="player-login">Username</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={24} value={login} onChange={(event) => setLogin(event.target.value)} placeholder="Your username" /><p className="text-xs text-slate-500">3–24 letters, numbers, dots, hyphens or underscores.</p></div>
-              <div className="space-y-2"><Label htmlFor="player-recovery-email">Recovery email (optional)</Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Only used to recover your account. You can add it later.</p></div>
+              <div className="space-y-2"><Label htmlFor="player-login">Username</Label><Input id="player-login" autoComplete="username" required minLength={3} maxLength={24} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,23}" title="3–24 letters, numbers, dots, hyphens, or underscores. Do not use an email address." value={login} onChange={(event) => setLogin(event.target.value)} placeholder="yourname" /><p className="text-xs text-slate-500">Required. 3–24 letters, numbers, dots, hyphens or underscores.</p></div>
+              <div className="space-y-2"><Label htmlFor="player-name">Display name</Label><Input id="player-name" autoComplete="nickname" required minLength={2} maxLength={32} value={name} onChange={(event) => setName(event.target.value)} placeholder="How your name appears to others" /><p className="text-xs text-slate-500">Required. Shown on your public profile.</p></div>
+              <div className="space-y-2"><Label htmlFor="player-recovery-email">Email (optional)</Label><Input id="player-recovery-email" type="email" autoComplete="email" maxLength={254} value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="you@example.com" /><p className="text-xs text-slate-500">Optional. Only used to recover your account, and must be verified before use. You can add it later.</p></div>
               <div className="space-y-2"><Label htmlFor="player-password">Password</Label><Input id="player-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /><p className="text-xs text-slate-500">Use 12–128 characters. Passwords are hashed before storage.</p></div>
               <div className="space-y-2"><Label htmlFor="player-confirm-password">Confirm password</Label><Input id="player-confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
               {notice && <p role="status" className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">{notice}</p>}
