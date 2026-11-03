@@ -547,8 +547,16 @@ export const searchPlayerProfiles = query({
         .withSearchIndex("search_public_nicknames", (q) => q.search("nickname", term))
         .take(50),
     ]);
-    const unique = new Map([...usernameMatches, ...nameMatches, ...nicknameMatches].map((user) => [user._id, user]));
+    // Convex search only matches token prefixes, so also scan the small user
+    // table for partial matches anywhere in a username or display name.
+    const allUsers = await ctx.db.query("users").take(500);
     const normalizedTerm = term.toLowerCase();
+    const substringMatches = allUsers.filter((user) => {
+      if (user.isSiteBanned || user.role !== "user" || !hasPublicUsername(user)) return false;
+      return [user.playerLogin, user.name, user.nickname]
+        .some((value) => value?.toLowerCase().includes(normalizedTerm));
+    });
+    const unique = new Map([...usernameMatches, ...nameMatches, ...nicknameMatches, ...substringMatches].map((user) => [user._id, user]));
     const matches = [...unique.values()]
       .filter((user) => {
         if (user.isSiteBanned) return false;

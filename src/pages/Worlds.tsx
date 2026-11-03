@@ -5,9 +5,11 @@ import { api } from "@/convex/_generated/api";
 import { SiteNav } from "@/components/SiteNav";
 import { RoleBadge } from "@/components/RoleBadge";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
 import { ArrowRight, BadgeCheck, Compass, Search, ShieldCheck, Users } from "lucide-react";
 
 export default function Worlds() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [worldSearch, setWorldSearch] = useState("");
   const navigate = useNavigate();
@@ -37,13 +39,16 @@ export default function Worlds() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <Input id="profile-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search usernames or names…" className="h-11 pl-10" autoComplete="off" />
           </div>
+          {user && !user.playerUsername && (
+            <p className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">Your account doesn’t have a public username yet, so it can’t appear in search. <Link to="/dashboard" className="font-medium underline">Choose one in your player hub</Link>.</p>
+          )}
           <div className="mt-5" aria-live="polite">
             {deferredSearch.length < 2 ? (
               <p className="py-6 text-sm text-slate-500">Enter at least 2 characters to search.</p>
             ) : profiles === undefined ? (
               <p className="py-6 text-sm text-slate-500">Searching player profiles…</p>
             ) : profiles.length === 0 ? (
-              <p className="py-6 text-sm text-slate-500">No player accounts found. Try a username or display name.</p>
+              <p className="py-6 text-sm leading-6 text-slate-500">No player accounts found. Try a different username or display name. Accounts need a public username before they can appear in search.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {profiles.map((profile) => (
