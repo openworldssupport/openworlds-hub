@@ -1,66 +1,19 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
-import { ArrowRight, BadgeCheck, CheckCircle2, Clapperboard, ExternalLink, Star, Youtube } from "lucide-react";
+import { useQuery } from "convex/react";
+import { ArrowRight, BadgeCheck, Clapperboard, ExternalLink, Star, Youtube } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { CreatorApplicationForm } from "@/components/CreatorApplicationForm";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 
 const officialChannel = "https://www.youtube.com/channel/UCcEIUqR8lB_siqj1CE0XVjA";
 const officialUploadsPlaylist = "UUcEIUqR8lB_siqj1CE0XVjA";
 
 export default function Media() {
-  const submitEnquiry = useMutation(api.careerApplications.submitEnquiry);
   const officialCreators = useQuery(api.users.publicOfficialCreators);
   const creators = officialCreators ?? [];
   const [creatorApplicationOpen, setCreatorApplicationOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const form = event.currentTarget;
-    const values = new FormData(form);
-    const subscriberCount = Number(values.get("subscribers"));
-    if (!Number.isInteger(subscriberCount) || subscriberCount < 200) {
-      setError("You need at least 200 subscribers or followers on one public channel to apply.");
-      return;
-    }
-
-    setBusy(true);
-    setError("");
-    try {
-      const message = [
-        "OpenWorlds content creator application",
-        `OpenWorlds username:\n${String(values.get("creatorName") ?? "").trim()}`,
-        `Platform: ${String(values.get("platform") ?? "").trim()}`,
-        `Public channel URL: ${String(values.get("channelUrl") ?? "").trim()}`,
-        `Current subscribers/followers: ${subscriberCount}`,
-        `OpenWorlds videos or examples: ${String(values.get("examples") ?? "").trim() || "Not provided"}`,
-        "Why I would like to be an OpenWorlds creator:",
-        String(values.get("about") ?? "").trim(),
-      ].join("\n\n");
-      const result = await submitEnquiry({
-        type: "creator-application",
-        name: String(values.get("creatorName") ?? "").trim(),
-        email: String(values.get("email") ?? "").trim(),
-        message,
-        honeypot: String(values.get("website") ?? ""),
-        privacyAccepted: values.get("creatorConsent") === "on",
-      });
-      if (!result.accepted) throw new Error("Submission was not accepted.");
-      setSent(true);
-    } catch {
-      setError("We couldn’t send your application. Check the details and try again shortly.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -138,35 +91,14 @@ export default function Media() {
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-5 sm:p-8">
-          {sent ? (
-            <div role="status" className="flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 size-5 shrink-0" /><div><h3 className="font-semibold">Application sent to the team</h3><p className="mt-1 leading-6">Your application was sent to the OpenWorlds Careers inbox for review. Check your email for a confirmation. This isn’t an approval or guarantee of a feature.</p></div></div>
-          ) : !creatorApplicationOpen ? (
+          {!creatorApplicationOpen ? (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 sm:p-8">
               <h3 className="text-lg font-semibold">Ready to apply?</h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Start an application for the team to review. Applying does not automatically award the official creator badge.</p>
               <Button type="button" className="mt-5" onClick={() => setCreatorApplicationOpen(true)}><Youtube className="size-4" />Start creator application</Button>
             </div>
           ) : (
-            <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
-              <div aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 overflow-hidden"><label htmlFor="creator-website">Website</label><input id="creator-website" name="website" tabIndex={-1} autoComplete="off" /></div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="creator-name">OpenWorlds username</Label><Input id="creator-name" name="creatorName" required minLength={2} maxLength={32} autoComplete="username" /></div>
-                <div className="space-y-2"><Label htmlFor="creator-email">Contact email</Label><Input id="creator-email" name="email" type="email" required maxLength={254} autoComplete="email" /></div>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="creator-platform">Main video platform</Label><Input id="creator-platform" name="platform" required maxLength={80} placeholder="YouTube, Twitch, TikTok…" /></div>
-                <div className="space-y-2"><Label htmlFor="creator-subscribers">Subscribers or followers</Label><Input id="creator-subscribers" name="subscribers" type="number" required min={200} step={1} inputMode="numeric" /></div>
-              </div>
-              <div className="space-y-2"><Label htmlFor="creator-channel">Public channel link</Label><Input id="creator-channel" name="channelUrl" type="url" required maxLength={500} placeholder="https://…" /></div>
-              <div className="space-y-2"><Label htmlFor="creator-examples">OpenWorlds video links <span className="font-normal text-slate-500">(optional)</span></Label><Textarea id="creator-examples" name="examples" rows={3} maxLength={1500} placeholder="Share links to any videos about OpenWorlds." /></div>
-              <div className="space-y-2"><Label htmlFor="creator-about">Tell us about your content and why you’d like to be featured</Label><Textarea id="creator-about" name="about" required minLength={20} maxLength={4000} rows={5} placeholder="What do you make, and what would you like to create about OpenWorlds?" /></div>
-              <label className="flex items-start gap-2.5 text-sm leading-5 text-slate-700"><input name="creatorConsent" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0066cc]" /><span>I agree to have the details above emailed to OpenWorlds Careers for review. My application is not stored in this website. I understand that applying does not guarantee approval or a feature.</span></label>
-              {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-              <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" disabled={busy}><Youtube className="size-4" />{busy ? "Sending application…" : "Send creator application"}</Button>
-                <Button type="button" variant="outline" disabled={busy} onClick={() => setCreatorApplicationOpen(false)}>Close application</Button>
-              </div>
-            </form>
+            <CreatorApplicationForm />
           )}
         </div>
       </section>
