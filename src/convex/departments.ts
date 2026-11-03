@@ -11,6 +11,25 @@ const MAX_MEETING_AGENDA = 2_000;
 const MAX_MEETING_LOCATION = 300;
 const MAX_MEETING_DAYS_AHEAD = 365;
 const MAX_STAFF_SCAN = 1_000;
+const EXECUTIVE_LEADERSHIP = "Executive Leadership";
+
+/** Higher numbers are more senior within a department. */
+const POSITION_RANKS: Array<[RegExp, number]> = [
+  [/\b(chief|ceo|cto|coo|cfo|cmo)\b/i, 100],
+  [/\b(president|vice president|head|director)\b/i, 95],
+  [/\b(lead|manager|principal)\b/i, 85],
+  [/\b(senior|staff|architect)\b/i, 70],
+  [/\b(coordinator|supervisor)\b/i, 60],
+  [/\b(engineer|designer|artist|developer|analyst|strategist|specialist|moderator|reviewer|tester|associate)\b/i, 40],
+];
+
+function positionRank(position: string | null | undefined) {
+  const value = position?.trim() ?? "";
+  for (const [pattern, rank] of POSITION_RANKS) {
+    if (pattern.test(value)) return rank;
+  }
+  return 30;
+}
 
 function departmentKey(value: string | null | undefined) {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -46,6 +65,39 @@ async function currentStaff(ctx: QueryCtx | MutationCtx) {
   return user && isStaffAccount(user) ? user : null;
 }
 
+async function loadStaffRows(ctx: QueryCtx | MutationCtx) {
+  // Query staff indexes instead of scanning every player account. The two
+  // sources cover both current assignments and older staff rows that only
+  // have a department but not the staffAccess flag.
+  const [assignedRows, flaggedRows] = await Promise.all([
+    ctx.db.query("users").withIndex("by_department", (q) => q.gt("department", "")).take(MAX_STAFF_SCAN),
+    ctx.db.query("users").withIndex("by_staff_access", (q) => q.eq("staffAccess", true)).take(MAX_STAFF_SCAN),
+  ]);
+  return [...new Map([...assignedRows, ...flaggedRows].map((user) => [user._id, user])).values()];
+}
+
+function membersForDepartment(rows: Doc<"users">[], key: string) {
+  return rows.filter((user) => isStaffAccount(user) && departmentKey(canonicalDepartmentName(user.department)) === key);
+}
+
+function canScheduleMeetingsFor(
+  user: Doc<"users">,
+  key: string,
+  members: Doc<"users">[],
+) {
+  if (isCompanyAdmin(user)) return true;
+  const userDepartmentKey = departmentKey(canonicalDepartmentName(user.department));
+  if (userDepartmentKey !== "executive leadership") return canScheduleFromRank(user, key, members);
+  return true;
+}
+
+function canScheduleFromRank(user: Doc<"users">, key: string, members: Doc<"users">[]) {
+  const userDepartmentKey = departmentKey(canonicalDepartmentName(user.department));
+  if (userDepartmentKey !== key) return false;
+  const highestRank = Math.max(...members.map((member) => positionRank(member.position)));
+  return positionRank(user.position) >= highestRank;
+}
+
 async function requireStaff(ctx: QueryCtx | MutationCtx) {
   const user = await currentStaff(ctx);
   if (!user) throw new Error("Staff access is required.");
@@ -56,10 +108,29 @@ async function requireStaff(ctx: QueryCtx | MutationCtx) {
 async function requireDepartmentContributor(ctx: MutationCtx, rawDepartment: string) {
   const user = await requireStaff(ctx);
   const department = cleanDepartment(rawDepartment);
-  if (!isCompanyAdmin(user) && departmentKey(user.department) !== departmentKey(department)) {
-    throw new Error("You can only post or schedule meetings for your own department.");
+  if (!isCompanyAdmin(user) && departmentKey(canonicalDepartmentName(user.department)) !== departmentKey(department)) {
+    throw new Error("You can only post updates for your own department.");
   }
   return { user, department, key: departmentKey(department) };
+}
+
+/**
+ * Meetings are scheduled by the most senior position in the target department.
+ * Administrators and every Executive Leadership member can schedule anywhere.
+ */
+async function requireMeetingScheduler(ctx: MutationCtx, rawDepartment: string) {
+  const user = await requireStaff(ctx);
+  const department = cleanDepartment(rawDepartment);
+  const key = departmentKey(department);
+  const rows = await loadStaffRows(ctx);
+  const members = membersForDepartment(rows, key);
+  if (!canScheduleMeetingsFor(user, key, members)) {
+    if (departmentKey(canonicalDepartmentName(user.department)) !== key) {
+      throw new Error("You can only schedule meetings for your own department.");
+    }
+    throw new Error("Only the highest position in this department or Executive Leadership can schedule meetings.");
+  }
+  return { user, department, key };
 }
 
 function cleanPostBody(rawBody: string) {
@@ -108,14 +179,7 @@ export const hub = query({
     const viewerIsAdmin = isCompanyAdmin(viewer);
     const viewerDepartment = canonicalDepartmentName(viewer.department) || null;
     const viewerKey = departmentKey(viewerDepartment);
-    // Query staff indexes instead of scanning every player account. The two
-    // sources cover both current assignments and older staff rows that only
-    // have a department but not the staffAccess flag.
-    const [assignedRows, flaggedRows] = await Promise.all([
-      ctx.db.query("users").withIndex("by_department", (q) => q.gt("department", "")).take(MAX_STAFF_SCAN),
-      ctx.db.query("users").withIndex("by_staff_access", (q) => q.eq("staffAccess", true)).take(MAX_STAFF_SCAN),
-    ]);
-    const rows = [...new Map([...assignedRows, ...flaggedRows].map((user) => [user._id, user])).values()];
+    const rows = await loadStaffRows(ctx);
     const groups = new Map<string, {
       key: string;
       name: string;
@@ -126,6 +190,7 @@ export const hub = query({
         badge: "staff" | "dev";
         isAdmin: boolean;
         isViewer: boolean;
+        isLead: boolean;
       }>;
     }>();
 
@@ -143,6 +208,7 @@ export const hub = query({
         badge: user.publicBadge ?? deriveBadge(department, user.position),
         isAdmin: isCompanyAdmin(user),
         isViewer: user._id === viewer._id,
+        isLead: false,
       });
       groups.set(key, group);
     }
@@ -159,15 +225,23 @@ export const hub = query({
           badge: viewer.publicBadge ?? deriveBadge(viewerDepartment, viewer.position),
           isAdmin: viewerIsAdmin,
           isViewer: true,
+          isLead: false,
         }],
       });
     }
 
     const departments = [...groups.values()]
-      .map((group) => ({
-        ...group,
-        members: group.members.sort((a, b) => Number(b.isAdmin) - Number(a.isAdmin) || a.name.localeCompare(b.name)),
-      }))
+      .map((group) => {
+        const highestRank = Math.max(...group.members.map((member) => positionRank(member.position)));
+        const leadNames = group.members.filter((member) => positionRank(member.position) >= highestRank).map((member) => member.userId);
+        return {
+          ...group,
+          members: group.members
+            .map((member) => ({ ...member, isLead: leadNames.includes(member.userId) }))
+            .sort((a, b) => Number(b.isAdmin) - Number(a.isAdmin) || Number(b.isLead) - Number(a.isLead) || a.name.localeCompare(b.name)),
+          viewerCanSchedule: canScheduleMeetingsFor(viewer, group.key, rows.filter((user) => isStaffAccount(user) && departmentKey(canonicalDepartmentName(user.department)) === group.key)),
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const now = Date.now();
@@ -262,7 +336,7 @@ export const deletePost = mutation({
   },
 });
 
-/** Schedule a meeting for the viewer's own department. Admins may schedule anywhere. */
+/** Schedule a meeting where the viewer is the department lead or Executive Leadership. */
 export const createMeeting = mutation({
   args: {
     department: v.string(),
@@ -273,7 +347,7 @@ export const createMeeting = mutation({
     location: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { user, department, key } = await requireDepartmentContributor(ctx, args.department);
+    const { user, department, key } = await requireMeetingScheduler(ctx, args.department);
     const title = cleanMeetingText(args.title, "Meeting title", MAX_MEETING_TITLE, true)!;
     const agenda = cleanMeetingText(args.agenda, "Agenda", MAX_MEETING_AGENDA, false);
     const location = cleanMeetingText(args.location, "Location or meeting link", MAX_MEETING_LOCATION, false);

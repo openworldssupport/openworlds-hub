@@ -674,6 +674,21 @@ export const liftNetworkBan = mutation({
 });
 
 /** Admin-only permission matrix for the Trust & Safety console. */
+async function findLegacyRoleOverride(
+  ctx: QueryCtx | MutationCtx,
+  rawDepartment: string,
+  positionKey: string,
+) {
+  const legacyKey = rawDepartment.trim().toLowerCase().replace(/\s+/g, " ");
+  const canonicalKey = canonicalDepartmentName(rawDepartment).toLowerCase();
+  if (!legacyKey || legacyKey === canonicalKey) return null;
+  const rows = await ctx.db
+    .query("moderationRolePermissions")
+    .withIndex("by_department", (q) => q.eq("departmentKey", legacyKey))
+    .take(50);
+  return rows.find((row) => row.positionKey === positionKey) ?? null;
+}
+
 export const permissionMatrix = query({
   args: {},
   handler: async (ctx) => {
@@ -743,6 +758,8 @@ export const setRolePermissions = mutation({
     const existing = await ctx.db.query("moderationRolePermissions")
       .withIndex("by_keys", (q) => q.eq("departmentKey", departmentKey).eq("positionKey", positionKey))
       .unique();
+    const legacy = await findLegacyRoleOverride(ctx, args.department, positionKey);
+    if (legacy) await ctx.db.delete(legacy._id);
     const values = {
       department,
       position,
@@ -776,8 +793,10 @@ export const resetRolePermissions = mutation({
     const existing = await ctx.db.query("moderationRolePermissions")
       .withIndex("by_keys", (q) => q.eq("departmentKey", departmentKey).eq("positionKey", positionKey))
       .unique();
-    if (!existing) return { ok: true as const };
-    await ctx.db.delete(existing._id);
+    const legacy = await findLegacyRoleOverride(ctx, args.department, positionKey);
+    if (!existing && !legacy) return { ok: true as const };
+    if (existing) await ctx.db.delete(existing._id);
+    if (legacy) await ctx.db.delete(legacy._id);
     await recordAudit(ctx, {
       actorId: actor._id,
       actorLabel: accountLabel(actor),

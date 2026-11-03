@@ -4,9 +4,12 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  ExternalLink,
   Loader2,
   MapPin,
   Megaphone,
+  Mic,
+  PhoneOff,
   Plus,
   Send,
   Trash2,
@@ -29,6 +32,7 @@ type DepartmentMember = {
   badge: "staff" | "dev";
   isAdmin: boolean;
   isViewer: boolean;
+  isLead: boolean;
 };
 
 type DepartmentPost = {
@@ -59,6 +63,7 @@ type Department = {
   members: DepartmentMember[];
   posts: DepartmentPost[];
   meetings: DepartmentMeeting[];
+  viewerCanSchedule: boolean;
 };
 
 type HubData = {
@@ -111,6 +116,41 @@ function departmentAnchor(key: string) {
   return `department-${key.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
+function voiceRoomUrl(roomKey: string) {
+  const slug = roomKey.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `https://meet.jit.si/OpenWorlds-${slug}#config.prejoinPageEnabled=false&config.startWithVideoMuted=true&config.disableDeepLinking=true`;
+}
+
+function VoiceRoomOverlay({ title, roomUrl, onClose }: { title: string; roomUrl: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d2f22]/80 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`${title} voice room`}>
+      <div className="flex h-[min(88vh,760px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-[#0d2f22] shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-white">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#a9c8b6]">Voice channel</p>
+            <p className="truncate text-sm font-medium">{title}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <a href={roomUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-white/20 px-2.5 py-1.5 text-xs text-[#e6f3e9] hover:bg-white/10">
+              <ExternalLink className="size-3.5" /> Open in new tab
+            </a>
+            <button type="button" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-white hover:bg-white/20">
+              <PhoneOff className="size-3.5" /> Leave
+            </button>
+          </div>
+        </div>
+        <iframe
+          title={`${title} voice room`}
+          src={roomUrl}
+          className="min-h-0 flex-1 border-0 bg-black"
+          allow="camera; microphone; fullscreen; display-capture; autoplay; clipboard-write"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    </div>
+  );
+}
+
 function SectionHeading({ icon: Icon, title, detail }: { icon: typeof Users; title: string; detail: string }) {
   return (
     <div className="flex items-start gap-2.5">
@@ -140,6 +180,7 @@ function Roster({ members }: { members: DepartmentMember[] }) {
                 {member.name}
                 {member.isViewer && <span className="rounded-full bg-[#eef4ef] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#14583c]">You</span>}
                 {member.isAdmin && <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Admin</span>}
+                {member.isLead && <span className="rounded-full bg-[#fbf2dc] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#795600]">Lead</span>}
               </p>
               <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                 {member.position || "No position listed"}
@@ -273,12 +314,14 @@ function MeetingCard({
   onCancel,
   cancelling,
   allowCancel,
+  onJoinVoice,
 }: {
   meeting: DepartmentMeeting;
   viewer: HubData["viewer"];
   onCancel: (meeting: DepartmentMeeting) => void;
   cancelling: boolean;
   allowCancel: boolean;
+  onJoinVoice?: () => void;
 }) {
   const canCancel = allowCancel && (viewer.isAdmin || meeting.createdBy === viewer.id);
   return (
@@ -316,7 +359,14 @@ function MeetingCard({
             )}
           </p>
           {meeting.agenda && <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs leading-5 text-slate-600">{meeting.agenda}</p>}
-          <p className="mt-2 text-[10px] text-slate-400">Organised by {meeting.createdByName}</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] text-slate-400">Organised by {meeting.createdByName}</p>
+            {onJoinVoice && (
+              <Button type="button" size="sm" variant="outline" onClick={onJoinVoice} className="h-7 px-2 text-[11px]">
+                <Mic className="size-3.5" /> Voice room
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </article>
@@ -342,7 +392,9 @@ function DepartmentMeetings({
   const [cancelling, setCancelling] = useState<Id<"departmentMeetings"> | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const canSchedule = viewer.isAdmin || viewer.departmentKey === department.key;
+  const [voiceRoom, setVoiceRoom] = useState<{ title: string; url: string } | null>(null);
+  const canSchedule = department.viewerCanSchedule;
+  const canJoinDepartmentVoice = viewer.isAdmin || viewer.departmentKey === department.key || viewer.departmentKey === "executive leadership";
   const now = Date.now();
   const upcoming = department.meetings.filter((meeting) => meeting.startsAt >= now);
   const past = department.meetings.filter((meeting) => meeting.startsAt < now);
@@ -440,8 +492,19 @@ function DepartmentMeetings({
 
       {!canSchedule && (
         <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-          Only members of this department or an administrator can schedule meetings.
+          Only the highest position in this department or Executive Leadership can schedule meetings.
         </p>
+      )}
+      {canJoinDepartmentVoice && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="mt-3 w-full"
+          onClick={() => setVoiceRoom({ title: `${department.name} voice channel`, url: voiceRoomUrl(`department-${department.key}`) })}
+        >
+          <Mic className="size-3.5" /> Join department voice channel
+        </Button>
       )}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="mt-3 text-sm text-emerald-700">{notice}</p>}
@@ -457,6 +520,7 @@ function DepartmentMeetings({
             onCancel={(item) => void cancel(item)}
             cancelling={cancelling === meeting._id}
             allowCancel
+            onJoinVoice={() => setVoiceRoom({ title: meeting.title, url: voiceRoomUrl(`meeting-${meeting._id}`) })}
           />
         ))}
       </div>
@@ -478,6 +542,8 @@ function DepartmentMeetings({
           </div>
         </details>
       )}
+
+      {voiceRoom && <VoiceRoomOverlay title={voiceRoom.title} roomUrl={voiceRoom.url} onClose={() => setVoiceRoom(null)} />}
     </div>
   );
 }
