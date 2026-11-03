@@ -222,7 +222,7 @@ export default function Dashboard() {
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div><h2 className="flex items-center gap-2 font-semibold tracking-tight">Player profile{user.isOfficialCreator && <span title="Verified Official Content Creator" className="inline-flex items-center text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>}</h2><p className="mt-1 text-sm text-slate-500">Update the name shown on your player account.</p></div>
-              <div className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void signOut()}>Sign out</Button></div>
+              <div className="flex flex-wrap gap-2">{user.playerUsername && <Button asChild variant="outline" size="sm"><Link to={`/players/${encodeURIComponent(user.playerUsername)}`}>View public profile</Link></Button>}<Button variant="outline" size="sm" onClick={() => void signOut()}>Sign out</Button></div>
             </div>
             <div className="mt-6">
               <form onSubmit={savePublicProfile} className="space-y-4">

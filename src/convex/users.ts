@@ -279,6 +279,14 @@ export const publicPlayerProfile = query({
     const publicName = isCompanyStaff
       ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
       : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
+    const publishedWorlds = await ctx.db.query("publishedWorlds")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .order("desc")
+      .take(4);
+    const publishedWorldCount = (await ctx.db.query("publishedWorlds")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
+      .take(50)).length;
+    const viewerId = await getAuthUserId(ctx);
     return {
       username: user.playerLogin?.trim() ?? null,
       profileKey: user.playerLogin?.trim() ?? `staff-${user._id}`,
@@ -291,6 +299,16 @@ export const publicPlayerProfile = query({
       isOfficialCreator: Boolean(officialCreator) || user.isOfficialCreator === true,
       isCompanyStaff,
       publicBadge: isCompanyStaff ? user.publicBadge ?? deriveBadge(user.department, user.position) : null,
+      memberSince: user._creationTime,
+      isSelf: viewerId === user._id,
+      publishedWorldCount,
+      publishedWorlds: await Promise.all(publishedWorlds.map(async (world) => ({
+        id: world._id,
+        title: world.title,
+        description: world.description,
+        image: world.imageStorageIds?.[0] ? await ctx.storage.getUrl(world.imageStorageIds[0]) : null,
+        createdAt: world.createdAt,
+      }))),
       friendsVisible: user.profileFriendsVisible === true,
       friendCount: user.profileFriendsVisible === true
         ? new Set([
@@ -393,7 +411,8 @@ export const removeFriend = mutation({
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect();
     const relation = [...outgoing, ...incoming].find((r) =>
-      r.status === "accepted" && ((r.senderId === user._id && r.receiverId === other._id) || (r.senderId === other._id && r.receiverId === user._id)));
+      (r.status === "accepted" || (r.status === "pending" && r.senderId === user._id)) &&
+      ((r.senderId === user._id && r.receiverId === other._id) || (r.senderId === other._id && r.receiverId === user._id)));
     if (relation) await ctx.db.delete(relation._id);
     return { ok: true };
   },
