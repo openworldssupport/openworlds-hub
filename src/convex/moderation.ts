@@ -117,11 +117,12 @@ export const queue = query({
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
     const viewer = await requireModerationStaff(ctx);
-    const [reports, bannedAccounts, appeals, audit] = await Promise.all([
+    const [reports, bannedAccounts, appeals, audit, media] = await Promise.all([
       ctx.db.query("playerReports").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
       ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(200),
       ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(50),
       ctx.db.query("moderationLog").withIndex("by_created").order("desc").take(40),
+      ctx.db.query("mediaModeration").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
     ]);
     return {
       isAdmin: isCompanyAdminAccount(viewer),
@@ -155,6 +156,14 @@ export const queue = query({
           createdAt: appeal.createdAt,
           banType: user?.banType ?? "permanent",
         };
+      })),
+      media: media.map((item) => ({
+        _id: item._id,
+        displayName: item.displayName,
+        username: item.username ?? null,
+        reason: item.reason,
+        detail: item.detail,
+        createdAt: item.createdAt,
       })),
       audit: audit.map((entry) => ({
         _id: entry._id,

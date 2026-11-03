@@ -7,6 +7,7 @@ import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin } from "./admin";
 import { requireCreatorManagementAuthorization, requireCreatorVerification, requirePermissionVerification } from "./adminRoster";
 import { findSignupBlock } from "./bans";
+import { presenceState } from "./presence";
 
 /**
  * Get the current signed in user. Returns null if the user is not signed in.
@@ -463,6 +464,7 @@ export const myFriends = query({
         username: friend.playerLogin!.trim(),
         displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
         image: friend.profileImageStorageId ? await ctx.storage.getUrl(friend.profileImageStorageId) : friend.image ?? null,
+        presence: presenceState(friend),
       };
     }));
     return {
@@ -488,6 +490,7 @@ export const publicFriendList = query({
       username: friend!.playerLogin!.trim(),
       displayName: isEmailAddress(friend!.name) ? null : friend!.name?.trim() || null,
       image: friend!.profileImageStorageId ? await ctx.storage.getUrl(friend!.profileImageStorageId) : friend!.image ?? null,
+      presence: presenceState(friend!),
     })));
   },
 });

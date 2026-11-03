@@ -75,7 +75,12 @@ export const finalizePlayerImage = mutation({
   args: { storageId: v.id("_storage"), kind: v.union(v.literal("profile"), v.literal("world")) },
   handler: async (ctx, { storageId, kind }) => {
     await requireSiteAvailable(ctx);
-    const { userId, user } = await requirePlayer(ctx);
+    if (kind === "profile") {
+      // Profile photos always go through imageSafety.finalizeProfileImage so
+      // they cannot skip the automatic content check.
+      throw new Error("Profile photos are processed by the automatic image safety check.");
+    }
+    const { userId } = await requirePlayer(ctx);
     const metadata = await ctx.db.system.get("_storage", storageId);
     if (!metadata || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(metadata.contentType ?? "")) {
       if (metadata) await ctx.storage.delete(storageId);
@@ -88,16 +93,6 @@ export const finalizePlayerImage = mutation({
     const existing = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
     if (existing && (existing.ownerId !== userId || existing.kind !== kind)) throw new Error("This upload belongs to another account or purpose.");
     if (!existing) await ctx.db.insert("playerMedia", { storageId, ownerId: userId, kind, createdAt: Date.now() });
-    if (kind === "profile") {
-      if (user.profileImageStorageId && user.profileImageStorageId !== storageId) {
-        const previous = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", user.profileImageStorageId!)).unique();
-        if (previous?.ownerId === userId && previous.kind === "profile") {
-          await ctx.storage.delete(user.profileImageStorageId);
-          await ctx.db.delete(previous._id);
-        }
-      }
-      await ctx.db.patch(userId, { profileImageStorageId: storageId });
-    }
     return { url: await ctx.storage.getUrl(storageId) };
   },
 });

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { SiteNav } from "@/components/SiteNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const claimPlayerUsername = useMutation(api.users.claimPlayerUsername);
   const setProfileDiscoverability = useMutation(api.users.setProfileDiscoverability);
   const generatePlayerUploadUrl = useMutation(api.gameData.playerMediaUploadUrl);
-  const finalizePlayerImage = useMutation(api.gameData.finalizePlayerImage);
+  const finalizeProfileImage = useAction(api.imageSafety.finalizeProfileImage);
   const myPublishedWorlds = useQuery(api.gameData.myPublishedWorlds, user ? {} : "skip");
   const friendsData = useQuery(api.users.myFriends, user ? {} : "skip");
   const respondFriendRequest = useMutation(api.users.respondToFriendRequest);
@@ -89,7 +89,7 @@ export default function Dashboard() {
       const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       if (!response.ok) throw new Error("The image upload failed. Please try again.");
       const { storageId } = await response.json() as { storageId: Id<"_storage"> };
-      await finalizePlayerImage({ storageId, kind: "profile" });
+      await finalizeProfileImage({ storageId });
       setProfileMessage("Profile photo updated.");
     } catch (error) {
       setProfileMessage(error instanceof Error ? error.message : "Could not upload your profile photo.");
@@ -219,7 +219,7 @@ export default function Dashboard() {
                 <div><p className="flex items-center gap-2 text-sm font-medium text-slate-800"><Search className="size-4 text-[#0066cc]" /> Profile discovery</p><p className="mt-1 max-w-lg text-xs leading-5 text-slate-500">{profilePrivacy?.discoverable ? "Your profile appears in player searches and can receive friend requests." : "Your profile is hidden from searches and friend requests."}</p></div>
                 <Button type="button" size="sm" variant="outline" disabled={profilePrivacy === undefined} onClick={() => { void setProfileDiscoverability({ discoverable: !profilePrivacy?.discoverable }).catch((error) => setProfileMessage(error instanceof Error ? error.message : "Could not update profile visibility.")); }}>{profilePrivacy?.discoverable ? "Hide my profile" : "Make discoverable"}</Button>
               </div>
-              {friendsData && <section className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2"><div><h3 className="text-sm font-semibold">Friend requests</h3>{friendsData.requests.length ? <ul className="mt-2 space-y-2">{friendsData.requests.map((request) => <li key={request.requestId} className="flex items-center justify-between gap-2 border border-slate-200 p-3 text-sm"><span>@{request.username}</span><span className="flex gap-2"><Button size="sm" onClick={() => { void respondFriendRequest({ requestId: request.requestId, accept: true }).catch((error) => setProfileMessage(error instanceof Error ? error.message : "Could not accept friend request.")); }}>Accept</Button><Button size="sm" variant="outline" onClick={() => { void respondFriendRequest({ requestId: request.requestId, accept: false }).catch((error) => setProfileMessage(error instanceof Error ? error.message : "Could not decline friend request.")); }}>Decline</Button></span></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No new requests.</p>}</div><div><h3 className="text-sm font-semibold">Your friends ({friendsData.friends.length})</h3>{friendsData.friends.length ? <ul className="mt-2 space-y-2">{friendsData.friends.map((friend) => <li key={friend.username} className="flex items-center gap-2 border border-slate-200 p-2 text-sm">{friend.image ? <img src={friend.image} alt="" className="size-8 object-cover" /> : <span className="size-8 bg-slate-100" />}<span>@{friend.username}</span><Button asChild size="sm" variant="outline" className="ml-auto"><Link to={`/players/${encodeURIComponent(friend.username)}`}>Message</Link></Button></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">Your accepted friends will appear here.</p>}</div></section>}
+              {friendsData && <section className="mt-6 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2"><div><h3 className="text-sm font-semibold">Friend requests</h3>{friendsData.requests.length ? <ul className="mt-2 space-y-2">{friendsData.requests.map((request) => <li key={request.requestId} className="flex items-center justify-between gap-2 border border-slate-200 p-3 text-sm"><span>@{request.username}</span><span className="flex gap-2"><Button size="sm" onClick={() => { void respondFriendRequest({ requestId: request.requestId, accept: true }).catch((error) => setProfileMessage(error instanceof Error ? error.message : "Could not accept friend request.")); }}>Accept</Button><Button size="sm" variant="outline" onClick={() => { void respondFriendRequest({ requestId: request.requestId, accept: false }).catch((error) => setProfileMessage(error instanceof Error ? error.message : "Could not decline friend request.")); }}>Decline</Button></span></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">No new requests.</p>}</div><div><h3 className="text-sm font-semibold">Your friends ({friendsData.friends.length})</h3>{friendsData.friends.length ? <ul className="mt-2 space-y-2">{friendsData.friends.map((friend) => <li key={friend.username} className="flex items-center gap-2 border border-slate-200 p-2 text-sm">{friend.image ? <img src={friend.image} alt="" className="size-8 object-cover" /> : <span className="size-8 bg-slate-100" />}<span className="inline-flex items-center gap-1.5"><span className={`size-2 rounded-full ${friend.presence === "in-game" ? "bg-sky-500" : friend.presence === "online" ? "bg-emerald-500" : "bg-slate-300"}`} aria-hidden="true" title={friend.presence === "in-game" ? "In game" : friend.presence === "online" ? "Online on the website" : "Offline"} />@{friend.username}</span><span className="text-xs text-slate-500">{friend.presence === "in-game" ? "In game" : friend.presence === "online" ? "Online" : "Offline"}</span><Button asChild size="sm" variant="outline" className="ml-auto"><Link to={`/players/${encodeURIComponent(friend.username)}`}>Message</Link></Button></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">Your accepted friends will appear here.</p>}</div></section>}
             </div>
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">

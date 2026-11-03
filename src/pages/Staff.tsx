@@ -1039,6 +1039,8 @@ const MODERATION_ACTIONS: Record<string, string> = {
   "report-banned": "Banned from report",
   "appeal-approved": "Appeal approved",
   "appeal-declined": "Appeal declined",
+  "image-blocked": "Image blocked",
+  "image-reviewed": "Image case reviewed",
 };
 
 type ReportItem = {
@@ -1051,6 +1053,53 @@ type ReportItem = {
   targetUsername: string | null;
   targetId: Id<"users">;
 };
+
+type MediaCase = {
+  _id: Id<"mediaModeration">;
+  displayName: string;
+  username: string | null;
+  reason: string;
+  detail: string;
+  createdAt: number;
+};
+
+function MediaCaseRow({ item }: { item: MediaCase }) {
+  const review = useMutation(api.imageSafety.reviewMediaCase);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await review({ caseId: item._id, note });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not close this case.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="border-t border-slate-200 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-medium">{item.displayName}{item.username ? ` · @${item.username}` : ""}</p>
+          <p className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
+        </div>
+        <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-800">{item.reason}</span>
+      </div>
+      <p className="mt-2 text-xs text-slate-500">Provider scores: {item.detail}. The image was blocked before it was saved and profile photo uploads were paused automatically.</p>
+      <form onSubmit={(event) => void submit(event)} className="mt-3 flex flex-wrap items-end gap-2">
+        <Input value={note} onChange={(event) => setNote(event.target.value)} minLength={5} maxLength={300} aria-label="Review note" placeholder="What did you check?" className="max-w-72" />
+        <Button type="submit" size="sm" disabled={busy || note.trim().length < 5}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Mark reviewed</Button>
+      </form>
+      {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+    </article>
+  );
+}
 
 type BanItem = {
   userId: Id<"users">;
@@ -1219,6 +1268,10 @@ function StaffSecurityPanel() {
 
       <h3 className="mt-5 text-sm font-semibold">Open player reports</h3>
       {data.reports.length === 0 ? <p className="mt-2 text-sm text-slate-500">No open reports.</p> : <div className="mt-2 border-t border-slate-200">{data.reports.map((report) => <ReportCard key={report._id} report={report} isAdmin={data.isAdmin} />)}</div>}
+
+      <h3 className="mt-6 text-sm font-semibold">Automatic image safety</h3>
+      <p className="mt-1 text-xs text-slate-500">Profile photos are checked before they are saved. Flagged images are removed automatically and the upload is paused on that account.</p>
+      {data.media.length === 0 ? <p className="mt-2 text-sm text-slate-500">No open image-safety cases.</p> : <div className="mt-2 border-t border-slate-200">{data.media.map((item) => <MediaCaseRow key={item._id} item={item} />)}</div>}
 
       <h3 className="mt-6 text-sm font-semibold">Pending appeals</h3>
       {data.appeals.length === 0 ? <p className="mt-2 text-sm text-slate-500">No appeals waiting.</p> : <div className="mt-2 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex flex-wrap items-center gap-2"><Button size="sm" disabled={busyId === appeal._id || (!data.isAdmin && appeal.banType === "permanent")} onClick={() => void decideAppeal(appeal._id, "approved")}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={busyId === appeal._id} onClick={() => void decideAppeal(appeal._id, "declined")}><XCircle className="size-4" /> Decline</Button>{!data.isAdmin && appeal.banType === "permanent" && <span className="text-xs text-slate-500">Permanent bans need an admin to lift.</span>}</div></article>)}</div>}

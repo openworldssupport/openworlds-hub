@@ -15,7 +15,9 @@ export type ModerationAction =
   | "report-warned"
   | "report-banned"
   | "appeal-approved"
-  | "appeal-declined";
+  | "appeal-declined"
+  | "image-blocked"
+  | "image-reviewed";
 
 /** A ban only restricts access until it expires; permanent bans never expire. */
 export function isBanActive(user: { isSiteBanned?: boolean; banExpiresAt?: number }, now = Date.now()) {
@@ -69,7 +71,8 @@ export async function assertSignupAllowed(ctx: QueryCtx | MutationCtx, identifie
 }
 
 export async function recordAudit(ctx: MutationCtx, entry: {
-  actorId: Id<"users">;
+  /** Omitted for automatic safety decisions. */
+  actorId?: Id<"users">;
   actorLabel: string;
   action: ModerationAction;
   targetId?: Id<"users">;

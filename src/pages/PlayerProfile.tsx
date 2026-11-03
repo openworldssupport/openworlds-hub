@@ -15,6 +15,18 @@ function monthYear(timestamp: number) {
   return new Date(timestamp).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
+function lastSeenLabel(timestamp: number | null) {
+  if (!timestamp) return "Offline";
+  const minutes = Math.floor((Date.now() - timestamp) / 60000);
+  if (minutes < 1) return "Offline · just now";
+  if (minutes < 60) return `Offline · ${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Offline · ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Offline · ${days}d ago`;
+  return `Offline · last seen ${new Date(timestamp).toLocaleDateString()}`;
+}
+
 function avatar(size: "sm" | "lg") {
   return size === "lg" ? "size-20" : "size-11";
 }
@@ -32,6 +44,7 @@ export default function PlayerProfile() {
   const [reportMessage, setReportMessage] = useState("");
   const profile = useQuery(api.users.publicPlayerProfile, { username });
   const reportState = useQuery(api.moderation.reportState, profile?.username ? { username: profile.username } : "skip");
+  const presence = useQuery(api.presence.publicPresence, profile?.username ? { username: profile.username } : "skip");
   const submitReport = useMutation(api.moderation.submitPlayerReport);
   const friendStatus = useQuery(api.users.friendStatus, { username });
   const friends = useQuery(api.users.publicFriendList, { username });
@@ -139,6 +152,12 @@ export default function PlayerProfile() {
                     {profile.isCompanyStaff && profile.publicBadge && <RoleBadge badge={profile.publicBadge} />}
                   </div>
                   <p className="mt-1 text-sm text-slate-500">{profile.username ? `@${profile.username}` : "OpenWorlds company account"}</p>
+                  {presence && (
+                    <p className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${presence.state === "in-game" ? "border-sky-200 bg-sky-50 text-sky-800" : presence.state === "online" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                      <span className={`size-2 rounded-full ${presence.state === "in-game" ? "bg-sky-500" : presence.state === "online" ? "bg-emerald-500" : "bg-slate-400"}`} aria-hidden="true" />
+                      {presence.state === "in-game" ? `In game${presence.activity ? ` · ${presence.activity}` : ""}` : presence.state === "online" ? "Online on the website" : lastSeenLabel(presence.lastWebsiteSeenAt)}
+                    </p>
+                  )}
                   <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
                     <span>Member since {monthYear(profile.memberSince)}</span>
                     {profile.hasPlayerAccount && <span>{profile.publishedWorldCount} published {profile.publishedWorldCount === 1 ? "world" : "worlds"}</span>}
@@ -203,7 +222,7 @@ export default function PlayerProfile() {
                           <li key={friend.username}>
                             <Link to={`/players/${encodeURIComponent(friend.username)}`} className="flex items-center gap-3 rounded border border-slate-200 px-3 py-2 hover:bg-slate-50">
                               {friend.image ? <img src={friend.image} alt="" className={`${avatar("sm")} rounded-full object-cover`} /> : <span className={`${avatar("sm")} flex items-center justify-center rounded-full bg-slate-100 text-slate-500`}><UserRound className="size-5" /></span>}
-                              <span className="min-w-0"><span className="block truncate text-sm font-medium">{friend.displayName || friend.username}</span><span className="block truncate text-xs text-slate-500">@{friend.username}</span></span>
+                              <span className="min-w-0"><span className="block truncate text-sm font-medium">{friend.displayName || friend.username}</span><span className="flex items-center gap-1.5 text-xs text-slate-500"><span className={`size-2 rounded-full ${friend.presence === "in-game" ? "bg-sky-500" : friend.presence === "online" ? "bg-emerald-500" : "bg-slate-300"}`} aria-hidden="true" />@{friend.username}{friend.presence === "in-game" ? " · in game" : friend.presence === "online" ? " · online" : ""}</span></span>
                             </Link>
                           </li>
                         ))}

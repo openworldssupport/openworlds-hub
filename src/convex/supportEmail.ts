@@ -43,6 +43,62 @@ export const sendCompanySignInCode = internalAction({
   },
 });
 
+export const sendImageSafetyAlert = internalAction({
+  args: {
+    userName: v.string(),
+    username: v.union(v.string(), v.null()),
+    reason: v.string(),
+    detail: v.string(),
+    blockedUntil: v.number(),
+    repeatCount: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const to = process.env.SUPPORT_EMAIL ?? DEFAULT_SUPPORT_EMAIL;
+    const blockedUntil = new Date(args.blockedUntil).toISOString();
+    const text = [
+      "Automatic image safety block",
+      "",
+      `Account: ${args.userName}`,
+      `OpenWorlds username: ${args.username ?? "(not set)"}`,
+      `Reason: ${args.reason}`,
+      `Provider scores: ${args.detail}`,
+      `Action taken: image blocked and deleted; profile photo uploads paused until ${blockedUntil}`,
+      `Flagged uploads in the last 30 days: ${args.repeatCount}`,
+      "",
+      "Review the case in the staff workspace under Reports & moderation.",
+    ].join("\n");
+    const html = emailShell({
+      title: "Automatic image safety block",
+      preheader: `${args.reason} — ${args.userName}`,
+      footerAddress: to,
+      footer: "Sent by the OpenWorlds automatic image safety check.",
+      body: [
+        emailDetails([
+          ["Account", args.userName],
+          ["Username", args.username ?? "(not set)"],
+          ["Reason", args.reason],
+          ["Provider scores", args.detail],
+          ["Uploads paused until", blockedUntil],
+          ["Flags in the last 30 days", String(args.repeatCount)],
+        ]),
+        emailParagraphs([
+          "The image was blocked before it could be set, deleted from storage, and the account cannot upload a new profile photo until the pause ends. The case is waiting in the staff workspace for a person to review.",
+        ]),
+      ].join(""),
+    });
+    const result = await sendBotEmail({
+      channel: "support",
+      to,
+      replyTo: to,
+      subject: "[OpenWorlds] Automatic image safety block",
+      text,
+      html,
+    });
+    if (!result.sent) console.error("[image-safety] Could not send the contact-team alert.");
+    return result;
+  },
+});
+
 export const sendPlayerRecoveryCode = internalAction({
   args: { email: v.string(), code: v.string() },
   handler: async (_ctx, { email, code }) => {

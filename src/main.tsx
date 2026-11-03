@@ -10,6 +10,7 @@ import { Wordmark } from "@/components/Wordmark";
 import { LegalPolicyGate } from "@/components/LegalPolicyGate";
 import { OfflinePage } from "@/components/OfflinePage";
 import { StaffSignInNotice } from "@/components/StaffSignInNotice";
+import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -237,6 +238,7 @@ createRoot(document.getElementById("root")!).render(
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <RouteSyncer />
+          <PresenceHeartbeat />
           <StaffSignInNotice />
           <OfflinePage>
             <LegalPolicyGate>

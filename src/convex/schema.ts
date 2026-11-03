@@ -79,6 +79,14 @@ const schema = defineSchema(
       banType: v.optional(v.union(v.literal("temporary"), v.literal("permanent"))),
       banExpiresAt: v.optional(v.number()),
       securityViolationCount: v.optional(v.number()),
+      // Presence: refreshed by the website and by the game client.
+      lastWebsiteSeenAt: v.optional(v.number()),
+      lastGameSeenAt: v.optional(v.number()),
+      gameActivity: v.optional(v.string()),
+      // Automatic image-safety takedowns can pause new profile photos.
+      imageUploadBlockedUntil: v.optional(v.number()),
+      imageViolationCount: v.optional(v.number()),
+      imageViolationWindowAt: v.optional(v.number()),
       lastSecurityViolationAt: v.optional(v.number()),
       newsPostingVerifiedUntil: v.optional(v.number()),
       newsPostingCodeWindowAt: v.optional(v.number()),
@@ -178,8 +186,26 @@ const schema = defineSchema(
 
     // Append-only record of every moderation decision, so staff and admins
     // can be held accountable for what they did and why.
+    // Automatic image-safety decisions, shown to the contact team.
+    mediaModeration: defineTable({
+      userId: v.id("users"),
+      username: v.optional(v.string()),
+      displayName: v.string(),
+      reason: v.string(),
+      detail: v.string(),
+      action: v.literal("blocked"),
+      status: v.union(v.literal("open"), v.literal("reviewed")),
+      createdAt: v.number(),
+      reviewedAt: v.optional(v.number()),
+      reviewedBy: v.optional(v.id("users")),
+      note: v.optional(v.string()),
+    })
+      .index("by_status_created", ["status", "createdAt"])
+      .index("by_user_created", ["userId", "createdAt"]),
+
     moderationLog: defineTable({
-      actorId: v.id("users"),
+      // Optional so automatic safety actions can be recorded without a person.
+      actorId: v.optional(v.id("users")),
       actorLabel: v.string(),
       action: v.union(
         v.literal("ban-temporary"),
@@ -190,6 +216,8 @@ const schema = defineSchema(
         v.literal("report-banned"),
         v.literal("appeal-approved"),
         v.literal("appeal-declined"),
+        v.literal("image-blocked"),
+        v.literal("image-reviewed"),
       ),
       targetId: v.optional(v.id("users")),
       targetLabel: v.string(),

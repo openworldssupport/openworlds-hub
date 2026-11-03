@@ -16,6 +16,11 @@ const faqs = [
       "Everyone uses the same sign-in page. Staff accounts are invite-only and can choose the one-time email code option there. Once signed in, staff accounts are detected automatically and extra security checks apply.",
   },
   {
+    question: "Why was my profile photo refused?",
+    answer:
+      "Profile photos are screened automatically before they are saved. If an image is flagged, it is deleted instead of being set, photo uploads pause on that account, and the contact team is notified with the details so a person can review it. If you believe that was a mistake, contact support.",
+  },
+  {
     question: "How do I report a player or content?",
     answer:
       "Open the player's profile and choose Report this player while signed in. Reports go straight to the OpenWorlds contact team, who can review the account and take action. You can also send a support ticket about content.",
