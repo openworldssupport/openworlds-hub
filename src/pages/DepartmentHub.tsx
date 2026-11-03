@@ -32,6 +32,7 @@ type DepartmentMember = {
   isViewer: boolean;
   isLead: boolean;
   isHead: boolean;
+  isInterimHead: boolean;
 };
 
 type DepartmentHead = {
@@ -40,6 +41,7 @@ type DepartmentHead = {
   position: string | null;
   badge: "staff" | "dev";
   isViewer: boolean;
+  isInterim: boolean;
 };
 
 type DepartmentPost = {
@@ -201,7 +203,7 @@ function Roster({ members }: { members: DepartmentMember[] }) {
                   <span className="truncate">{member.name}</span>
                   {member.isViewer && <span className="text-xs font-normal text-slate-400">you</span>}
                   {member.isAdmin && <span className="text-xs font-normal text-slate-400">admin</span>}
-                  {member.isHead && <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#795600]">Head of Department</span>}
+                  {member.isHead && <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#795600]">{member.isInterimHead ? "Acting head" : "Head of Department"}</span>}
                 </p>
                 <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span>{member.position || "No position listed"}</span>
@@ -885,9 +887,13 @@ function DepartmentSection({ department, viewer, index }: { department: Departme
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Head of Department</p>
           <p className="mt-1 truncate text-sm font-medium text-slate-900">{department.head?.name ?? "Vacant"}</p>
           {department.head ? (
-            department.head.isViewer ? <p className="mt-0.5 text-xs text-slate-500">You</p> : null
+            department.head.isInterim ? (
+              <p className="mt-0.5 text-xs text-slate-500">Acting head · highest-ranked member</p>
+            ) : department.head.isViewer ? (
+              <p className="mt-0.5 text-xs text-slate-500">You</p>
+            ) : null
           ) : (
-            <p className="mt-0.5 text-xs text-slate-500">Awaiting assignment</p>
+            <p className="mt-0.5 text-xs text-slate-500">No staff assigned</p>
           )}
         </div>
       </header>

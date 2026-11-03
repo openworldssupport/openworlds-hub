@@ -227,6 +227,7 @@ export const hub = query({
         isViewer: boolean;
         isLead: boolean;
         isHead: boolean;
+        isInterimHead: boolean;
       }>;
     }>();
 
@@ -255,6 +256,7 @@ export const hub = query({
         isViewer: user._id === viewer._id,
         isLead: false,
         isHead: false,
+        isInterimHead: false,
       });
       groups.set(key, group);
     }
@@ -271,6 +273,7 @@ export const hub = query({
         isViewer: true,
         isLead: false,
         isHead: false,
+        isInterimHead: false,
       };
       const viewerGroup = groups.get(viewerKey);
       if (!viewerGroup) {
@@ -282,9 +285,18 @@ export const hub = query({
 
     const departments = [...groups.values()]
       .map((group) => {
-        const head = group.members
+        const assignedHead = group.members
           .filter((member) => isDepartmentHeadPosition(member.position))
           .sort((a, b) => a.name.localeCompare(b.name))[0];
+        // A department without a formally assigned head still needs someone
+        // accountable. Use the highest-ranked member as an acting head.
+        const actingHead = assignedHead
+          ? undefined
+          : [...group.members].sort((a, b) =>
+              positionRank(b.position) - positionRank(a.position) || a.name.localeCompare(b.name),
+            )[0];
+        const head = assignedHead ?? actingHead;
+        const headIsInterim = !assignedHead && Boolean(head);
         const highestRank = group.members.length
           ? Math.max(...group.members.map((member) => positionRank(member.position)))
           : 0;
@@ -296,6 +308,7 @@ export const hub = query({
               ...member,
               isLead: leadNames.includes(member.userId),
               isHead: member.userId === head?.userId,
+              isInterimHead: headIsInterim && member.userId === head?.userId,
             }))
             .sort((a, b) =>
               Number(b.isHead) - Number(a.isHead) ||
@@ -310,6 +323,7 @@ export const hub = query({
                 position: head.position,
                 badge: head.badge,
                 isViewer: head.isViewer,
+                isInterim: headIsInterim,
               }
             : null,
           viewerCanSchedule: canScheduleMeetingsFor(viewer, group.key, membersForDepartment(rows, group.key)),
