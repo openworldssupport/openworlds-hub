@@ -21,11 +21,11 @@ const careerSections: ApplicationSection[] = [
     ],
   },
   {
-    title: "Availability",
+    title: "Volunteer availability",
     fields: [
-      { name: "hoursPerWeek", label: "Hours you can commit each week", type: "select", required: true, options: ["1–3 hours", "4–6 hours", "7–10 hours", "11–15 hours", "16+ hours"] },
-      { name: "startDate", label: "Earliest start date", type: "date" },
-      { name: "commitment", label: "How long would you like to contribute?", type: "select", options: ["1–3 months", "3–6 months", "6–12 months", "12+ months", "Open-ended"] },
+      { name: "hoursPerWeek", label: "Hours you can volunteer each week", type: "select", required: true, options: ["1–3 hours", "4–6 hours", "7–10 hours", "11–15 hours", "16+ hours"] },
+      { name: "startDate", label: "Earliest date you could start", type: "date" },
+      { name: "commitment", label: "How long would you like to volunteer?", type: "select", options: ["1–3 months", "3–6 months", "6–12 months", "12+ months", "Open-ended"] },
       { name: "languages", label: "Languages you work in", maxLength: 120, placeholder: "e.g. English, Danish" },
     ],
   },
@@ -112,7 +112,7 @@ export default function CareerApplication() {
         <section className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-12">
           <div className="mb-7 border-b border-slate-200 pb-6">
             <h2 className="text-2xl font-semibold tracking-tight">Application</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">The application has a few sections and takes about ten minutes. Your application is emailed to careers@openworlds.dk and is not stored as an application in the website database. The site retains a hashed email and submission time for rate limiting.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">This is a voluntary, unpaid contributor role with flexible hours. The application has a few sections and takes about ten minutes. Your application is emailed to careers@openworlds.dk and is not stored as an application in the website database. The site retains a hashed email and submission time for rate limiting.</p>
           </div>
           {sent ? (
             <div className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900"><CheckCircle2 className="mt-0.5 size-5 shrink-0" /><div><h2 className="font-semibold">Application submitted</h2><p className="mt-1 leading-6">Thank you for applying. Please check your inbox for an automated confirmation from OpenWorlds Careers Bot.</p></div></div>
