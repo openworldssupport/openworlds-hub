@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { StaffUnlock } from "@/components/StaffUnlock";
-import { DEPARTMENTS, deriveBadge, type PublicBadge } from "@/lib/staff";
+import { DEPARTMENTS, POSITIONS, deriveBadge, type PublicBadge } from "@/lib/staff";
 import { AlertCircle, BadgeCheck, Loader2, Save, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
@@ -65,34 +65,6 @@ type TeamRowProps = {
     accessLevel: "staff" | "admin"
   ) => Promise<void>;
 };
-
-const POSITIONS = [
-  "Head of Department",
-  "Chief Executive Officer",
-  "Chief Technology Officer",
-  "Chief Design Officer",
-  "Chief Marketing Officer",
-  "Chief People Officer",
-  "Chief Finance Officer",
-  "Chief Legal Officer",
-  "Head of Community",
-  "Lead Game Designer",
-  "Lead Programmer",
-  "Lead Artist",
-  "Senior Developer",
-  "Developer",
-  "Producer",
-  "Community Manager",
-  "Customer Support Lead",
-  "Player Support Specialist",
-  "Quality Assurance Tester",
-  "Senior QA Engineer",
-  "Data Analyst",
-  "AI Researcher",
-  "AI Engineer",
-  "Art Director",
-  "Technical Writer",
-];
 
 function TeamPanel() {
   const me = useQuery(api.staff.me);

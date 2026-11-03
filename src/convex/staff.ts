@@ -196,7 +196,9 @@ export const listMembers = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, { paginationOpts }) => {
     await requireRosterVerification(ctx);
-    // The directory lists company accounts only; player accounts never appear here.
+    // The directory lists every account that has staff access. A legacy role of
+    // "user" must not hide an assigned staff member from an admin who needs to
+    // review or correct their position.
     const page = [];
     let cursor: string | null = paginationOpts.cursor;
     let isDone = false;
@@ -214,8 +216,8 @@ export const listMembers = query({
         const department = canonicalDepartmentName(user.department) || null;
         const position = user.position?.trim() || null;
         const assigned = Boolean(department || position);
-        const isStaffAccount = assigned || user.staffAccess === true || user.role === "admin";
-        if (!isStaffAccount || user.role === "user") continue;
+        const isStaffAccount = assigned || user.staffAccess === true || user.role === "admin" || user.role === "member";
+        if (!isStaffAccount) continue;
         page.push({
           userId: user._id,
           name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
