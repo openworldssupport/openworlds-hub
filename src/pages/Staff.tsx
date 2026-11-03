@@ -1061,24 +1061,24 @@ type MediaCase = {
   reason: string;
   detail: string;
   createdAt: number;
+  imageUrl: string | null;
 };
 
 function MediaCaseRow({ item }: { item: MediaCase }) {
-  const review = useMutation(api.imageSafety.reviewMediaCase);
+  const resolve = useMutation(api.imageSafety.resolveMediaCase);
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"allow" | "keep-blocked" | null>(null);
   const [error, setError] = useState("");
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
+  async function decide(decision: "allow" | "keep-blocked") {
+    setBusy(decision);
     setError("");
     try {
-      await review({ caseId: item._id, note });
+      await resolve({ caseId: item._id, decision, note });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not close this case.");
+      setError(err instanceof Error ? err.message : "Could not save this decision.");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -1091,11 +1091,24 @@ function MediaCaseRow({ item }: { item: MediaCase }) {
         </div>
         <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-800">{item.reason}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-500">Provider scores: {item.detail}. The image was blocked before it was saved and profile photo uploads were paused automatically.</p>
-      <form onSubmit={(event) => void submit(event)} className="mt-3 flex flex-wrap items-end gap-2">
-        <Input value={note} onChange={(event) => setNote(event.target.value)} minLength={5} maxLength={300} aria-label="Review note" placeholder="What did you check?" className="max-w-72" />
-        <Button type="submit" size="sm" disabled={busy || note.trim().length < 5}>{busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Mark reviewed</Button>
-      </form>
+      <div className="mt-3 flex flex-wrap items-start gap-4">
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt="Quarantined upload" className="size-28 rounded border border-slate-200 object-cover" />
+        ) : (
+          <span className="flex size-28 items-center justify-center rounded border border-slate-200 bg-slate-50 text-center text-xs text-slate-500">Image no longer available</span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs leading-5 text-slate-500">Provider scores: {item.detail}. The image was stopped before it became the profile photo and uploads were paused automatically.</p>
+          <div className="mt-2 space-y-1">
+            <Label htmlFor={`media-note-${item._id}`} className="text-xs">Review note (5–300 characters, saved to the audit log)</Label>
+            <Input id={`media-note-${item._id}`} value={note} onChange={(event) => setNote(event.target.value)} minLength={5} maxLength={300} placeholder="What did you check?" className="max-w-72" />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" size="sm" disabled={Boolean(busy) || note.trim().length < 5} onClick={() => void decide("allow")}>{busy === "allow" ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Approve &amp; restore</Button>
+            <Button type="button" size="sm" variant="outline" disabled={Boolean(busy) || note.trim().length < 5} onClick={() => void decide("keep-blocked")}>{busy === "keep-blocked" ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />} Keep blocked</Button>
+          </div>
+        </div>
+      </div>
       {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
     </article>
   );
@@ -1278,7 +1291,7 @@ function StaffSecurityPanel() {
 
       <h3 className="mt-6 text-sm font-semibold">Active bans</h3>
       {data.bans.length === 0 ? <p className="mt-2 text-sm text-slate-500">No active bans.</p> : <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <BanRow key={ban.userId} ban={ban} isAdmin={data.isAdmin} />)}</ul>}
-      <DirectBanForm isAdmin={data.isAdmin} />
+      {data.isAdmin && <DirectBanForm isAdmin={data.isAdmin} />}
 
       <h3 className="mt-6 text-sm font-semibold">Recent moderation decisions</h3>
       <p className="mt-1 text-xs text-slate-500">Who acted, on which account, and why. This log is append-only.</p>

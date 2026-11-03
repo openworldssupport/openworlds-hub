@@ -62,7 +62,8 @@ export const sendImageSafetyAlert = internalAction({
       `OpenWorlds username: ${args.username ?? "(not set)"}`,
       `Reason: ${args.reason}`,
       `Provider scores: ${args.detail}`,
-      `Action taken: image blocked and deleted; profile photo uploads paused until ${blockedUntil}`,
+      `Action taken: image blocked and held for review; profile photo uploads paused until ${blockedUntil}`,
+      "Next step: approve and restore the image, or keep the block and delete it from the staff workspace.",
       `Flagged uploads in the last 30 days: ${args.repeatCount}`,
       "",
       "Review the case in the staff workspace under Reports & moderation.",
@@ -82,7 +83,7 @@ export const sendImageSafetyAlert = internalAction({
           ["Flags in the last 30 days", String(args.repeatCount)],
         ]),
         emailParagraphs([
-          "The image was blocked before it could be set, deleted from storage, and the account cannot upload a new profile photo until the pause ends. The case is waiting in the staff workspace for a person to review.",
+          "The image was blocked before it could be set and is held for review. The account cannot upload a new profile photo until the pause ends. The case is waiting in the staff workspace, where a person can approve and restore the image or keep the block and delete it.",
         ]),
       ].join(""),
     });

@@ -557,7 +557,9 @@ export const searchPlayerProfiles = query({
     const matches = [...unique.values()]
       .filter((user) => {
         if (user.isSiteBanned) return false;
-        return isPublicCompanyStaff(user) || (user.profileDiscoverable === true && hasPublicUsername(user));
+        // Player discovery lists player accounts only. Staff profiles stay
+        // reachable directly but are not shown in player search results.
+        return user.role === "user" && user.profileDiscoverable === true && hasPublicUsername(user);
       })
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;

@@ -191,10 +191,13 @@ const schema = defineSchema(
       userId: v.id("users"),
       username: v.optional(v.string()),
       displayName: v.string(),
+      // Kept in quarantine so the contact team can review and restore it.
+      storageId: v.optional(v.id("_storage")),
       reason: v.string(),
       detail: v.string(),
       action: v.literal("blocked"),
       status: v.union(v.literal("open"), v.literal("reviewed")),
+      decision: v.optional(v.union(v.literal("allowed"), v.literal("blocked"))),
       createdAt: v.number(),
       reviewedAt: v.optional(v.number()),
       reviewedBy: v.optional(v.id("users")),

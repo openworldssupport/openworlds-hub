@@ -18,7 +18,7 @@ const faqs = [
   {
     question: "Why was my profile photo refused?",
     answer:
-      "Profile photos are screened automatically before they are saved. If an image is flagged, it is deleted instead of being set, photo uploads pause on that account, and the contact team is notified with the details so a person can review it. If you believe that was a mistake, contact support.",
+      "Profile photos are screened automatically before they are saved. If an image is flagged, it is held back instead of being set, photo uploads pause on that account, and the contact team is notified with the details. A person then reviews it and can approve and restore the image or keep the block. If you believe that was a mistake, contact support.",
   },
   {
     question: "How do I report a player or content?",

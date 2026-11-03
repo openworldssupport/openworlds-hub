@@ -83,31 +83,33 @@ export const discardUpload = internalMutation({
   },
 });
 
+async function attachProfileImage(ctx: MutationCtx, userId: Id<"users">, storageId: Id<"_storage">) {
+  const user = await ctx.db.get(userId);
+  if (!user) throw new Error("Account not found.");
+  const existing = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
+  if (existing && (existing.ownerId !== userId || existing.kind !== "profile")) {
+    throw new Error("This upload belongs to another account or purpose.");
+  }
+  if (!existing) {
+    await ctx.db.insert("playerMedia", { storageId, ownerId: userId, kind: "profile", createdAt: Date.now() });
+  }
+  if (user.profileImageStorageId && user.profileImageStorageId !== storageId) {
+    const previous = await ctx.db.query("playerMedia")
+      .withIndex("by_storage_id", (q) => q.eq("storageId", user.profileImageStorageId!))
+      .unique();
+    if (previous?.ownerId === userId && previous.kind === "profile") {
+      await ctx.storage.delete(user.profileImageStorageId);
+      await ctx.db.delete(previous._id);
+    }
+  }
+  await ctx.db.patch(userId, { profileImageStorageId: storageId });
+  return { url: await ctx.storage.getUrl(storageId) };
+}
+
 /** Stores a profile image that passed the safety check. */
 export const applyProfileImage = internalMutation({
   args: { userId: v.id("users"), storageId: v.id("_storage") },
-  handler: async (ctx, { userId, storageId }) => {
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("Account not found.");
-    const existing = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", storageId)).unique();
-    if (existing && (existing.ownerId !== userId || existing.kind !== "profile")) {
-      throw new Error("This upload belongs to another account or purpose.");
-    }
-    if (!existing) {
-      await ctx.db.insert("playerMedia", { storageId, ownerId: userId, kind: "profile", createdAt: Date.now() });
-    }
-    if (user.profileImageStorageId && user.profileImageStorageId !== storageId) {
-      const previous = await ctx.db.query("playerMedia")
-        .withIndex("by_storage_id", (q) => q.eq("storageId", user.profileImageStorageId!))
-        .unique();
-      if (previous?.ownerId === userId && previous.kind === "profile") {
-        await ctx.storage.delete(user.profileImageStorageId);
-        await ctx.db.delete(previous._id);
-      }
-    }
-    await ctx.db.patch(userId, { profileImageStorageId: storageId });
-    return { url: await ctx.storage.getUrl(storageId) };
-  },
+  handler: async (ctx, { userId, storageId }) => await attachProfileImage(ctx, userId, storageId),
 });
 
 /** Removes a flagged image, pauses uploads, records the case, and alerts staff. */
@@ -116,7 +118,6 @@ export const recordBlockedImage = internalMutation({
   handler: async (ctx, { userId, storageId, reason, detail }) => {
     const user = await ctx.db.get(userId);
     if (!user) return null;
-    await ctx.storage.delete(storageId);
     const now = Date.now();
     const windowOpen = user.imageViolationWindowAt && now - user.imageViolationWindowAt < 30 * 24 * 60 * 60 * 1000;
     const count = windowOpen ? (user.imageViolationCount ?? 0) + 1 : 1;
@@ -130,6 +131,7 @@ export const recordBlockedImage = internalMutation({
       userId,
       username: user.playerLogin ?? undefined,
       displayName: accountLabel(user),
+      storageId,
       reason,
       detail,
       action: "blocked",
@@ -215,23 +217,51 @@ async function requireModerationActor(ctx: QueryCtx | MutationCtx) {
   return user;
 }
 
-/** Contact team closes an automatic image-safety case after reviewing it. */
-export const reviewMediaCase = mutation({
-  args: { caseId: v.id("mediaModeration"), note: v.string() },
-  handler: async (ctx, { caseId, note: rawNote }) => {
+/**
+ * Contact team decision on a flagged image. "allow" restores the quarantined
+ * image as the profile photo and lifts the upload pause; "keep-blocked"
+ * deletes it and leaves the automatic pause in place.
+ */
+export const resolveMediaCase = mutation({
+  args: {
+    caseId: v.id("mediaModeration"),
+    decision: v.union(v.literal("allow"), v.literal("keep-blocked")),
+    note: v.string(),
+  },
+  handler: async (ctx, { caseId, decision, note: rawNote }) => {
     const actor = await requireModerationActor(ctx);
     const record = await ctx.db.get(caseId);
     if (!record || record.status !== "open") throw new Error("This image-safety case is already closed.");
     const note = rawNote.trim();
     if (note.length < 5 || note.length > 300) throw new Error("Add a review note of 5–300 characters.");
-    await ctx.db.patch(caseId, { status: "reviewed", note, reviewedAt: Date.now(), reviewedBy: actor._id });
+    const now = Date.now();
+
+    if (decision === "allow") {
+      if (!record.storageId) throw new Error("The quarantined image is no longer available to restore.");
+      const metadata = await ctx.db.system.get("_storage", record.storageId);
+      if (!metadata) throw new Error("The quarantined image is no longer available to restore.");
+      await attachProfileImage(ctx, record.userId, record.storageId);
+      await ctx.db.patch(record.userId, { imageUploadBlockedUntil: undefined });
+    } else if (record.storageId) {
+      await ctx.storage.delete(record.storageId);
+      const asset = await ctx.db.query("playerMedia").withIndex("by_storage_id", (q) => q.eq("storageId", record.storageId!)).unique();
+      if (asset) await ctx.db.delete(asset._id);
+    }
+
+    await ctx.db.patch(caseId, {
+      status: "reviewed",
+      decision: decision === "allow" ? "allowed" : "blocked",
+      note,
+      reviewedAt: now,
+      reviewedBy: actor._id,
+    });
     await recordAudit(ctx, {
       actorId: actor._id,
       actorLabel: accountLabel(actor),
       action: "image-reviewed",
       targetId: record.userId,
       targetLabel: record.displayName,
-      reason: note,
+      reason: `${decision === "allow" ? "Image restored" : "Image kept blocked"}: ${note}`,
     });
     return { ok: true as const };
   },

@@ -157,14 +157,15 @@ export const queue = query({
           banType: user?.banType ?? "permanent",
         };
       })),
-      media: media.map((item) => ({
+      media: await Promise.all(media.map(async (item) => ({
         _id: item._id,
         displayName: item.displayName,
         username: item.username ?? null,
         reason: item.reason,
         detail: item.detail,
         createdAt: item.createdAt,
-      })),
+        imageUrl: item.storageId ? await ctx.storage.getUrl(item.storageId) : null,
+      }))),
       audit: audit.map((entry) => ({
         _id: entry._id,
         actorLabel: entry.actorLabel,
@@ -230,6 +231,9 @@ export const reviewReport = mutation({
     if (decision === "ban-temporary") {
       const length = Math.floor(days ?? 0);
       if (!Number.isFinite(length) || length < 1 || length > 90) throw new Error("Temporary bans last between 1 and 90 days.");
+      if (length > 30 && !isCompanyAdminAccount(actor)) {
+        throw new Error("Staff can issue temporary bans up to 30 days. Ask an administrator for a longer or permanent ban.");
+      }
       expiresAt = now + length * 24 * 60 * 60 * 1000;
     }
 
@@ -273,6 +277,9 @@ export const banAccount = mutation({
   args: { username: v.string(), type: banType, days: v.optional(v.number()), reason: v.string() },
   handler: async (ctx, { username, type, days, reason: rawReason }) => {
     const actor = await requireModerationAction(ctx);
+    // Direct bans outside a reviewed report are reserved for administrators;
+    // staff act through the report queue so every ban has a recorded report.
+    if (!isCompanyAdminAccount(actor)) throw new Error("Only an administrator can ban an account outside a reviewed report.");
     const target = await findUserByUsername(ctx, username);
     if (!target) throw new Error("That player could not be found.");
     if (target._id === actor._id) throw new Error("You cannot ban your own account.");

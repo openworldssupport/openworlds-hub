@@ -31,7 +31,7 @@ export default function Worlds() {
         <div className="space-y-6">
         <div className="border-t-2 border-slate-900 pt-5">
           <h2 className="text-xl font-semibold tracking-tight">Player profiles</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts and public company staff by username or display name.</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Search player accounts by username or display name.</p>
           <label htmlFor="profile-search" className="sr-only">Search player usernames or names</label>
           <div className="relative mt-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
