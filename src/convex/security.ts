@@ -4,7 +4,6 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
-import { requireSiteAvailable } from "./siteStatus";
 import { requireStaffUnlock, staffUnlockState } from "./staffUnlock";
 import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -81,7 +80,6 @@ export const accessStatus = query({
 export const submitAppeal = mutation({
   args: { message: v.string() },
   handler: async (ctx, args) => {
-    await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to submit an appeal.");
     const user = await ctx.db.get(userId);
@@ -179,6 +177,9 @@ export const reviewAppeal = mutation({
     const user = await ctx.db.get(appeal.userId);
     if (args.decision === "approved" && user && (user.banType ?? "permanent") === "permanent" && !(await isAdmin(ctx))) {
       throw new Error("Only an administrator can lift a permanent ban.");
+    }
+    if (user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim()) && !(await isAdmin(ctx))) {
+      throw new Error("Only an administrator can review an appeal for a staff account.");
     }
     const reviewerId = await getAuthUserId(ctx);
     const reviewer = reviewerId ? await ctx.db.get(reviewerId) : null;

@@ -425,16 +425,11 @@ export const liftExpiredBan = internalMutation({
     const user = await ctx.db.get(userId);
     if (!user || !user.isSiteBanned) return;
     if (!user.banExpiresAt || user.banExpiresAt > Date.now()) return;
-    await ctx.db.patch(userId, {
-      isSiteBanned: undefined,
-      siteBanReason: undefined,
-      siteBannedAt: undefined,
-      banType: undefined,
-      banExpiresAt: undefined,
-      securityViolationCount: 0,
+    await liftBan(ctx, {
+      actorLabel: "Automatic ban expiry",
+      target: user,
+      reason: "Temporary ban expired; access was restored automatically and any pending appeal was closed.",
     });
-    const rows = await ctx.db.query("bannedIdentities").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
-    await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
   },
 });
 

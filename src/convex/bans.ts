@@ -158,7 +158,8 @@ export async function applyBan(ctx: MutationCtx, options: {
 
 /** Lifts a ban and clears every signup block for the account. */
 export async function liftBan(ctx: MutationCtx, options: {
-  actorId: Id<"users">;
+  /** Omitted when a temporary ban expires automatically. */
+  actorId?: Id<"users">;
   actorLabel: string;
   target: Doc<"users">;
   reason: string;
@@ -176,6 +177,12 @@ export async function liftBan(ctx: MutationCtx, options: {
   });
   const rows = await ctx.db.query("bannedIdentities").withIndex("by_user", (q) => q.eq("userId", target._id)).collect();
   await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
+  // A pending appeal is resolved when the restriction ends, even if it ended
+  // because time ran out rather than because someone reviewed it.
+  const pendingAppeals = await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", target._id)).collect();
+  await Promise.all(pendingAppeals
+    .filter((appeal) => appeal.status === "pending")
+    .map((appeal) => ctx.db.patch(appeal._id, { status: "approved", reviewedAt: Date.now() })));
   await recordAudit(ctx, {
     actorId,
     actorLabel,

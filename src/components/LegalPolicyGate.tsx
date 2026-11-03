@@ -51,8 +51,8 @@ export function LegalPolicyGate({ children }: { children: ReactNode }) {
     try {
       await submitAppeal({ message: appealText });
       setAppealSent(true);
-    } catch {
-      setError("Could not submit your appeal. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit your appeal. Please try again.");
     }
   }
 
