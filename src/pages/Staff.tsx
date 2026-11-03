@@ -1037,6 +1037,8 @@ const MODERATION_ACTIONS: Record<string, string> = {
   "report-dismissed": "Report dismissed",
   "report-warned": "Player warned",
   "report-banned": "Banned from report",
+  "automatic-warning": "Automatic warning",
+  "automatic-ban": "Automatic temporary ban",
   "appeal-approved": "Appeal approved",
   "appeal-declined": "Appeal declined",
   "image-blocked": "Image blocked",
@@ -1052,6 +1054,25 @@ type ReportItem = {
   targetLabel: string;
   targetUsername: string | null;
   targetId: Id<"users">;
+  evidenceLinks: string[];
+};
+
+type AssessmentItem = {
+  _id: Id<"moderationAssessments">;
+  targetLabel: string;
+  targetUsername: string | null;
+  category: string;
+  severity: string;
+  evidenceScore: number;
+  independentReporters: number;
+  verifiedReporters: number;
+  evidenceLinks: number;
+  evidenceDomains: number;
+  status: string;
+  reasons: string[];
+  actionTaken: string;
+  actionExpiresAt: number | null;
+  createdAt: number;
 };
 
 type MediaCase = {
@@ -1155,6 +1176,19 @@ function ReportCard({ report, isAdmin }: { report: ReportItem; isAdmin: boolean 
         <span className="rounded border border-slate-200 px-2 py-0.5 text-xs text-slate-600">{REPORT_CATEGORIES[report.category] ?? report.category}</span>
       </div>
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{report.message}</p>
+      <div className="mt-3 rounded border border-slate-200 bg-slate-50 p-2.5">
+        <p className="text-xs font-medium text-slate-700">Evidence supplied by the reporter</p>
+        {report.evidenceLinks.length ? (
+          <ul className="mt-1 space-y-1">
+            {report.evidenceLinks.map((link) => (
+              <li key={link} className="truncate text-xs">
+                <a href={link} target="_blank" rel="noopener noreferrer nofollow" className="text-[#0066cc] underline">{link}</a>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="mt-1 text-xs text-slate-500">No evidence links supplied. This report cannot count toward an automatic action.</p>}
+        <p className="mt-1 text-[11px] text-slate-400">External links are not fetched or verified by OpenWorlds. Check them yourself before acting.</p>
+      </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem]">
         <div className="space-y-1">
           <Label htmlFor={`report-note-${report._id}`} className="text-xs">Review note (saved to the audit log)</Label>
@@ -1281,6 +1315,37 @@ function StaffSecurityPanel() {
 
       <h3 className="mt-5 text-sm font-semibold">Open player reports</h3>
       {data.reports.length === 0 ? <p className="mt-2 text-sm text-slate-500">No open reports.</p> : <div className="mt-2 border-t border-slate-200">{data.reports.map((report) => <ReportCard key={report._id} report={report} isAdmin={data.isAdmin} />)}</div>}
+
+      <h3 className="mt-6 text-sm font-semibold">Automated evidence review</h3>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        Reports are scored only when they are detailed and corroborated. A warning needs at least two independent verified reporter accounts (each at least 7 days old), with evidence links from two different reporters. A temporary ban needs four verified reporters, four evidence links from three domains, and a prior warning. Permanent bans are never automatic.
+      </p>
+      {data.assessments.length === 0 ? <p className="mt-2 text-sm text-slate-500">No evidence reviews yet.</p> : (
+        <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
+          {data.assessments.map((assessment) => (
+            <li key={assessment._id} className="py-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">{assessment.targetLabel}{assessment.targetUsername ? ` · @${assessment.targetUsername}` : ""}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {assessment.severity} severity · {assessment.category} · evidence score {assessment.evidenceScore}/100 · {assessment.verifiedReporters}/{assessment.independentReporters} verified reporters · {assessment.evidenceLinks} links from {assessment.evidenceDomains} domains
+                  </p>
+                </div>
+                <span className={`rounded border px-2 py-0.5 text-xs ${assessment.status === "automatically-banned" ? "border-red-200 bg-red-50 text-red-700" : assessment.status === "automatically-warned" ? "border-amber-200 bg-amber-50 text-amber-800" : "border-slate-200 text-slate-600"}`}>
+                  {assessment.status.replace(/-/g, " ")}
+                </span>
+              </div>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-slate-600">
+                {assessment.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+              </ul>
+              <p className="mt-1 text-xs text-slate-400">
+                {new Date(assessment.createdAt).toLocaleString()}
+                {assessment.actionExpiresAt ? ` · restriction ends ${new Date(assessment.actionExpiresAt).toLocaleString()}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h3 className="mt-6 text-sm font-semibold">Automatic image safety</h3>
       <p className="mt-1 text-xs text-slate-500">Profile photos are checked before they are saved. Flagged images are removed automatically and the upload is paused on that account.</p>

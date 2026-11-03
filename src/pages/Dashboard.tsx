@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
-import { ArrowDownToLine, BadgeCheck, ImageUp, Megaphone, ShieldCheck, Users } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, BadgeCheck, ImageUp, Megaphone, ShieldCheck, Users } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 
@@ -23,6 +23,7 @@ export default function Dashboard() {
   const friendsData = useQuery(api.users.myFriends, user ? {} : "skip");
   const respondFriendRequest = useMutation(api.users.respondToFriendRequest);
   const profilePrivacy = useQuery(api.users.currentProfilePrivacy, user ? {} : "skip");
+  const moderationWarnings = useQuery(api.moderation.myWarnings, user ? {} : "skip");
   const recoveryStatus = useQuery(
     api.playerRecovery.recoveryStatus,
     user?.role === "user" ? {} : "skip",
@@ -182,6 +183,25 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your OpenWorlds hub</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Manage your public profile, friends, and worlds. Signed in as {user.playerUsername ? `@${user.playerUsername}` : user.playerName}.</p>
         </motion.div>
+
+        {moderationWarnings?.warnings.length ? (
+          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
+            <h2 className="flex items-center gap-2 font-semibold tracking-tight text-amber-950"><AlertTriangle className="size-4 text-amber-700" /> Account warnings</h2>
+            <p className="mt-1 text-sm leading-6 text-amber-900/80">Our moderation system records warnings when reports and evidence meet the review threshold. Repeated or severe rule breaking can lead to a temporary or permanent restriction.</p>
+            <ul className="mt-4 divide-y divide-amber-200/70 border-y border-amber-200/70">
+              {moderationWarnings.warnings.map((warning) => (
+                <li key={warning._id} className="py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-medium capitalize text-amber-950">{warning.severity} warning</span>
+                    <span className="text-xs text-amber-800">{new Date(warning.createdAt).toLocaleString()}</span>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-amber-900">{warning.reason}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-amber-800">If you believe a warning is wrong, contact the team through <Link to="/support" className="underline">Support</Link> and include your username.</p>
+          </motion.section>
+        ) : null}
 
         <div className="mt-9 grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">

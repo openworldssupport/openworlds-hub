@@ -57,7 +57,7 @@ export default function Rules() {
           <p className="text-sm font-medium text-blue-100">Rules</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Keep OpenWorlds worth visiting</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
-            These are general website and community guidelines. No platform-specific moderation process is described here.
+            These are general website and community guidelines. Reports are reviewed by the contact team using the evidence supplied; permanent bans require an administrator.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a href="#golden" className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-[#0052a3] hover:bg-blue-50">Read the rules</a>
@@ -118,7 +118,7 @@ export default function Rules() {
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
           <h2 className="font-semibold">Reporting concerns</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-700">You can contact the team through the support form. Review and moderation procedures are not published yet.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">Report a player from their profile, including a detailed account and HTTPS evidence links where possible. Corroborated patterns may receive an automatic warning or short temporary restriction above strict thresholds; serious or permanent action is reviewed by staff. A restricted account can submit an appeal from the restriction screen.</p>
           <Link to="/support" className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0066cc] hover:underline">Contact support <ArrowRight className="size-4" /></Link>
         </div>
       </section>

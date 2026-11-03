@@ -14,6 +14,8 @@ export type ModerationAction =
   | "report-dismissed"
   | "report-warned"
   | "report-banned"
+  | "automatic-warning"
+  | "automatic-ban"
   | "appeal-approved"
   | "appeal-declined"
   | "image-blocked"
@@ -94,13 +96,16 @@ export async function recordAudit(ctx: MutationCtx, entry: {
 
 /** Applies a ban and records the email/username block plus an audit entry. */
 export async function applyBan(ctx: MutationCtx, options: {
-  actorId: Id<"users">;
+  /** Omitted for an automatic, evidence-threshold decision. */
+  actorId?: Id<"users">;
   actorLabel: string;
   target: Doc<"users">;
   reason: string;
   type: "temporary" | "permanent";
   expiresAt?: number;
   reportId?: Id<"playerReports">;
+  /** Overrides the audit label for automatic decisions. */
+  auditAction?: ModerationAction;
 }) {
   const now = Date.now();
   const { target, actorId, actorLabel, reason, type, expiresAt, reportId } = options;
@@ -143,7 +148,7 @@ export async function applyBan(ctx: MutationCtx, options: {
   await recordAudit(ctx, {
     actorId,
     actorLabel,
-    action: type === "permanent" ? "ban-permanent" : "ban-temporary",
+    action: options.auditAction ?? (type === "permanent" ? "ban-permanent" : "ban-temporary"),
     targetId: target._id,
     targetLabel: accountLabel(target),
     reason,

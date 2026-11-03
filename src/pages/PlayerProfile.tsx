@@ -40,6 +40,7 @@ export default function PlayerProfile() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportCategory, setReportCategory] = useState<"harassment" | "hate-speech" | "scam" | "cheating" | "inappropriate-content" | "other">("harassment");
   const [reportText, setReportText] = useState("");
+  const [reportEvidence, setReportEvidence] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
   const profile = useQuery(api.users.publicPlayerProfile, { username });
@@ -98,10 +99,12 @@ export default function PlayerProfile() {
     setReportBusy(true);
     setReportMessage("");
     try {
-      await submitReport({ username, category: reportCategory, message: reportText });
+      const evidenceLinks = reportEvidence.split(/\n+/).map((value) => value.trim()).filter(Boolean);
+      await submitReport({ username, category: reportCategory, message: reportText, evidenceLinks });
       setReportText("");
+      setReportEvidence("");
       setReportOpen(false);
-      setReportMessage("Report sent to the contact team. They review reports and can act on the account.");
+      setReportMessage("Report sent to the contact team. Corroborated reports with evidence can be reviewed automatically.");
     } catch (error) {
       setReportMessage(error instanceof Error ? error.message : "Could not send the report.");
     } finally {
@@ -360,8 +363,13 @@ export default function PlayerProfile() {
             </div>
             <div className="space-y-2">
               <label htmlFor="report-details" className="text-sm font-medium">Details</label>
-              <Textarea id="report-details" rows={5} minLength={20} maxLength={1500} required value={reportText} onChange={(event) => setReportText(event.target.value)} placeholder="What happened, when, and where? Include links or message text if it helps." />
-              <p className="text-xs text-slate-500">False reports can also lead to action on your account.</p>
+              <Textarea id="report-details" rows={5} minLength={20} maxLength={1500} required value={reportText} onChange={(event) => setReportText(event.target.value)} placeholder="What happened, when, and where? Include exact quotes, dates, and what you saw." />
+              <p className="text-xs text-slate-500">Detailed, specific reports are easier to verify. False reports can also lead to action on your account.</p>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="report-evidence" className="text-sm font-medium">Evidence links (recommended)</label>
+              <Textarea id="report-evidence" rows={3} maxLength={1500} value={reportEvidence} onChange={(event) => setReportEvidence(event.target.value)} placeholder="https://… (one HTTPS link per line, up to 3)" />
+              <p className="text-xs text-slate-500">Screenshots, video, or public post links. Automatic warnings and temporary bans require several independent reports and evidence links; a single report never triggers them.</p>
             </div>
             {reportMessage && <p role="alert" className="text-sm text-[#b42318]">{reportMessage}</p>}
             <div className="flex flex-wrap justify-end gap-2">

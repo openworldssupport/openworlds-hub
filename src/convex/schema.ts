@@ -161,6 +161,9 @@ const schema = defineSchema(
         v.literal("other"),
       ),
       message: v.string(),
+      // Reporter-supplied HTTPS evidence. The site does not fetch or verify the
+      // contents; staff review the links before acting.
+      evidenceLinks: v.optional(v.array(v.string())),
       status: v.union(v.literal("open"), v.literal("closed")),
       resolution: v.optional(v.union(v.literal("no-action"), v.literal("warned"), v.literal("banned"))),
       resolutionNote: v.optional(v.string()),
@@ -181,11 +184,58 @@ const schema = defineSchema(
       reason: v.string(),
       expiresAt: v.optional(v.number()),
       createdAt: v.number(),
-      createdBy: v.id("users"),
+      // Omitted when the block was created by the automated review system.
+      createdBy: v.optional(v.id("users")),
     })
       .index("by_email", ["email"])
       .index("by_username", ["username"])
       .index("by_user", ["userId"]),
+
+    // Warnings shown to the account and retained for escalation decisions.
+    moderationWarnings: defineTable({
+      targetId: v.id("users"),
+      targetLabel: v.string(),
+      actorId: v.optional(v.id("users")),
+      actorLabel: v.string(),
+      source: v.union(v.literal("automated"), v.literal("staff")),
+      severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
+      reason: v.string(),
+      reportIds: v.array(v.id("playerReports")),
+      evidenceLinks: v.array(v.string()),
+      createdAt: v.number(),
+      acknowledgedAt: v.optional(v.number()),
+    })
+      .index("by_target_created", ["targetId", "createdAt"])
+      .index("by_created", ["createdAt"]),
+
+    // The evidence packet and decision produced when reports are scored. These
+    // records are kept even when no automatic action is taken, so staff can
+    // audit why the system did or did not act.
+    moderationAssessments: defineTable({
+      targetId: v.id("users"),
+      targetLabel: v.string(),
+      targetUsername: v.optional(v.string()),
+      triggerReportId: v.id("playerReports"),
+      reportIds: v.array(v.id("playerReports")),
+      category: v.string(),
+      severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
+      evidenceScore: v.number(),
+      independentReporters: v.number(),
+      verifiedReporters: v.number(),
+      evidenceLinks: v.number(),
+      evidenceDomains: v.number(),
+      status: v.union(v.literal("automatically-warned"), v.literal("automatically-banned"), v.literal("needs-review"), v.literal("insufficient-evidence")),
+      reasons: v.array(v.string()),
+      actionTaken: v.union(v.literal("none"), v.literal("warning"), v.literal("temporary-ban")),
+      actionExpiresAt: v.optional(v.number()),
+      reviewedAt: v.optional(v.number()),
+      reviewedBy: v.optional(v.id("users")),
+      reviewNote: v.optional(v.string()),
+      createdAt: v.number(),
+    })
+      .index("by_created", ["createdAt"])
+      .index("by_target_created", ["targetId", "createdAt"])
+      .index("by_status_created", ["status", "createdAt"]),
 
     // Append-only record of every moderation decision, so staff and admins
     // can be held accountable for what they did and why.
@@ -220,6 +270,8 @@ const schema = defineSchema(
         v.literal("report-dismissed"),
         v.literal("report-warned"),
         v.literal("report-banned"),
+        v.literal("automatic-warning"),
+        v.literal("automatic-ban"),
         v.literal("appeal-approved"),
         v.literal("appeal-declined"),
         v.literal("image-blocked"),

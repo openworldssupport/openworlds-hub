@@ -5,6 +5,7 @@ import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } fr
 import { requireSiteAvailable } from "./siteStatus";
 import { requireStaffUnlock } from "./staffUnlock";
 import { accountLabel, applyBan, findSignupBlock, isBanActive, liftBan, recordAudit } from "./bans";
+import { severityForCategory } from "../lib/moderationPolicy";
 import type { Doc } from "./_generated/dataModel";
 
 const reportCategory = v.union(
@@ -19,6 +20,24 @@ const reportCategory = v.union(
 const banType = v.union(v.literal("temporary"), v.literal("permanent"));
 
 const MAX_REPORTS_PER_DAY = 10;
+const MAX_EVIDENCE_LINKS = 3;
+
+function normalizeEvidenceLinks(rawLinks: string[] | undefined) {
+  const links: string[] = [];
+  for (const raw of rawLinks ?? []) {
+    const value = raw.trim();
+    if (!value || value.length > 500 || links.includes(value)) continue;
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "https:") throw new Error("not https");
+      links.push(value);
+    } catch {
+      throw new Error("Evidence links must be valid HTTPS links, one per line.");
+    }
+    if (links.length > MAX_EVIDENCE_LINKS) throw new Error("Add no more than 3 evidence links.");
+  }
+  return links;
+}
 
 function isCompanyAdminAccount(user: { role?: string; email?: string }) {
   return user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
@@ -49,8 +68,13 @@ async function findUserByUsername(ctx: QueryCtx | MutationCtx, rawUsername: stri
 
 /** Player-submitted report about another account. */
 export const submitPlayerReport = mutation({
-  args: { username: v.string(), category: reportCategory, message: v.string() },
-  handler: async (ctx, { username, category, message }) => {
+  args: {
+    username: v.string(),
+    category: reportCategory,
+    message: v.string(),
+    evidenceLinks: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { username, category, message, evidenceLinks: rawEvidence }) => {
     await requireSiteAvailable(ctx);
     const reporterId = await getAuthUserId(ctx);
     const reporter = reporterId ? await ctx.db.get(reporterId) : null;
@@ -64,6 +88,7 @@ export const submitPlayerReport = mutation({
     if (cleanMessage.length < 20 || cleanMessage.length > 1500) {
       throw new Error("Describe the problem in 20–1,500 characters.");
     }
+    const evidenceLinks = normalizeEvidenceLinks(rawEvidence);
     const recent = await ctx.db.query("playerReports")
       .withIndex("by_reporter_created", (q) => q.eq("reporterId", reporter._id).gte("createdAt", Date.now() - 24 * 60 * 60 * 1000))
       .take(MAX_REPORTS_PER_DAY + 5);
@@ -74,7 +99,7 @@ export const submitPlayerReport = mutation({
       throw new Error("You have sent several reports today. Please wait before sending another.");
     }
 
-    await ctx.db.insert("playerReports", {
+    const reportId = await ctx.db.insert("playerReports", {
       reporterId: reporter._id,
       reporterLabel: accountLabel(reporter),
       targetId: target._id,
@@ -82,8 +107,15 @@ export const submitPlayerReport = mutation({
       targetUsername: target.playerLogin ?? undefined,
       category,
       message: cleanMessage,
+      ...(evidenceLinks.length ? { evidenceLinks } : {}),
       status: "open",
       createdAt: Date.now(),
+    });
+    // Run the evidence review after the report is committed. The assessment
+    // never acts on a single uncorroborated report.
+    await ctx.scheduler.runAfter(0, internal.automatedModeration.assessTarget, {
+      targetId: target._id,
+      triggerReportId: reportId,
     });
     return { ok: true as const };
   },
@@ -117,12 +149,13 @@ export const queue = query({
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
     const viewer = await requireModerationStaff(ctx);
-    const [reports, bannedAccounts, appeals, audit, media] = await Promise.all([
+    const [reports, bannedAccounts, appeals, audit, media, assessments] = await Promise.all([
       ctx.db.query("playerReports").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
       ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(200),
       ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(50),
       ctx.db.query("moderationLog").withIndex("by_created").order("desc").take(40),
       ctx.db.query("mediaModeration").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
+      ctx.db.query("moderationAssessments").withIndex("by_created").order("desc").take(20),
     ]);
     return {
       isAdmin: isCompanyAdminAccount(viewer),
@@ -135,6 +168,24 @@ export const queue = query({
         targetLabel: report.targetLabel,
         targetUsername: report.targetUsername ?? null,
         targetId: report.targetId,
+        evidenceLinks: report.evidenceLinks ?? [],
+      })),
+      assessments: assessments.map((assessment) => ({
+        _id: assessment._id,
+        targetLabel: assessment.targetLabel,
+        targetUsername: assessment.targetUsername ?? null,
+        category: assessment.category,
+        severity: assessment.severity,
+        evidenceScore: assessment.evidenceScore,
+        independentReporters: assessment.independentReporters,
+        verifiedReporters: assessment.verifiedReporters,
+        evidenceLinks: assessment.evidenceLinks,
+        evidenceDomains: assessment.evidenceDomains,
+        status: assessment.status,
+        reasons: assessment.reasons,
+        actionTaken: assessment.actionTaken,
+        actionExpiresAt: assessment.actionExpiresAt ?? null,
+        createdAt: assessment.createdAt,
       })),
       bans: bannedAccounts.filter((user) => isBanActive(user)).map((user) => ({
         userId: user._id,
@@ -178,6 +229,30 @@ export const queue = query({
   },
 });
 
+/** Warnings shown privately to the signed-in account. */
+export const myWarnings = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { warnings: [] };
+    const warnings = await ctx.db
+      .query("moderationWarnings")
+      .withIndex("by_target_created", (q) => q.eq("targetId", userId))
+      .order("desc")
+      .take(20);
+    return {
+      warnings: warnings.map((warning) => ({
+        _id: warning._id,
+        severity: warning.severity,
+        reason: warning.reason,
+        source: warning.source,
+        createdAt: warning.createdAt,
+        acknowledgedAt: warning.acknowledgedAt ?? null,
+      })),
+    };
+  },
+});
+
 /** Close a report with no action, a warning, or a ban. */
 export const reviewReport = mutation({
   args: {
@@ -214,6 +289,20 @@ export const reviewReport = mutation({
         reason,
         reportId: report._id,
       });
+      if (decision === "warn") {
+        await ctx.db.insert("moderationWarnings", {
+          targetId: report.targetId,
+          targetLabel: report.targetLabel,
+          actorId: actor._id,
+          actorLabel,
+          source: "staff",
+          severity: severityForCategory(report.category),
+          reason,
+          reportIds: [report._id],
+          evidenceLinks: report.evidenceLinks ?? [],
+          createdAt: now,
+        });
+      }
       return { ok: true as const, decision };
     }
 
