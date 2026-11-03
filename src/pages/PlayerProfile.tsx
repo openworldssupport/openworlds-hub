@@ -202,8 +202,11 @@ export default function PlayerProfile() {
                           <Button asChild size="sm" variant="outline"><Link to="/player-signup">Create account</Link></Button>
                         </div>
                       </>
-                    ) : user.role !== "user" ? (
-                      <p className="mt-2 text-sm leading-6 text-slate-600">Friend requests and messages are available on player accounts. You are signed in with a staff account.</p>
+                    ) : !user.playerUsername ? (
+                      <>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">Choose your public username in the player hub to send friend requests and messages.</p>
+                        <Button asChild size="sm" variant="outline" className="mt-4"><Link to="/dashboard">Open player hub</Link></Button>
+                      </>
                     ) : friendStatus === undefined ? (
                       <p className="mt-2 text-sm text-slate-500">Checking connection…</p>
                     ) : friendStatus.status === "unavailable" ? (

@@ -15,20 +15,24 @@ import { AccountSecuritySettings } from "@/pages/AccountSecurity";
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const updatePublicProfile = useMutation(api.users.updatePublicProfile);
+  const claimPlayerUsername = useMutation(api.users.claimPlayerUsername);
   const setProfileDiscoverability = useMutation(api.users.setProfileDiscoverability);
   const generatePlayerUploadUrl = useMutation(api.gameData.playerMediaUploadUrl);
   const finalizePlayerImage = useMutation(api.gameData.finalizePlayerImage);
   const publishWorld = useMutation(api.gameData.publishWorld);
-  const myPublishedWorlds = useQuery(api.gameData.myPublishedWorlds, user?.role === "user" ? {} : "skip");
-  const friendsData = useQuery(api.users.myFriends, user?.role === "user" ? {} : "skip");
+  const myPublishedWorlds = useQuery(api.gameData.myPublishedWorlds, user ? {} : "skip");
+  const friendsData = useQuery(api.users.myFriends, user ? {} : "skip");
   const respondFriendRequest = useMutation(api.users.respondToFriendRequest);
-  const profilePrivacy = useQuery(api.users.currentProfilePrivacy, user?.role === "user" ? {} : "skip");
+  const profilePrivacy = useQuery(api.users.currentProfilePrivacy, user ? {} : "skip");
   const recoveryStatus = useQuery(
     api.playerRecovery.recoveryStatus,
     user?.role === "user" ? {} : "skip",
   );
   const requestRecoveryCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
   const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [usernameMessage, setUsernameMessage] = useState("");
+  const [usernameBusy, setUsernameBusy] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [about, setAbout] = useState("");
   const [friendsVisible, setFriendsVisible] = useState(false);
@@ -51,6 +55,21 @@ export default function Dashboard() {
     setAbout(profilePrivacy.about);
     setFriendsVisible(profilePrivacy.friendsVisible);
   }, [profilePrivacy?.displayName, profilePrivacy?.about, profilePrivacy?.friendsVisible, user?.playerName]);
+
+  async function chooseUsername(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setUsernameBusy(true);
+    setUsernameMessage("");
+    try {
+      const result = await claimPlayerUsername({ username: usernameDraft });
+      setUsernameMessage(`Your public username is @${result.username}.`);
+      setUsernameDraft("");
+    } catch (error) {
+      setUsernameMessage(error instanceof Error ? error.message : "Could not save your username.");
+    } finally {
+      setUsernameBusy(false);
+    }
+  }
 
   async function savePublicProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,16 +183,14 @@ export default function Dashboard() {
     }
   }
 
-  if (!user || user.role !== "user") {
+  if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 text-slate-950">
         <SiteNav />
         <section className="mx-auto max-w-3xl px-5 py-16 text-center">
-          <h1 className="text-3xl font-semibold">Player account required</h1>
+          <h1 className="text-3xl font-semibold">Sign in to open your player hub</h1>
           <p className="mt-3 text-slate-600">
-            {user
-              ? "You’re signed in with a different account. Sign in with a player account or create one to open the player hub."
-              : "Sign in to a player account or create one to open the player hub."}
+            Your OpenWorlds hub holds your public profile, worlds, friends, and messages. Staff and company accounts use the same hub — sign in with your usual account.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild variant="outline"><Link to="/player-login">Player log in</Link></Button>
@@ -184,6 +201,7 @@ export default function Dashboard() {
     );
   }
 
+  const isPlayerAccount = user.role === "user";
   const recoveryEmailIsVerified = Boolean(recoveryStatus?.isVerified);
   // Recovery email is optional: only block the hub while a supplied email is unverified.
   const needsRecoveryVerification = !recoveryEmailIsVerified && Boolean(recoveryStatus?.recoveryEmail || recoveryStatus?.pendingEmail);
@@ -215,16 +233,28 @@ export default function Dashboard() {
       <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-12 lg:px-12">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
           <h1 className="text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Your OpenWorlds hub</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Manage your public profile, friends, and worlds. Signed in as @{user.playerUsername ?? "player"}.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">Manage your public profile, friends, and worlds. Signed in as {user.playerUsername ? `@${user.playerUsername}` : user.playerName}.</p>
         </motion.div>
 
         <div className="mt-9 grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><h2 className="flex items-center gap-2 font-semibold tracking-tight">Player profile{user.isOfficialCreator && <span title="Verified Official Content Creator" className="inline-flex items-center text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>}</h2><p className="mt-1 text-sm text-slate-500">Update the name shown on your player account.</p></div>
+              <div><h2 className="flex items-center gap-2 font-semibold tracking-tight">Player profile{user.isOfficialCreator && <span title="Verified Official Content Creator" className="inline-flex items-center text-sky-600"><BadgeCheck className="size-5" aria-label="Verified Official Content Creator" /></span>}</h2><p className="mt-1 text-sm text-slate-500">Update the name and details shown on your public profile.</p></div>
               <div className="flex flex-wrap gap-2">{user.playerUsername && <Button asChild variant="outline" size="sm"><Link to={`/players/${encodeURIComponent(user.playerUsername)}`}>View public profile</Link></Button>}<Button variant="outline" size="sm" onClick={() => void signOut()}>Sign out</Button></div>
             </div>
             <div className="mt-6">
+              {!user.playerUsername && (
+                <form onSubmit={chooseUsername} className="mb-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                  <p className="text-sm font-medium text-slate-900">Choose your public username</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">Your username is how other players find and mention you. It is shared with your staff profile and cannot be changed later.</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-slate-500">@</span>
+                    <Input value={usernameDraft} onChange={(event) => setUsernameDraft(event.target.value.replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase().slice(0, 24))} minLength={3} maxLength={24} placeholder="yourname" aria-label="Public username" className="max-w-56 bg-white" required />
+                    <Button type="submit" disabled={usernameBusy || usernameDraft.length < 3}>{usernameBusy ? "Saving…" : "Save username"}</Button>
+                  </div>
+                  {usernameMessage && <p role="status" className="mt-2 text-sm text-slate-700">{usernameMessage}</p>}
+                </form>
+              )}
               <form onSubmit={savePublicProfile} className="space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {profilePrivacy?.profileImage ? <img src={profilePrivacy.profileImage} alt="Your profile" className="size-16 border border-slate-200 object-cover" /> : <span className="flex size-16 items-center justify-center border border-slate-200 bg-slate-50 text-slate-400"><Users className="size-7" /></span>}
@@ -248,7 +278,7 @@ export default function Dashboard() {
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <AccountSecuritySettings />
           </motion.section>
-          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
+          {isPlayerAccount && <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <h2 className="font-semibold tracking-tight">Account recovery</h2>
             <p className="mt-1 text-sm text-slate-500">Optional. Adding one lets you reset your password if you forget it.</p>
             {!changingRecoveryEmail && recoveryStatus?.isVerified ? (
@@ -270,7 +300,7 @@ export default function Dashboard() {
               </form>
             )}
             {recoveryMessage && <p role="status" className="mt-3 text-sm text-slate-600">{recoveryMessage}</p>}
-          </motion.section>
+          </motion.section>}
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
             <h2 className="font-semibold tracking-tight">Publish a world</h2>
             <p className="mt-1 text-sm text-slate-500">Share a real world listing in public discovery with a description and up to five pictures.</p>

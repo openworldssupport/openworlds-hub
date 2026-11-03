@@ -141,7 +141,7 @@ export function SiteNav() {
             <span role="status" className="px-2 py-2 text-xs text-slate-500">Checking sign-in…</span>
           ) : user ? (
             <>
-              {user.role === "user" && <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>}
+              <Link to="/dashboard" className="rounded-md px-2 py-2 font-medium text-[#0066cc] hover:bg-blue-50">Player home</Link>
               <span className="rounded-md px-2 py-2 text-xs font-medium text-slate-600" aria-label={isStaffAccount ? "Signed in as company staff" : "You are signed in"}>
                 {user.role === "user"
                   ? `Signed in${user.playerName ? ` as ${user.playerName}` : ""}`

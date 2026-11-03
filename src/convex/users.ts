@@ -253,6 +253,20 @@ function isPublicCompanyStaff(user: {
     (user.role === "admin" || user.staffAccess === true || Boolean(user.department?.trim() || user.position?.trim()));
 }
 
+/**
+ * A public player identity is a chosen username, not a role. Staff and admin
+ * accounts claim one in the player hub and then use worlds, friends, and
+ * messages exactly like a regular player account.
+ */
+function hasPublicUsername(user: { playerLogin?: string; isSiteBanned?: boolean }) {
+  return !user.isSiteBanned && Boolean(user.playerLogin?.trim());
+}
+
+/** Staff profiles are public even before the account enables discovery. */
+function isProfilePublic(user: { profileDiscoverable?: boolean } & Parameters<typeof isPublicCompanyStaff>[0]) {
+  return user.profileDiscoverable === true || isPublicCompanyStaff(user);
+}
+
 export const publicPlayerProfile = query({
   args: { username: v.string() },
   handler: async (ctx, { username: rawUsername }) => {
@@ -270,12 +284,12 @@ export const publicPlayerProfile = query({
         .unique();
     if (!user || user.isSiteBanned) return null;
     const isCompanyStaff = isPublicCompanyStaff(user);
-    const isPlayer = user.role === "user";
+    const isPlayer = hasPublicUsername(user);
     if (!isCompanyStaff && !isPlayer) return null;
     const officialCreator = await ctx.db.query("officialCreators")
       .withIndex("by_linked_user", (q) => q.eq("linkedUserId", user._id))
       .first();
-    if (!user.profileDiscoverable && !officialCreator && !isCompanyStaff) return null;
+    if (!isProfilePublic(user) && !officialCreator) return null;
     const publicName = isCompanyStaff
       ? [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? null
       : isEmailAddress(user.name) ? officialCreator?.displayName ?? null : user.name?.trim() || officialCreator?.displayName || null;
@@ -290,7 +304,7 @@ export const publicPlayerProfile = query({
     return {
       username: user.playerLogin?.trim() ?? null,
       profileKey: user.playerLogin?.trim() ?? `staff-${user._id}`,
-      hasPlayerAccount: user.role === "user" && Boolean(user.playerLogin?.trim()),
+      hasPlayerAccount: hasPublicUsername(user),
       displayName: publicName,
       image: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
       about: user.publicBio?.trim() ?? "",
@@ -326,12 +340,15 @@ async function findPlayerByUsername(ctx: MutationCtx, rawUsername: string) {
   return await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
 }
 
-async function requireVerifiedPlayer(ctx: MutationCtx) {
+async function requirePlayerProfile(ctx: MutationCtx) {
   await requireSiteAvailable(ctx);
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
-  if (!user || user.role !== "user" || user.isSiteBanned) {
-    throw new Error("A signed-in player is required.");
+  if (!user || user.isSiteBanned) {
+    throw new Error("Sign in to use player features.");
+  }
+  if (!hasPublicUsername(user)) {
+    throw new Error("Choose your public username in the player hub first.");
   }
   return user;
 }
@@ -347,12 +364,12 @@ export const friendStatus = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const target = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!target || target.role !== "user" || target.isSiteBanned || !target.profileDiscoverable) return { status: "unavailable" as const };
+    if (!target || !hasPublicUsername(target) || target.profileDiscoverable !== true) return { status: "unavailable" as const };
     const viewerId = await getAuthUserId(ctx);
     if (!viewerId) return { status: "signed-out" as const };
     if (viewerId === target._id) return { status: "self" as const };
     const viewer = await ctx.db.get(viewerId);
-    if (!viewer || viewer.role !== "user" || viewer.isSiteBanned) return { status: "unavailable" as const };
+    if (!viewer || !hasPublicUsername(viewer)) return { status: "unavailable" as const };
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", viewerId)).collect(),
       ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", viewerId)).collect(),
@@ -368,9 +385,9 @@ export const friendStatus = query({
 export const sendFriendRequest = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
-    const sender = await requireVerifiedPlayer(ctx);
+    const sender = await requirePlayerProfile(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable) throw new Error("That player is not available for friend requests.");
+    if (!receiver || !hasPublicUsername(receiver) || receiver.profileDiscoverable !== true) throw new Error("That player is not available for friend requests.");
     if (sender._id === receiver._id) throw new Error("You cannot send a friend request to yourself.");
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect(),
@@ -394,7 +411,7 @@ export const sendFriendRequest = mutation({
 export const respondToFriendRequest = mutation({
   args: { requestId: v.id("friendRequests"), accept: v.boolean() },
   handler: async (ctx, { requestId, accept }) => {
-    const user = await requireVerifiedPlayer(ctx);
+    const user = await requirePlayerProfile(ctx);
     const request = await ctx.db.get(requestId);
     if (!request || request.receiverId !== user._id || request.status !== "pending") throw new Error("This friend request is no longer available.");
     await ctx.db.patch(requestId, { status: accept ? "accepted" : "declined", updatedAt: Date.now() });
@@ -405,7 +422,7 @@ export const respondToFriendRequest = mutation({
 export const removeFriend = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
-    const user = await requireVerifiedPlayer(ctx);
+    const user = await requirePlayerProfile(ctx);
     const other = await findPlayerByUsername(ctx, username);
     if (!other) return { ok: true };
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
@@ -424,7 +441,7 @@ export const myFriends = query({
     await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
-    if (!user || user.role !== "user" || user.isSiteBanned) return null;
+    if (!user || !hasPublicUsername(user)) return null;
     const [outgoing, incoming] = await Promise.all([
       ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", userId!)).collect(),
       ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", userId!)).collect(),
@@ -434,15 +451,15 @@ export const myFriends = query({
     const pending = requests.filter((r) => r.status === "pending" && r.receiverId === userId);
     const friends = await Promise.all(friendIds.map((id) => ctx.db.get(id)));
     const requestsWithUsers = await Promise.all(pending.map(async (request) => ({ requestId: request._id, user: await ctx.db.get(request.senderId) })));
-    const safeProfile = (friend: typeof friends[number]) => friend && friend.role === "user" && !friend.isSiteBanned && friend.playerLogin?.trim() ? {
-      username: friend.playerLogin.trim(),
+    const safeProfile = (friend: typeof friends[number]) => friend && hasPublicUsername(friend) ? {
+      username: friend.playerLogin!.trim(),
       displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
       image: friend.profileImageStorageId ? null : friend.image ?? null,
     } : null;
     const friendProfiles = await Promise.all(friends.map(async (friend) => {
-      if (!friend || friend.role !== "user" || friend.isSiteBanned || !friend.profileDiscoverable || !friend.playerLogin?.trim()) return null;
+      if (!friend || !hasPublicUsername(friend) || friend.profileDiscoverable !== true) return null;
       return {
-        username: friend.playerLogin.trim(),
+        username: friend.playerLogin!.trim(),
         displayName: isEmailAddress(friend.name) ? null : friend.name?.trim() || null,
         image: friend.profileImageStorageId ? await ctx.storage.getUrl(friend.profileImageStorageId) : friend.image ?? null,
       };
@@ -460,12 +477,12 @@ export const publicFriendList = query({
     await requireSiteAvailable(ctx);
     const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
     const owner = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
-    if (!owner || owner.role !== "user" || owner.isSiteBanned || !owner.profileDiscoverable || owner.profileFriendsVisible !== true) return [];
+    if (!owner || !hasPublicUsername(owner) || owner.profileDiscoverable !== true || owner.profileFriendsVisible !== true) return [];
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", owner._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", owner._id)).collect();
     const ids = [...new Set([...outgoing, ...incoming].filter((r) => r.status === "accepted").map((r) => r.senderId === owner._id ? r.receiverId : r.senderId))];
     const friends = await Promise.all(ids.map((id) => ctx.db.get(id)));
-    const visibleFriends = friends.filter((friend) => friend && friend.role === "user" && !friend.isSiteBanned && friend.profileDiscoverable && friend.playerLogin?.trim());
+    const visibleFriends = friends.filter((friend) => friend && hasPublicUsername(friend) && friend.profileDiscoverable === true);
     return await Promise.all(visibleFriends.map(async (friend) => ({
       username: friend!.playerLogin!.trim(),
       displayName: isEmailAddress(friend!.name) ? null : friend!.name?.trim() || null,
@@ -477,9 +494,9 @@ export const publicFriendList = query({
 export const sendPlayerMessage = mutation({
   args: { username: v.string(), body: v.string() },
   handler: async (ctx, { username, body }) => {
-    const sender = await requireVerifiedPlayer(ctx);
+    const sender = await requirePlayerProfile(ctx);
     const receiver = await findPlayerByUsername(ctx, username);
-    if (!receiver || receiver.role !== "user" || receiver.isSiteBanned || !receiver.profileDiscoverable || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
+    if (!receiver || !hasPublicUsername(receiver) || receiver.profileDiscoverable !== true || receiver._id === sender._id) throw new Error("This player cannot receive messages.");
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", sender._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", sender._id)).collect();
     if (!acceptedFriendship(sender._id, receiver._id, [...outgoing, ...incoming])) throw new Error("You can message this player only after they accept your friend request.");
@@ -501,7 +518,7 @@ export const playerConversation = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     const other = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", rawUsername.trim().replace(/^@/, "").toLowerCase())).unique();
-    if (!user || user.role !== "user" || user.isSiteBanned || !other || other.role !== "user" || other.isSiteBanned || other._id === user._id) return null;
+    if (!user || !hasPublicUsername(user) || !other || !hasPublicUsername(other) || other._id === user._id) return null;
     const outgoing = await ctx.db.query("friendRequests").withIndex("by_sender", (q) => q.eq("senderId", user._id)).collect();
     const incoming = await ctx.db.query("friendRequests").withIndex("by_receiver", (q) => q.eq("receiverId", user._id)).collect();
     if (!acceptedFriendship(user._id, other._id, [...outgoing, ...incoming])) return null;
@@ -536,7 +553,7 @@ export const searchPlayerProfiles = query({
     const matches = [...unique.values()]
       .filter((user) => {
         if (user.isSiteBanned) return false;
-        return isPublicCompanyStaff(user) || (user.role === "user" && user.profileDiscoverable === true && Boolean(user.playerLogin?.trim()));
+        return isPublicCompanyStaff(user) || (user.profileDiscoverable === true && hasPublicUsername(user));
       })
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;
@@ -551,7 +568,7 @@ export const searchPlayerProfiles = query({
         return {
           username,
           profileKey: username ?? `staff-${user._id}`,
-          hasPlayerAccount: user.role === "user" && Boolean(username),
+          hasPlayerAccount: hasPublicUsername(user),
           displayName,
           imageStorageId: user.profileImageStorageId,
           fallbackImage: user.image ?? null,
@@ -618,15 +635,38 @@ export const currentProfilePrivacy = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
     const user = await ctx.db.get(userId);
-    if (!user || user.role !== "user") return null;
+    if (!user || user.isSiteBanned) return null;
+    const staffName = [user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? "";
     return {
+      username: user.playerLogin ?? null,
       discoverable: user.profileDiscoverable === true,
       recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined),
-      displayName: isEmailAddress(user.name) ? "" : user.name?.trim() ?? "",
+      displayName: user.role === "user" ? (isEmailAddress(user.name) ? "" : user.name?.trim() ?? "") : staffName,
       about: user.publicBio ?? "",
       friendsVisible: user.profileFriendsVisible === true,
       profileImage: user.profileImageStorageId ? await ctx.storage.getUrl(user.profileImageStorageId) : user.image ?? null,
     };
+  },
+});
+
+/** Claim the public username used for discovery, worlds, friends, and messages. */
+export const claimPlayerUsername = mutation({
+  args: { username: v.string() },
+  handler: async (ctx, { username: rawUsername }) => {
+    await requireSiteAvailable(ctx);
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Sign in to choose a username.");
+    const user = await ctx.db.get(userId);
+    if (!user || user.isSiteBanned) throw new Error("This account cannot choose a public username.");
+    if (user.playerLogin?.trim()) throw new Error("Your account already has a public username.");
+    const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
+    if (!/^[a-z0-9][a-z0-9._-]{2,23}$/.test(username)) throw new Error("Use 3–24 letters, numbers, dots, hyphens, or underscores.");
+    const existing = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).first();
+    if (existing) throw new Error("That username is already in use.");
+    const reservedCreator = await ctx.db.query("officialCreators").withIndex("by_username", (q) => q.eq("username", username)).first();
+    if (reservedCreator) throw new Error("That username belongs to a verified creator.");
+    await ctx.db.patch(userId, { playerLogin: username, profileDiscoverable: true });
+    return { username };
   },
 });
 
@@ -637,13 +677,18 @@ export const updatePublicProfile = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to update your profile.");
     const user = await ctx.db.get(userId);
-    if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+    if (!user || user.isSiteBanned) throw new Error("Sign in to update your profile.");
 
     const displayName = args.displayName.trim();
     const about = args.about.trim();
     if (displayName.length < 2 || displayName.length > 32) throw new Error("Display name must be 2–32 characters.");
     if (about.length > 500) throw new Error("About me must be 500 characters or fewer.");
-    await ctx.db.patch(userId, { name: displayName, publicBio: about, profileFriendsVisible: args.friendsVisible });
+    const isPlayer = user.role === "user";
+    // Player accounts store the display name in `name`; staff accounts use the
+    // public nickname so their company record and staff roster stay intact.
+    await ctx.db.patch(userId, isPlayer
+      ? { name: displayName, publicBio: about, profileFriendsVisible: args.friendsVisible }
+      : { nickname: displayName, publicBio: about, profileFriendsVisible: args.friendsVisible });
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
     if (saved) await ctx.db.patch(saved._id, { displayName, updatedAt: Date.now() });
     return { ok: true };
@@ -657,7 +702,7 @@ export const setProfileDiscoverability = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Sign in to update your profile privacy.");
     const user = await ctx.db.get(userId);
-    if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+    if (!user || user.isSiteBanned) throw new Error("Sign in to update your profile privacy.");
 
     await ctx.db.patch(userId, { profileDiscoverable: discoverable });
     return { discoverable };
@@ -696,12 +741,12 @@ export const currentUser = query({
       publicBadge: user.publicBadge ?? null,
       nickname: isEmailAddress(user.nickname) ? null : user.nickname ?? null,
       canAccessCreatorSpace: hasCreatorSpaceAccess,
-      ...(user.role === "user" ? {
-        playerName: user.name ?? "Player",
-        playerUsername: user.playerLogin ?? null,
-        isOfficialCreator: user.isOfficialCreator === true,
-        recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined),
-      } : {}),
+      playerName: user.role === "user"
+        ? user.name ?? "Player"
+        : ([user.nickname, user.name].find((value) => value?.trim() && !isEmailAddress(value))?.trim() ?? "Player"),
+      playerUsername: user.playerLogin ?? null,
+      isOfficialCreator: user.isOfficialCreator === true,
+      recoveryEmailVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt !== undefined),
     };
   },
 });

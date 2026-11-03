@@ -6,11 +6,12 @@ import { requireSiteAvailable } from "./siteStatus";
 const MAX_SAVE_BYTES = 64 * 1024;
 const saveState = v.object({ version: v.number(), data: v.any() });
 
+/** Any signed-in account can use the player hub, including staff accounts. */
 async function requirePlayer(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Sign in to access player data.");
   const user = await ctx.db.get(userId);
-  if (!user || user.role !== "user" || user.isSiteBanned) throw new Error("Player account required.");
+  if (!user || user.isSiteBanned) throw new Error("Sign in to access player data.");
   return { userId, user };
 }
 
@@ -154,7 +155,7 @@ export const myGameData = query({
     const { userId, user } = await requirePlayer(ctx);
     const saved = await ctx.db.query("playerGameData").withIndex("by_user", (q) => q.eq("userId", userId)).unique();
     return {
-      displayName: user.name ?? saved?.displayName ?? "Player",
+      displayName: user.nickname?.trim() || user.name || saved?.displayName || "Player",
       save: saved?.state ?? null,
       updatedAt: saved?.updatedAt ?? null,
     };
