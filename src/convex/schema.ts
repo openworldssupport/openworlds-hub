@@ -103,6 +103,8 @@ const schema = defineSchema(
       .index("email", ["email"]) // index for the email. do not remove or modify
       .index("by_official_creator", ["isOfficialCreator"])
       .index("by_site_banned", ["isSiteBanned"])
+      .index("by_staff_access", ["staffAccess"])
+      .index("by_department", ["department"])
       .index("by_player_login", ["playerLogin"])
       .index("by_recovery_email", ["recoveryEmail"])
       .searchIndex("search_player_profiles", {
@@ -572,6 +574,39 @@ const schema = defineSchema(
       body: v.string(),
       createdAt: v.number(),
     }).index("by_created_at", ["createdAt"]),
+
+    // Department-scoped internal updates for the staff department hub.
+    departmentPosts: defineTable({
+      department: v.string(),
+      departmentKey: v.string(),
+      authorId: v.id("users"),
+      authorName: v.string(),
+      authorPosition: v.optional(v.string()),
+      authorBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
+      body: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_department_created", ["departmentKey", "createdAt"])
+      .index("by_created", ["createdAt"]),
+
+    // Upcoming and past department meetings shown in the staff department hub.
+    departmentMeetings: defineTable({
+      department: v.string(),
+      departmentKey: v.string(),
+      title: v.string(),
+      agenda: v.optional(v.string()),
+      startsAt: v.number(),
+      durationMinutes: v.number(),
+      location: v.optional(v.string()),
+      createdBy: v.id("users"),
+      createdByName: v.string(),
+      createdAt: v.number(),
+      cancelledAt: v.optional(v.number()),
+      cancelledBy: v.optional(v.id("users")),
+      cancelReason: v.optional(v.string()),
+    })
+      .index("by_department_starts", ["departmentKey", "startsAt"])
+      .index("by_starts", ["startsAt"]),
 
     // Game announcements are drafted by staff and published to the public News page.
     gameAnnouncements: defineTable({

@@ -24,6 +24,7 @@ import {
 import { displayNameFor, displayInitials } from "@/lib/staff";
 import { MAX_NICKNAME_LENGTH } from "@/convex/staff";
 import { AccountSecuritySettings } from "@/pages/AccountSecurity";
+import { DepartmentHub } from "@/pages/DepartmentHub";
 
 const MAX_MESSAGE_LENGTH = 2000;
 type AnnouncementCategory = "announcement" | "development" | "release" | "event";
@@ -50,7 +51,7 @@ function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-type StaffSection = "overview" | "announcements" | "messages" | "appeals";
+type StaffSection = "overview" | "departments" | "announcements" | "messages" | "appeals";
 
 function MoreStaffTools() {
   const moderationAccess = useQuery(api.moderation.myAccess);
@@ -152,6 +153,7 @@ function WorkspaceOverview({
       <section>
         <h2 className="staff-section-title">Staff links</h2>
         <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
+          <QuickLink to="/staff/departments" title="Department hub" />
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
           {moderationAccess?.canView && <QuickLink to="/moderation" title="Trust & Safety console" />}
@@ -950,6 +952,7 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   const moderationAccess = useQuery(api.moderation.myAccess);
   const tabs = [
     { id: "overview" as const, label: "Workspace" },
+    { id: "departments" as const, label: "Departments" },
     { id: "announcements" as const, label: "Announcements" },
     { id: "messages" as const, label: "Team board" },
     ...(moderationAccess?.canViewAppeals ? [{ id: "appeals" as const, label: "Appeals" }] : []),
@@ -961,14 +964,14 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
   return (
     <div className="staff-workspace min-h-screen bg-white pb-12">
       <header className="staff-masthead px-5 py-6 sm:px-8">
-        <div className="mx-auto max-w-4xl">
+        <div className={`mx-auto ${selectedTab === "departments" ? "max-w-7xl" : "max-w-4xl"}`}>
           <h1 className="text-2xl font-semibold">Staff workspace</h1>
           <p className="mt-1 text-sm text-slate-600">
             {me?.signedIn ? `Signed in as ${displayNameFor(me)}.` : "For OpenWorlds staff and volunteers."}
           </p>
         </div>
       </header>
-      <div className="mx-auto max-w-4xl px-5 py-6 sm:px-8">
+      <div className={`mx-auto ${selectedTab === "departments" ? "max-w-7xl" : "max-w-4xl"} px-5 py-6 sm:px-8`}>
         <nav className="mb-6 flex flex-wrap gap-5 border-b border-slate-200 pb-3 text-sm" aria-label="Staff workspace">
           {tabs.map(({ id, label }) => (
             <Link
@@ -985,6 +988,8 @@ const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId
 
       {selectedTab === "overview" ? (
         <WorkspaceOverview isAdmin={adminView} me={me} />
+      ) : selectedTab === "departments" ? (
+        <DepartmentHub />
       ) : selectedTab === "announcements" ? (
         <AnnouncementsPanel isAdmin={adminView} userId={userId ?? (me?.userId ?? "")} />
       ) : selectedTab === "appeals" ? (
@@ -1535,6 +1540,15 @@ function AppealsPanel() {
 }
 
 export function StaffOverview() {
+  return (
+    <div className="staff-portal min-h-screen">
+      <SiteNav />
+      <SafeStaffWorkspace isAdmin={false} userId={undefined} />
+    </div>
+  );
+}
+
+export function StaffDepartments() {
   return (
     <div className="staff-portal min-h-screen">
       <SiteNav />

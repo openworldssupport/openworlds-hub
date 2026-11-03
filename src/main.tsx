@@ -54,6 +54,10 @@ const StaffOverview = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffOverview })),
 );
+const StaffDepartments = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffDepartments })),
+);
 const StaffAnnouncements = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffAnnouncements })),
@@ -350,6 +354,7 @@ createRoot(document.getElementById("root")!).render(
                 }
               />
               <Route path="/staff/overview" element={<RequireAuth accessLevel="staff"><StaffOverview /></RequireAuth>} />
+              <Route path="/staff/departments" element={<RequireAuth accessLevel="staff"><StaffDepartments /></RequireAuth>} />
               <Route path="/staff/announcements" element={<RequireAuth accessLevel="staff"><StaffAnnouncements /></RequireAuth>} />
               <Route path="/staff/messages" element={<RequireAuth accessLevel="staff"><StaffMessages /></RequireAuth>} />
               <Route path="/staff/appeals" element={<RequireAuth accessLevel="staff"><StaffAppeals /></RequireAuth>} />
