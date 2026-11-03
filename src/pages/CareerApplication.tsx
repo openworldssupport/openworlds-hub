@@ -25,7 +25,6 @@ export const careerSections: ApplicationSection[] = [
     fields: [
       { name: "hoursPerWeek", label: "Hours you can volunteer each week", type: "select", required: true, options: ["1–3 hours", "4–6 hours", "7–10 hours", "11–15 hours", "16+ hours"] },
       { name: "startDate", label: "Earliest date you could start", type: "date", required: true },
-      { name: "commitment", label: "How long would you like to volunteer?", type: "select", required: true, options: ["1–3 months", "3–6 months", "6–12 months", "12+ months", "Open-ended"] },
       { name: "languages", label: "Languages you work in", required: true, maxLength: 120, placeholder: "e.g. English, Danish" },
     ],
   },
