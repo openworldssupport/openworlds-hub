@@ -58,6 +58,8 @@ export const accessStatus = query({
     const user = await ctx.db.get(userId);
     if (!user) return { signedIn: false, isAdmin: false, isBanned: false, reason: null };
     const isAdmin = user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
+    const appeals = await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", userId)).order("desc").take(10);
+    const latestAppeal = appeals[0];
     return {
       signedIn: true,
       isAdmin,
@@ -65,7 +67,12 @@ export const accessStatus = query({
       reason: !isAdmin && user.isSiteBanned ? user.siteBanReason ?? null : null,
       banType: !isAdmin && user.isSiteBanned ? user.banType ?? "permanent" : null,
       banExpiresAt: !isAdmin && user.isSiteBanned ? user.banExpiresAt ?? null : null,
-      hasPendingAppeal: (await ctx.db.query("securityAppeals").withIndex("by_user", (q) => q.eq("userId", userId)).order("desc").take(10)).some((appeal) => appeal.status === "pending"),
+      hasPendingAppeal: appeals.some((appeal) => appeal.status === "pending"),
+      lastAppeal: latestAppeal ? {
+        status: latestAppeal.status,
+        createdAt: latestAppeal.createdAt,
+        reviewedAt: latestAppeal.reviewedAt ?? null,
+      } : null,
     };
   },
 });

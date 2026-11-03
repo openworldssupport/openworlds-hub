@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router";
-import { Loader2, LogOut } from "lucide-react";
+import { AlertTriangle, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -33,6 +33,8 @@ export function SiteNav() {
   const { user, isLoading, isAuthenticated, signOut } = useAuth();
   const staffInfo = useQuery(api.staff.me, isAuthenticated ? {} : "skip");
   const inbox = useQuery(api.users.myInbox, isAuthenticated ? {} : "skip");
+  const moderationWarnings = useQuery(api.moderation.myWarnings, isAuthenticated ? {} : "skip");
+  const warningCount = moderationWarnings?.warnings.length ?? 0;
   const pendingRequests = inbox && !inbox.needsUsername ? inbox.requests.length : 0;
   const markWelcomeShown = useMutation(api.staff.markWelcomeShown);
   const isStaffAccount = Boolean(staffInfo?.isStaff);
@@ -76,6 +78,13 @@ export function SiteNav() {
     <header data-scrolled={scrolled} className="site-nav sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="ow-progress" aria-hidden="true" />
       <SiteStatusNotice />
+      {warningCount > 0 && (
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs text-amber-900">
+          <AlertTriangle className="size-3.5" aria-hidden="true" />
+          <span>{warningCount === 1 ? "Your account has a moderation warning." : `Your account has ${warningCount} moderation warnings.`}</span>
+          <Link to="/dashboard#account-warnings" className="font-semibold underline underline-offset-2">View details</Link>
+        </div>
+      )}
       <Dialog
         open={welcomeOpen && Boolean(welcomeDetails)}
         onOpenChange={(open) => {

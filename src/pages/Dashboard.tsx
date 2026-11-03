@@ -185,7 +185,7 @@ export default function Dashboard() {
         </motion.div>
 
         {moderationWarnings?.warnings.length ? (
-          <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
+          <motion.section id="account-warnings" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mt-6 scroll-mt-24 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6">
             <h2 className="flex items-center gap-2 font-semibold tracking-tight text-amber-950"><AlertTriangle className="size-4 text-amber-700" /> Account warnings</h2>
             <p className="mt-1 text-sm leading-6 text-amber-900/80">Our moderation system records warnings when reports and evidence meet the review threshold. Repeated or severe rule breaking can lead to a temporary or permanent restriction.</p>
             <ul className="mt-4 divide-y divide-amber-200/70 border-y border-amber-200/70">
