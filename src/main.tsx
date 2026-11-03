@@ -11,6 +11,7 @@ import { LegalPolicyGate } from "@/components/LegalPolicyGate";
 import { OfflinePage } from "@/components/OfflinePage";
 import { StaffSignInNotice } from "@/components/StaffSignInNotice";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
+import { DeviceSessionTracker } from "@/components/DeviceSessionTracker";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -240,6 +241,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <RouteSyncer />
           <PresenceHeartbeat />
+          <DeviceSessionTracker />
           <StaffSignInNotice />
           <OfflinePage>
             <LegalPolicyGate>

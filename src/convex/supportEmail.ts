@@ -140,6 +140,56 @@ export const sendPlayerRecoveryCode = internalAction({
   },
 });
 
+export const sendNewDeviceLogin = internalAction({
+  args: {
+    email: v.string(),
+    device: v.string(),
+    browser: v.string(),
+    platform: v.string(),
+    signedInAt: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const subject = "New device signed in to your OpenWorlds account";
+    const signedIn = new Date(args.signedInAt).toISOString();
+    const text = [
+      "A new device signed in to your OpenWorlds account.",
+      "",
+      `Device: ${args.device}`,
+      `Browser: ${args.browser}`,
+      `Platform: ${args.platform}`,
+      `Time: ${signedIn}`,
+      "",
+      "If this was you, you can ignore this email.",
+      "If this wasn't you, open Account & security in your OpenWorlds hub, choose Sign out all devices, and reset your password if you use one, or contact the contact team for help.",
+    ].join("\n");
+    const html = emailTemplate({
+      title: "New device signed in",
+      greeting: "Hello,",
+      paragraphs: [
+        "A new device signed in to your OpenWorlds account. If this was you, you can ignore this email.",
+      ],
+      details: [
+        ["Device", args.device],
+        ["Browser", args.browser],
+        ["Platform", args.platform],
+        ["Time", signedIn],
+      ],
+      signature: "OpenWorlds Security",
+      footer: "If this wasn't you, open Account & security, choose Sign out all devices, and reset your password if you use one, or contact the contact team.",
+    });
+    const result = await sendBotEmail({
+      channel: "support",
+      to: args.email,
+      replyTo: DEFAULT_SUPPORT_EMAIL,
+      subject,
+      text,
+      html,
+    });
+    if (!result.sent) console.error("[account-security] Could not send the new-device alert.");
+    return result;
+  },
+});
+
 export const sendSupportAcknowledgement = internalAction({
   args: {
     reference: v.string(),

@@ -266,6 +266,23 @@ const schema = defineSchema(
       attempts: v.number(),
     }).index("by_email", ["email"]),
 
+    // One record per signed-in auth session, with the browser/device that
+    // created it. Account & security shows these and can end them remotely.
+    accountDevices: defineTable({
+      userId: v.id("users"),
+      sessionId: v.string(),
+      deviceId: v.string(),
+      label: v.string(),
+      browser: v.string(),
+      platform: v.string(),
+      deviceType: v.union(v.literal("desktop"), v.literal("phone"), v.literal("tablet")),
+      createdAt: v.number(),
+      lastSeenAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_session", ["sessionId"])
+      .index("by_user_device", ["userId", "deviceId"]),
+
     // One short-lived elevation per signed-in session. Created by
     // staffUnlock.unlock after the member confirms a code from their own
     // authenticator app; every sensitive staff action checks it.

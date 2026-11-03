@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { DeviceSessionsSettings } from "@/components/DeviceSessionsSettings";
 
 export function AccountSecuritySettings() {
   const { user } = useAuth();
@@ -137,6 +138,7 @@ export function AccountSecuritySettings() {
           {recoveryNote && <p role="status" className="mt-3 text-sm text-slate-600">{recoveryNote}</p>}
         </div>
       )}
+      <DeviceSessionsSettings />
       {message && <p role="status" className="mt-3 text-sm text-emerald-700">{message}</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
     </section>
