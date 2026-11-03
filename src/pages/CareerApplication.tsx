@@ -8,7 +8,7 @@ import { ApplicationFields, applicationMessage, type ApplicationSection } from "
 import { api } from "@/convex/_generated/api";
 import { careerRoles } from "@/lib/careers";
 
-const careerSections: ApplicationSection[] = [
+export const careerSections: ApplicationSection[] = [
   {
     title: "About you",
     fields: [
@@ -32,9 +32,9 @@ const careerSections: ApplicationSection[] = [
   {
     title: "Experience",
     fields: [
-      { name: "experience", label: "Relevant experience", required: true, minLength: 10, maxLength: 2500, rows: 5, placeholder: "Share the experience, projects, or skills that relate to this position." },
+      { name: "experience", label: "Relevant experience", required: true, minLength: 10, maxLength: 2200, rows: 5, placeholder: "Share the experience, projects, or skills that relate to this position." },
       { name: "skills", label: "Skills, tools, and software you use", maxLength: 800, rows: 3, placeholder: "Anything you would bring to the work day to day." },
-      { name: "projects", label: "Previous projects or work you are proud of", maxLength: 1500, rows: 4, placeholder: "Short descriptions, with links if they are public." },
+      { name: "projects", label: "Previous projects or work you are proud of", maxLength: 1400, rows: 4, placeholder: "Short descriptions, with links if they are public." },
       { name: "teamExperience", label: "Have you worked in a remote or volunteer team before?", type: "select", required: true, options: ["Yes, extensively", "Yes, briefly", "No, but I would like to"] },
     ],
   },
@@ -42,8 +42,8 @@ const careerSections: ApplicationSection[] = [
     title: "Motivation",
     fields: [
       { name: "motivation", label: "Why are you interested in this role?", required: true, minLength: 10, maxLength: 2500, rows: 5, placeholder: "Tell us what interests you and what you would bring to the team." },
-      { name: "firstMonth", label: "What would you focus on in your first month?", minLength: 10, maxLength: 2000, rows: 4, placeholder: "A few concrete things you would try to get right early." },
-      { name: "challenge", label: "Describe a difficult problem you solved", maxLength: 2000, rows: 4, placeholder: "What the problem was, and how you approached it." },
+      { name: "firstMonth", label: "What would you focus on in your first month?", minLength: 10, maxLength: 1800, rows: 4, placeholder: "A few concrete things you would try to get right early." },
+      { name: "challenge", label: "Describe a difficult problem you solved", maxLength: 1600, rows: 4, placeholder: "What the problem was, and how you approached it." },
       { name: "feedback", label: "How do you handle feedback and disagreement?", maxLength: 1200, rows: 3 },
     ],
   },
@@ -51,7 +51,7 @@ const careerSections: ApplicationSection[] = [
     title: "Final details",
     fields: [
       { name: "heardFrom", label: "How did you hear about OpenWorlds?", type: "select", options: ["OpenWorlds game", "A friend or community member", "A creator or streamer", "Social media", "Search engine", "Other"] },
-      { name: "anythingElse", label: "Anything else we should know?", maxLength: 2000, rows: 4, placeholder: "Optional notes, questions, or context for your application." },
+      { name: "anythingElse", label: "Anything else we should know?", maxLength: 1800, rows: 4, placeholder: "Optional notes, questions, or context for your application." },
     ],
   },
 ];

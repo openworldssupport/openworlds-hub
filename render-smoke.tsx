@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RequireAuth } from "./src/components/RequireAuth";
@@ -23,38 +23,80 @@ const GuardedStaff = () => (
 
 const client = new ConvexReactClient("https://smoke-test.convex.cloud");
 
-const routes = [
-  ["/", "Landing", () => import("./src/pages/Landing.tsx")],
-  ["/about", "About", () => import("./src/pages/About.tsx")],
-  ["/community", "Community", () => import("./src/pages/Community.tsx")],
-  ["/worlds", "Worlds", () => import("./src/pages/Worlds.tsx")],
-  ["/roadmap", "Roadmap", () => import("./src/pages/Roadmap.tsx")],
-  ["/events", "Events", () => import("./src/pages/Events.tsx")],
-  ["/rules", "Rules", () => import("./src/pages/Rules.tsx")],
-  ["/learning", "Learning", () => import("./src/pages/Learning.tsx")],
-  ["/news", "News", () => import("./src/pages/News.tsx")],
-  ["/downloads", "Downloads", () => import("./src/pages/Downloads.tsx")],
-  ["/careers", "Careers", () => import("./src/pages/Careers.tsx")],
-  ["/careers/role/demo", "CareerRole", () => import("./src/pages/CareerRole.tsx")],
-  ["/support", "Support", () => import("./src/pages/Support.tsx")],
-  ["/support/status", "TicketStatus", () => import("./src/pages/TicketStatus.tsx")],
-  ["/privacy", "Privacy", () => import("./src/pages/Privacy.tsx")],
-  ["/terms", "Terms", () => import("./src/pages/Terms.tsx")],
-  ["/auth", "Auth", () => import("./src/pages/Auth.tsx")],
-  ["/player-signup", "PlayerSignup", () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-signup" }) }))],
-  ["/player-login", "PlayerLogin", () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-login" }) }))],
-  ["/admin", "Admin", () => import("./src/pages/Admin.tsx")],
-  ["/dashboard", "Dashboard (guarded)", async () => ({ default: GuardedDashboard })],
-  ["/dashboard (guard)", "Dashboard+RequireAuth", async () => ({ default: GuardedDashboard })],
-  ["/staff", "Staff", () => import("./src/pages/Staff.tsx").then((module) => ({ default: module.StaffWorkspace }))],
-  ["/staff (guard)", "Staff+RequireAuth", async () => ({ default: GuardedStaff })],
-  ["/platform-info", "PlatformInfo", () => import("./src/pages/PlatformInfo.tsx")],
-  ["/nope", "NotFound", () => import("./src/pages/NotFound.tsx")],
+type RouteEntry = {
+  path: string;
+  /** Router pattern used to mount the page; defaults to `path`. */
+  pattern?: string;
+  name: string;
+  load: () => Promise<{ default?: React.ComponentType }>;
+  /** Text the rendered page must contain. */
+  expect?: string[];
+};
+
+const routes: RouteEntry[] = [
+  { path: "/", name: "Landing", load: () => import("./src/pages/Landing.tsx"), expect: ["OpenWorlds"] },
+  { path: "/about", name: "About", load: () => import("./src/pages/About.tsx") },
+  { path: "/community", name: "Community", load: () => import("./src/pages/Community.tsx") },
+  { path: "/worlds", name: "Worlds", load: () => import("./src/pages/Worlds.tsx") },
+  { path: "/roadmap", name: "Roadmap", load: () => import("./src/pages/Roadmap.tsx") },
+  { path: "/events", name: "Events", load: () => import("./src/pages/Events.tsx") },
+  { path: "/rules", name: "Rules", load: () => import("./src/pages/Rules.tsx") },
+  { path: "/learning", name: "Learning", load: () => import("./src/pages/Learning.tsx") },
+  { path: "/news", name: "News", load: () => import("./src/pages/News.tsx") },
+  { path: "/downloads", name: "Downloads", load: () => import("./src/pages/Downloads.tsx") },
+  {
+    path: "/careers",
+    name: "Careers",
+    load: () => import("./src/pages/Careers.tsx"),
+    expect: ["Player Support", "Quality Assurance", "Voluntary · unpaid"],
+  },
+  {
+    path: "/careers/role/demo",
+    pattern: "/careers/role/:roleSlug",
+    name: "CareerRole (unknown)",
+    load: () => import("./src/pages/CareerRole.tsx"),
+    expect: ["Position not found"],
+  },
+  {
+    path: "/careers/role/player-support-specialist",
+    pattern: "/careers/role/:roleSlug",
+    name: "CareerRole (support)",
+    load: () => import("./src/pages/CareerRole.tsx"),
+    expect: ["Player Support Specialist", "Voluntary · unpaid"],
+  },
+  {
+    path: "/careers/apply/player-support-specialist",
+    pattern: "/careers/apply/:roleSlug",
+    name: "CareerApply",
+    load: () => import("./src/pages/CareerApplication.tsx"),
+    expect: ["Volunteer availability", "Time zone", "Voluntary, unpaid"],
+  },
+  { path: "/media", name: "Media", load: () => import("./src/pages/Media.tsx"), expect: ["Apply to be featured"] },
+  { path: "/support", name: "Support", load: () => import("./src/pages/Support.tsx") },
+  { path: "/support/status", name: "TicketStatus", load: () => import("./src/pages/TicketStatus.tsx") },
+  { path: "/privacy", name: "Privacy", load: () => import("./src/pages/Privacy.tsx") },
+  { path: "/terms", name: "Terms", load: () => import("./src/pages/Terms.tsx") },
+  { path: "/auth", name: "Auth", load: () => import("./src/pages/Auth.tsx") },
+  {
+    path: "/player-signup",
+    name: "PlayerSignup",
+    load: () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-signup" }) })),
+  },
+  {
+    path: "/player-login",
+    name: "PlayerLogin",
+    load: () => import("./src/pages/Auth.tsx").then((module) => ({ default: () => React.createElement(module.default, { mode: "player-login" }) })),
+  },
+  { path: "/admin", name: "Admin", load: () => import("./src/pages/Admin.tsx") },
+  { path: "/dashboard", name: "Dashboard (guarded)", load: async () => ({ default: GuardedDashboard }) },
+  { path: "/staff", name: "Staff (guarded)", load: async () => ({ default: GuardedStaff }) },
+  { path: "/platform-info", name: "PlatformInfo", load: () => import("./src/pages/PlatformInfo.tsx") },
+  { path: "/nope", pattern: "*", name: "NotFound", load: () => import("./src/pages/NotFound.tsx") },
 ];
 
 const failures: string[] = [];
 
-for (const [path, name, load] of routes) {
+for (const { path, pattern, name, load, expect } of routes) {
   try {
     const mod = (await load()) as { default?: React.ComponentType };
     const Page = mod.default;
@@ -63,13 +105,18 @@ for (const [path, name, load] of routes) {
       <ConvexAuthProvider client={client}>
         <ConvexProvider client={client}>
           <MemoryRouter initialEntries={[path]}>
-            <Page />
+            <Routes>
+              <Route path={pattern ?? path} element={<Page />} />
+            </Routes>
           </MemoryRouter>
         </ConvexProvider>
       </ConvexAuthProvider>,
     );
     if (html.length < 80) throw new Error(`suspiciously short output (${html.length} chars)`);
-    if (name === "Dashboard+RequireAuth" || name === "Staff+RequireAuth") {
+    for (const text of expect ?? []) {
+      if (!html.includes(text)) throw new Error(`missing expected text: ${JSON.stringify(text)}`);
+    }
+    if (name === "Dashboard (guarded)" || name === "Staff (guarded)") {
       const state = html.includes("Sign in to continue")
         ? "sign-in gate"
         : html.includes("animate-spin")
@@ -77,11 +124,11 @@ for (const [path, name, load] of routes) {
           : "unrecognised guard state";
       console.log(`      guard state -> ${state}`);
     }
-    console.log(`PASS  ${path.padEnd(22)} ${name.padEnd(18)} ${String(html.length).padStart(6)} chars`);
+    console.log(`PASS  ${path.padEnd(42)} ${name.padEnd(24)} ${String(html.length).padStart(6)} chars`);
   } catch (error) {
     const message = error instanceof Error ? `${error.message}` : String(error);
     failures.push(`${name} (${path}): ${message}`);
-    console.log(`FAIL  ${path.padEnd(22)} ${name.padEnd(18)} ${message.slice(0, 140)}`);
+    console.log(`FAIL  ${path.padEnd(42)} ${name.padEnd(24)} ${message.slice(0, 140)}`);
   }
 }
 

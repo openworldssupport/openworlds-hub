@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ApplicationFields, applicationMessage, type ApplicationSection } from "@/components/ApplicationFormFields";
 import { api } from "@/convex/_generated/api";
 
-const creatorSections: ApplicationSection[] = [
+export const creatorSections: ApplicationSection[] = [
   {
     title: "About you",
     fields: [
