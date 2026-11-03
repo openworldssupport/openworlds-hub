@@ -26,8 +26,8 @@ export function CareerEnquiryDialog({ label, mode, variant = "default" }: Props)
             <DialogTitle>{isCreator ? "Apply to become an Official Content Creator" : "Ask the Careers team"}</DialogTitle>
             <DialogDescription>
               {isCreator
-                ? "Apply to join the OpenWorlds Creator Program. Your application goes directly to the Careers team and is kept private. Applying does not grant a verified badge; admins add approved creators to the official roster after review."
-                : "Send a question to careers@openworlds.dk. Your message goes directly to the Careers team and is not posted publicly. The site keeps only a hashed email and submission time for rate limiting."}
+                ? "Apply to join the OpenWorlds Creator Program. Your application is emailed to the Careers team and is not stored in the website database. Applying does not grant a verified badge; admins add approved creators to the official roster after review."
+                : "Send a question to careers@openworlds.dk. Your message is emailed directly and is not stored as a submission in the website database. The site keeps a hashed email and submission time for rate limiting."}
             </DialogDescription>
           </DialogHeader>
           {isCreator ? <CreatorApplicationForm /> : <QuestionForm />}

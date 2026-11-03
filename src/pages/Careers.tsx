@@ -55,7 +55,7 @@ export default function Careers() {
       </section>
       <section className="border-b border-slate-200 bg-slate-50 px-5 py-4 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
-          <p className="text-sm leading-6 text-slate-600">All listed contributor roles are remote, voluntary, and unpaid. Applications and questions go directly to careers@openworlds.dk and are kept private with the Careers team.</p>
+          <p className="text-sm leading-6 text-slate-600">All listed contributor roles are remote, voluntary, and unpaid. Applications and questions are emailed directly to contact@openworlds.dk and aren’t stored in the website.</p>
           <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </div>
       </section>
