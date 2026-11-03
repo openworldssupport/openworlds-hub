@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import {
   Building2,
   CalendarDays,
+  Crown,
   Clock,
   ExternalLink,
   Loader2,
@@ -34,6 +35,15 @@ type DepartmentMember = {
   isAdmin: boolean;
   isViewer: boolean;
   isLead: boolean;
+  isHead: boolean;
+};
+
+type DepartmentHead = {
+  userId: Id<"users">;
+  name: string;
+  position: string | null;
+  badge: "staff" | "dev";
+  isViewer: boolean;
 };
 
 type DepartmentPost = {
@@ -73,6 +83,7 @@ type Department = {
   key: string;
   name: string;
   members: DepartmentMember[];
+  head: DepartmentHead | null;
   posts: DepartmentPost[];
   meetings: DepartmentMeeting[];
   viewerCanSchedule: boolean;
@@ -196,7 +207,8 @@ function Roster({ members }: { members: DepartmentMember[] }) {
                 {member.name}
                 {member.isViewer && <span className="rounded-full bg-[#eef4ef] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#14583c]">You</span>}
                 {member.isAdmin && <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Admin</span>}
-                {member.isLead && <span className="rounded-full bg-[#fbf2dc] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#795600]">Lead</span>}
+                {member.isHead && <span className="rounded-full bg-[#fbf2dc] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#795600]">Head</span>}
+                {!member.isHead && member.isLead && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Lead</span>}
               </p>
               <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                 {member.position || "No position listed"}
@@ -876,13 +888,25 @@ function DepartmentSection({ department, viewer }: { department: Department; vie
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {department.members.slice(0, 4).map((member) => (
-            <span key={member.userId} title={member.name} className="flex size-7 items-center justify-center rounded-full border-2 border-[#f8faf8] bg-[#e8f0ea] text-[9px] font-semibold text-[#14583c]">
-              {displayInitials({ name: member.name })}
-            </span>
-          ))}
-          {department.members.length > 4 && <span className="flex size-7 items-center justify-center rounded-full border-2 border-[#f8faf8] bg-[#eef4ef] text-[9px] font-semibold text-[#14583c]">+{department.members.length - 4}</span>}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className={`flex max-w-[16rem] items-center gap-2 rounded-lg border px-2.5 py-1.5 ${department.head ? "border-[#e7d39f] bg-[#fbf2dc]" : "border-dashed border-[#cfdad3] bg-white"}`}>
+            <Crown className={`size-4 shrink-0 ${department.head ? "text-[#795600]" : "text-slate-400"}`} />
+            <div className="min-w-0">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">Head of Department</p>
+              <p className={`truncate text-xs font-medium ${department.head ? "text-[#6b4e0b]" : "text-slate-500"}`}>
+                {department.head ? department.head.name : "Vacant"}
+                {department.head?.isViewer && <span className="ml-1.5 rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#795600]">You</span>}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {department.members.slice(0, 4).map((member) => (
+              <span key={member.userId} title={member.name} className="flex size-7 items-center justify-center rounded-full border-2 border-[#f8faf8] bg-[#e8f0ea] text-[9px] font-semibold text-[#14583c]">
+                {displayInitials({ name: member.name })}
+              </span>
+            ))}
+            {department.members.length > 4 && <span className="flex size-7 items-center justify-center rounded-full border-2 border-[#f8faf8] bg-[#eef4ef] text-[9px] font-semibold text-[#14583c]">+{department.members.length - 4}</span>}
+          </div>
         </div>
       </header>
       <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.25fr)_minmax(0,1fr)] xl:gap-0 xl:divide-x xl:divide-slate-100">
@@ -929,8 +953,8 @@ export function DepartmentHub() {
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Department hub</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#cfe0d5]">
               {data.viewer.canViewAllDepartments
-                ? "Every department’s rosters, news, and upcoming meetings, plus shared general comms and all-staff sessions."
-                : "Your department’s roster, news, and meetings, plus shared general comms and all-staff sessions for the whole company."}
+                ? "Every department’s head, rosters, news, and upcoming meetings, plus shared general comms and all-staff sessions."
+                : "Your department’s head, roster, news, and meetings, plus shared general comms and all-staff sessions for the whole company."}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">

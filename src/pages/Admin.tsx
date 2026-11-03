@@ -60,6 +60,7 @@ type TeamRowProps = {
 };
 
 const POSITIONS = [
+  "Head of Department",
   "Chief Executive Officer",
   "Chief Technology Officer",
   "Chief Design Officer",
@@ -154,7 +155,7 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Viewing and changing assignments both need the authenticator unlock above.</p>
+      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. Viewing and changing assignments both need the authenticator unlock above.</p>
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>

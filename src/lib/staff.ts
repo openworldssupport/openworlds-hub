@@ -12,6 +12,14 @@ const DEPARTMENT_ALIASES: Record<string, string> = {
   leadership: "Executive Leadership",
 };
 
+/** The position title that designates a department's head. */
+export const DEPARTMENT_HEAD_TITLE = "Head of Department";
+
+/** True when a position is the designated head of a department. */
+export function isDepartmentHeadPosition(position?: string | null): boolean {
+  return /^(head of department|department head)\b/i.test(position?.trim() ?? "");
+}
+
 /** Normalize a department name without changing its public spelling. */
 export function canonicalDepartmentName(value?: string | null): string {
   const department = (value ?? "").trim().replace(/\s+/g, " ");
@@ -36,7 +44,10 @@ export const DEPARTMENTS: string[] = [
  * Positions suggested in the admin panel: every role the careers page lists,
  * kept in careers-page order. Any other position can still be typed by hand.
  */
-export const POSITIONS: string[] = [...new Set(careerRoles.map((role) => role.title))];
+export const POSITIONS: string[] = [
+  DEPARTMENT_HEAD_TITLE,
+  ...new Set(careerRoles.map((role) => role.title)),
+];
 
 /**
  * Departments/positions that read as engineering rather than general staff.

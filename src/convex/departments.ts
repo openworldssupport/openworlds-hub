@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { canonicalDepartmentName, deriveBadge, displayNameFor } from "../lib/staff";
+import { DEPARTMENTS, canonicalDepartmentName, deriveBadge, displayNameFor, isDepartmentHeadPosition } from "../lib/staff";
 import { SUPPORT_EMAIL } from "./admin";
 
 const MAX_POST_LENGTH = 2_000;
@@ -226,8 +226,18 @@ export const hub = query({
         isAdmin: boolean;
         isViewer: boolean;
         isLead: boolean;
+        isHead: boolean;
       }>;
     }>();
+
+    // Start with every department in the company so each one always has a hub,
+    // even when no one is currently assigned to it yet.
+    for (const departmentName of DEPARTMENTS) {
+      const name = canonicalDepartmentName(departmentName);
+      const key = departmentKey(name);
+      if (!key || groups.has(key)) continue;
+      groups.set(key, { key, name, members: [] });
+    }
 
     for (const user of rows) {
       if (!isStaffAccount(user)) continue;
@@ -244,37 +254,65 @@ export const hub = query({
         isAdmin: isCompanyAdmin(user),
         isViewer: user._id === viewer._id,
         isLead: false,
+        isHead: false,
       });
       groups.set(key, group);
     }
 
-    // Keep the signed-in member visible even if the roster scan was capped.
-    if (viewerDepartment && !groups.has(viewerKey)) {
-      groups.set(viewerKey, {
-        key: viewerKey,
-        name: viewerDepartment,
-        members: [{
-          userId: viewer._id,
-          name: displayNameFor(viewer),
-          position: viewer.position?.trim() || null,
-          badge: viewer.publicBadge ?? deriveBadge(viewerDepartment, viewer.position),
-          isAdmin: viewerIsAdmin,
-          isViewer: true,
-          isLead: false,
-        }],
-      });
+    // Keep the signed-in member visible even if the department was seeded
+    // without members or the roster scan was capped.
+    if (viewerDepartment) {
+      const viewerMember = {
+        userId: viewer._id,
+        name: displayNameFor(viewer),
+        position: viewer.position?.trim() || null,
+        badge: viewer.publicBadge ?? deriveBadge(viewerDepartment, viewer.position),
+        isAdmin: viewerIsAdmin,
+        isViewer: true,
+        isLead: false,
+        isHead: false,
+      };
+      const viewerGroup = groups.get(viewerKey);
+      if (!viewerGroup) {
+        groups.set(viewerKey, { key: viewerKey, name: viewerDepartment, members: [viewerMember] });
+      } else if (!viewerGroup.members.some((member) => member.userId === viewer._id)) {
+        viewerGroup.members.push(viewerMember);
+      }
     }
 
     const departments = [...groups.values()]
       .map((group) => {
-        const highestRank = Math.max(...group.members.map((member) => positionRank(member.position)));
+        const head = group.members
+          .filter((member) => isDepartmentHeadPosition(member.position))
+          .sort((a, b) => a.name.localeCompare(b.name))[0];
+        const highestRank = group.members.length
+          ? Math.max(...group.members.map((member) => positionRank(member.position)))
+          : 0;
         const leadNames = group.members.filter((member) => positionRank(member.position) >= highestRank).map((member) => member.userId);
         return {
           ...group,
           members: group.members
-            .map((member) => ({ ...member, isLead: leadNames.includes(member.userId) }))
-            .sort((a, b) => Number(b.isAdmin) - Number(a.isAdmin) || Number(b.isLead) - Number(a.isLead) || a.name.localeCompare(b.name)),
-          viewerCanSchedule: canScheduleMeetingsFor(viewer, group.key, rows.filter((user) => isStaffAccount(user) && departmentKey(canonicalDepartmentName(user.department)) === group.key)),
+            .map((member) => ({
+              ...member,
+              isLead: leadNames.includes(member.userId),
+              isHead: member.userId === head?.userId,
+            }))
+            .sort((a, b) =>
+              Number(b.isHead) - Number(a.isHead) ||
+              Number(b.isAdmin) - Number(a.isAdmin) ||
+              Number(b.isLead) - Number(a.isLead) ||
+              a.name.localeCompare(b.name),
+            ),
+          head: head
+            ? {
+                userId: head.userId,
+                name: head.name,
+                position: head.position,
+                badge: head.badge,
+                isViewer: head.isViewer,
+              }
+            : null,
+          viewerCanSchedule: canScheduleMeetingsFor(viewer, group.key, membersForDepartment(rows, group.key)),
         };
       })
       .filter((department) =>
