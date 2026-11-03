@@ -118,6 +118,11 @@ export const myPublishedWorlds = query({
   },
 });
 
+/**
+ * Game-client publishing endpoint. Worlds are published from inside the game;
+ * the website deliberately has no publish flow and only lists what the game
+ * creates.
+ */
 export const publishWorld = mutation({
   args: { title: v.string(), description: v.string(), imageStorageIds: v.optional(v.array(v.id("_storage"))) },
   handler: async (ctx, { title, description, imageStorageIds = [] }) => {

@@ -75,7 +75,7 @@ export default function Worlds() {
             ) : worlds === undefined ? (
               <p className="py-6 text-sm text-slate-500">Searching published worlds…</p>
             ) : worlds.length === 0 ? (
-              <p className="py-6 text-sm text-slate-500">No published worlds found. Worlds will appear once the game’s publishing feed is connected.</p>
+              <p className="py-6 text-sm text-slate-500">No published worlds found. Worlds are published from inside the game and will appear here once the game’s feed is connected.</p>
             ) : (
               <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                 {worlds.map((world) => (

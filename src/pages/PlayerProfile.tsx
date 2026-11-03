@@ -169,7 +169,7 @@ export default function PlayerProfile() {
                   {profile.publishedWorlds.length === 0 ? (
                     <p className="mt-2 text-sm leading-6 text-slate-500">
                       {profile.isSelf
-                        ? "You haven’t published a world yet. Publish one from your player hub and it will show up here."
+                        ? "No worlds yet. Worlds are created and published from inside OpenWorlds, and appear here after you publish them in the game."
                         : "No worlds published yet."}
                     </p>
                   ) : (

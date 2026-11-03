@@ -19,7 +19,6 @@ export default function Dashboard() {
   const setProfileDiscoverability = useMutation(api.users.setProfileDiscoverability);
   const generatePlayerUploadUrl = useMutation(api.gameData.playerMediaUploadUrl);
   const finalizePlayerImage = useMutation(api.gameData.finalizePlayerImage);
-  const publishWorld = useMutation(api.gameData.publishWorld);
   const myPublishedWorlds = useQuery(api.gameData.myPublishedWorlds, user ? {} : "skip");
   const friendsData = useQuery(api.users.myFriends, user ? {} : "skip");
   const respondFriendRequest = useMutation(api.users.respondToFriendRequest);
@@ -38,11 +37,6 @@ export default function Dashboard() {
   const [friendsVisible, setFriendsVisible] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
-  const [worldTitle, setWorldTitle] = useState("");
-  const [worldDescription, setWorldDescription] = useState("");
-  const [worldImages, setWorldImages] = useState<Array<{ storageId: Id<"_storage">; url: string }>>([]);
-  const [worldMessage, setWorldMessage] = useState("");
-  const [worldBusy, setWorldBusy] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
@@ -101,53 +95,6 @@ export default function Dashboard() {
       setProfileMessage(error instanceof Error ? error.message : "Could not upload your profile photo.");
     } finally {
       setProfileBusy(false);
-    }
-  }
-
-  async function uploadWorldImages(files: FileList | null) {
-    if (!files?.length) return;
-    const selected = Array.from(files);
-    if (worldImages.length + selected.length > 5) {
-      setWorldMessage("Choose up to 5 pictures for each world.");
-      return;
-    }
-    setWorldBusy(true);
-    setWorldMessage("");
-    try {
-      const uploaded: Array<{ storageId: Id<"_storage">; url: string }> = [];
-      for (const file of selected) {
-        if (file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) throw new Error("Choose JPG, PNG, WebP, or GIF images up to 5 MB each.");
-        const uploadUrl = await generatePlayerUploadUrl({});
-        const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
-        if (!response.ok) throw new Error("A world image upload failed.");
-        const { storageId } = await response.json() as { storageId: Id<"_storage"> };
-        const asset = await finalizePlayerImage({ storageId, kind: "world" });
-        if (!asset.url) throw new Error("Could not confirm the uploaded image.");
-        uploaded.push({ storageId, url: asset.url });
-      }
-      setWorldImages((current) => [...current, ...uploaded]);
-      setWorldMessage(`${uploaded.length} image${uploaded.length === 1 ? "" : "s"} ready to publish.`);
-    } catch (error) {
-      setWorldMessage(error instanceof Error ? error.message : "Could not upload world images.");
-    } finally {
-      setWorldBusy(false);
-    }
-  }
-
-  async function publishPlayerWorld(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setWorldBusy(true);
-    setWorldMessage("");
-    try {
-      await publishWorld({ title: worldTitle, description: worldDescription, imageStorageIds: worldImages.map((image) => image.storageId) });
-      setWorldTitle("");
-      setWorldDescription("");
-      setWorldImages([]);
-      setWorldMessage("Your world is now published in discovery.");
-    } catch (error) {
-      setWorldMessage(error instanceof Error ? error.message : "Could not publish your world.");
-    } finally {
-      setWorldBusy(false);
     }
   }
 
@@ -302,15 +249,9 @@ export default function Dashboard() {
             {recoveryMessage && <p role="status" className="mt-3 text-sm text-slate-600">{recoveryMessage}</p>}
           </motion.section>}
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8 lg:col-span-2">
-            <h2 className="font-semibold tracking-tight">Publish a world</h2>
-            <p className="mt-1 text-sm text-slate-500">Share a real world listing in public discovery with a description and up to five pictures.</p>
-            <form onSubmit={publishPlayerWorld} className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="world-title">World name</Label><Input id="world-title" minLength={2} maxLength={60} value={worldTitle} onChange={(event) => setWorldTitle(event.target.value)} required /></div>
-              <div className="space-y-2"><Label htmlFor="world-description">Description</Label><textarea id="world-description" maxLength={1000} rows={3} value={worldDescription} onChange={(event) => setWorldDescription(event.target.value)} className="w-full resize-y border border-slate-200 px-3 py-2 text-sm" /></div>
-              <div className="space-y-2 sm:col-span-2"><Label htmlFor="world-pictures">World pictures (up to 5)</Label><Input id="world-pictures" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple disabled={worldBusy || worldImages.length >= 5} onChange={(event) => { void uploadWorldImages(event.target.files); event.currentTarget.value = ""; }} />{worldImages.length > 0 && <div className="flex flex-wrap gap-2">{worldImages.map((image) => <img key={image.storageId} src={image.url} alt="World preview" className="size-20 border border-slate-200 object-cover" />)}</div>}</div>
-              <div className="flex flex-wrap items-center gap-3 sm:col-span-2"><Button type="submit" disabled={worldBusy || worldTitle.trim().length < 2}>{worldBusy ? "Working…" : "Publish world"}</Button>{worldMessage && <p role="status" className="text-sm text-slate-600">{worldMessage}</p>}</div>
-            </form>
-            {myPublishedWorlds?.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{myPublishedWorlds.map((world) => <li key={world.id} className="flex gap-3 border border-slate-200 p-3 text-sm">{world.image && <img src={world.image} alt="" className="size-14 object-cover" />}<div><Link to={`/worlds/${world.id}`} className="font-medium text-[#176b45] hover:underline">{world.title}</Link><p className="mt-1 line-clamp-2 text-slate-500">{world.description}</p></div></li>)}</ul> : null}
+            <h2 className="font-semibold tracking-tight">Your worlds</h2>
+            <p className="mt-1 text-sm text-slate-500">Worlds are created and published from inside OpenWorlds. The website only lists them, so there is nothing to publish here.</p>
+            {myPublishedWorlds?.length ? <ul className="mt-5 grid gap-3 sm:grid-cols-2">{myPublishedWorlds.map((world) => <li key={world.id} className="flex gap-3 border border-slate-200 p-3 text-sm">{world.image && <img src={world.image} alt="" className="size-14 object-cover" />}<div><Link to={`/worlds/${world.id}`} className="font-medium text-[#176b45] hover:underline">{world.title}</Link><p className="mt-1 line-clamp-2 text-slate-500">{world.description}</p></div></li>)}</ul> : <p className="mt-4 text-sm text-slate-500">No worlds yet. Publish one in the game and it will appear here and in discovery.</p>}
           </motion.section>
           <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="rounded-2xl border border-slate-200 border-t-2 border-t-[#7651c9] bg-white p-6 sm:p-8">
             <div><h2 className="font-semibold tracking-tight">Downloads</h2><p className="text-xs text-slate-500">Official builds only</p></div>
