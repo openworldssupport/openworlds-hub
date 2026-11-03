@@ -7,6 +7,8 @@ import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
+/** Where the site's public assets and links live, independent of the sender. */
+const SITE_URL = (process.env.SITE_URL ?? "https://openworlds.dk").replace(/\/+$/, "");
 const CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <contact@openworlds.dk>";
@@ -325,7 +327,6 @@ const SITE_THEME = {
   hero: "#14583c", // .ow-page-hero background
   heroInk: "#ffffff", // text on the green banner
   heroMuted: "#cddcd3", // secondary text on the green banner
-  logoPlate: "#0875d1", // brand plate behind the globe
   font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
   mono: "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace",
 } as const;
@@ -336,18 +337,15 @@ function emailRule(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(SITE_THEME.red, "34%")}${cell(SITE_THEME.green, "49%")}${cell(SITE_THEME.gold, "17%")}</tr></table>`;
 }
 
-/** The brand mark: blue plate, white globe. Drawn with borders so it renders
- *  without a hosted image (Gmail blocks SVG and hides images by default). */
+/** The real logo, served from the site (a PNG, because mail clients block SVG).
+ *  If images are switched off, the alt text still identifies the sender. */
 function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="32" height="32" align="center" valign="middle" style="width:32px;height:32px;background:${SITE_THEME.logoPlate};border-radius:8px">
-      <div style="width:16px;height:16px;margin:0 auto;border:2px solid ${SITE_THEME.heroInk};border-radius:50%;line-height:0;font-size:0">
-        <div style="width:12px;height:2px;margin:5px auto 0;background:${SITE_THEME.heroInk};line-height:0;font-size:0">&nbsp;</div>
-      </div>
+    <td valign="middle" style="padding:0">
+      <img src="${SITE_URL}/logo-email.png" width="40" height="40" alt="OpenWorlds" style="display:block;width:40px;height:40px;border:0;outline:none;text-decoration:none" />
     </td>
     <td valign="middle" style="padding-left:12px">
       <div style="font:700 17px/1.2 ${SITE_THEME.font};color:${SITE_THEME.heroInk};letter-spacing:-0.2px">OpenWorlds</div>
-      <div style="padding-top:3px;font:400 11px/1.4 ${SITE_THEME.font};color:${SITE_THEME.heroMuted};letter-spacing:0.4px">openworlds.dk</div>
     </td>
   </tr></table>`;
 }
