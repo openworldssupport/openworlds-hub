@@ -61,6 +61,10 @@ const StaffMessages = lazy(
   () =>
     import("./pages/Staff.tsx").then((module) => ({ default: module.StaffMessages })),
 );
+const StaffAppeals = lazy(
+  () =>
+    import("./pages/Staff.tsx").then((module) => ({ default: module.StaffAppeals })),
+);
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -335,6 +339,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/overview" element={<RequireAuth accessLevel="staff"><StaffOverview /></RequireAuth>} />
               <Route path="/staff/announcements" element={<RequireAuth accessLevel="staff"><StaffAnnouncements /></RequireAuth>} />
               <Route path="/staff/messages" element={<RequireAuth accessLevel="staff"><StaffMessages /></RequireAuth>} />
+              <Route path="/staff/appeals" element={<RequireAuth accessLevel="staff"><StaffAppeals /></RequireAuth>} />
               <Route path="*" element={<NotFound />} />                </Routes>
               </Suspense>
             </LegalPolicyGate>

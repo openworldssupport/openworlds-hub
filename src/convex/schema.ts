@@ -152,12 +152,17 @@ const schema = defineSchema(
       targetId: v.id("users"),
       targetLabel: v.string(),
       targetUsername: v.optional(v.string()),
+      // Public profile key, including account-<id> for accounts without a username.
+      targetProfileKey: v.optional(v.string()),
       category: v.union(
         v.literal("harassment"),
         v.literal("hate-speech"),
         v.literal("scam"),
         v.literal("cheating"),
         v.literal("inappropriate-content"),
+        v.literal("display-name"),
+        v.literal("profile-picture"),
+        v.literal("terms-violation"),
         v.literal("other"),
       ),
       message: v.string(),
@@ -282,7 +287,9 @@ const schema = defineSchema(
       reason: v.string(),
       reportId: v.optional(v.id("playerReports")),
       createdAt: v.number(),
-    }).index("by_created", ["createdAt"]),
+    })
+      .index("by_created", ["createdAt"])
+      .index("by_target_created", ["targetId", "createdAt"]),
 
     // Legacy: news posting now uses the session unlock in staffUnlocks.
     newsPostingCodes: defineTable({

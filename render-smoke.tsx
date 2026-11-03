@@ -5,7 +5,7 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { RequireAuth } from "./src/components/RequireAuth";
 import DashboardPage from "./src/pages/Dashboard.tsx";
-import { StaffWorkspace } from "./src/pages/Staff.tsx";
+import { StaffAppeals, StaffWorkspace } from "./src/pages/Staff.tsx";
 import InboxPage from "./src/pages/Inbox.tsx";
 
 /** Mirrors the real /dashboard route: page behind the RequireAuth guard. */
@@ -26,6 +26,12 @@ const GuardedInbox = () => (
 const GuardedStaff = () => (
   <RequireAuth title="Staff sign in" description="The OpenWorlds company portal is for admins and company staff.">
     <StaffWorkspace isAdmin={false} userId={undefined as any} />
+  </RequireAuth>
+);
+
+const GuardedStaffAppeals = () => (
+  <RequireAuth title="Staff sign in" description="Moderation appeals are for authorized company staff.">
+    <StaffAppeals />
   </RequireAuth>
 );
 
@@ -114,6 +120,7 @@ const routes: RouteEntry[] = [
   { path: "/dashboard", name: "Dashboard (guarded)", load: async () => ({ default: GuardedDashboard }) },
   { path: "/inbox", name: "Inbox (guarded)", load: async () => ({ default: GuardedInbox }) },
   { path: "/staff", name: "Staff (guarded)", load: async () => ({ default: GuardedStaff }) },
+  { path: "/staff/appeals", name: "Staff appeals (guarded)", load: async () => ({ default: GuardedStaffAppeals }) },
   { path: "/platform-info", name: "PlatformInfo", load: () => import("./src/pages/PlatformInfo.tsx") },
   { path: "/nope", pattern: "*", name: "NotFound", load: () => import("./src/pages/NotFound.tsx") },
 ];

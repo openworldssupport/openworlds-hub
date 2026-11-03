@@ -3,9 +3,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { requireSiteAvailable } from "./siteStatus";
-import { requireStaffUnlock } from "./staffUnlock";
 import { accountLabel, applyBan, findSignupBlock, isBanActive, liftBan, recordAudit } from "./bans";
 import { severityForCategory } from "../lib/moderationPolicy";
+import { moderationAccess, requireModerationActor } from "./moderationAccess";
 import type { Doc } from "./_generated/dataModel";
 
 const reportCategory = v.union(
@@ -14,6 +14,9 @@ const reportCategory = v.union(
   v.literal("scam"),
   v.literal("cheating"),
   v.literal("inappropriate-content"),
+  v.literal("display-name"),
+  v.literal("profile-picture"),
+  v.literal("terms-violation"),
   v.literal("other"),
 );
 
@@ -43,27 +46,22 @@ function isCompanyAdminAccount(user: { role?: string; email?: string }) {
   return user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk";
 }
 
-/** The contact team: verified company staff or administrators. */
-async function requireModerationStaff(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const userId = await getAuthUserId(ctx);
-  const user = userId ? await ctx.db.get(userId) : null;
-  const verifiedStaff = Boolean(user && user.emailVerificationTime !== undefined && !isBanActive(user) &&
-    (isCompanyAdminAccount(user) || user.staffAccess || user.department?.trim() || user.position?.trim()));
-  if (!user || !verifiedStaff) throw new Error("Verified staff or administrator access is required.");
-  return user;
-}
-
 async function requireModerationAction(ctx: MutationCtx): Promise<Doc<"users">> {
   await requireSiteAvailable(ctx);
-  const actor = await requireModerationStaff(ctx);
-  await requireStaffUnlock(ctx);
-  return actor;
+  return await requireModerationActor(ctx);
 }
 
 async function findUserByUsername(ctx: QueryCtx | MutationCtx, rawUsername: string) {
   const username = rawUsername.trim().replace(/^@/, "").toLowerCase();
-  if (!username || username.length > 64) return null;
-  return await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
+  if (!username || username.length > 80) return null;
+  const byLogin = await ctx.db.query("users").withIndex("by_player_login", (q) => q.eq("playerLogin", username)).unique();
+  if (byLogin) return byLogin;
+  // Username-less profiles use an opaque account-<id> key. This lets people
+  // report a display name or profile photo even when the account has no public
+  // username.
+  if (!username.startsWith("account-")) return null;
+  const accountId = ctx.db.normalizeId("users", username.slice("account-".length));
+  return accountId ? await ctx.db.get(accountId) : null;
 }
 
 /** Player-submitted report about another account. */
@@ -105,6 +103,7 @@ export const submitPlayerReport = mutation({
       targetId: target._id,
       targetLabel: accountLabel(target),
       targetUsername: target.playerLogin ?? undefined,
+      targetProfileKey: target.playerLogin ?? `account-${target._id}`,
       category,
       message: cleanMessage,
       ...(evidenceLinks.length ? { evidenceLinks } : {}),
@@ -137,7 +136,7 @@ export const reportState = query({
       .take(50);
     return {
       signedIn: true,
-      canReport: !isBanActive(target) && Boolean(target.playerLogin?.trim()),
+      canReport: !isBanActive(target),
       reported: reports.some((report) => report.status === "open" && report.targetId === target._id),
     };
   },
@@ -148,7 +147,15 @@ export const queue = query({
   args: {},
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
-    const viewer = await requireModerationStaff(ctx);
+    const viewerId = await getAuthUserId(ctx);
+    const viewer = viewerId ? await ctx.db.get(viewerId) : null;
+    const access = moderationAccess(viewer);
+    if (!access.canView) {
+      return {
+        isAdmin: false, canView: false, canAct: false, canReviewAppeals: false, canPermanentBan: false,
+        reports: [], bans: [], appeals: [], media: [], assessments: [], audit: [],
+      };
+    }
     const [reports, bannedAccounts, appeals, audit, media, assessments] = await Promise.all([
       ctx.db.query("playerReports").withIndex("by_status_created", (q) => q.eq("status", "open")).order("desc").take(50),
       ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(200),
@@ -158,7 +165,11 @@ export const queue = query({
       ctx.db.query("moderationAssessments").withIndex("by_created").order("desc").take(20),
     ]);
     return {
-      isAdmin: isCompanyAdminAccount(viewer),
+      isAdmin: access.isAdmin,
+      canView: access.canView,
+      canAct: access.canAct,
+      canReviewAppeals: access.canReviewAppeals,
+      canPermanentBan: access.canPermanentBan,
       reports: reports.map((report) => ({
         _id: report._id,
         category: report.category,
@@ -167,6 +178,7 @@ export const queue = query({
         reporterLabel: report.reporterLabel,
         targetLabel: report.targetLabel,
         targetUsername: report.targetUsername ?? null,
+        targetProfileKey: report.targetProfileKey ?? (report.targetUsername ?? null),
         targetId: report.targetId,
         evidenceLinks: report.evidenceLinks ?? [],
       })),
@@ -206,6 +218,7 @@ export const queue = query({
           message: appeal.message,
           createdAt: appeal.createdAt,
           banType: user?.banType ?? "permanent",
+          targetIsStaff: Boolean(user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim())),
         };
       })),
       media: await Promise.all(media.map(async (item) => ({
@@ -224,6 +237,77 @@ export const queue = query({
         targetLabel: entry.targetLabel,
         reason: entry.reason,
         createdAt: entry.createdAt,
+      })),
+    };
+  },
+});
+
+/** Dedicated appeals queue with the original ban evidence attached. */
+export const appealsQueue = query({
+  args: {},
+  handler: async (ctx) => {
+    const viewerId = await getAuthUserId(ctx);
+    const viewer = viewerId ? await ctx.db.get(viewerId) : null;
+    const access = moderationAccess(viewer);
+    if (!access.canView) {
+      return { canView: false, canAct: false, canReviewAppeals: false, canPermanentBan: false, appeals: [] };
+    }
+    const appeals = await ctx.db
+      .query("securityAppeals")
+      .withIndex("by_status_created", (q) => q.eq("status", "pending"))
+      .order("desc")
+      .take(30);
+
+    return {
+      canView: true,
+      canAct: access.canAct,
+      canReviewAppeals: access.canReviewAppeals,
+      canPermanentBan: access.canPermanentBan,
+      appeals: await Promise.all(appeals.map(async (appeal) => {
+        const user = await ctx.db.get(appeal.userId);
+        const reports = await ctx.db
+          .query("playerReports")
+          .withIndex("by_target", (q) => q.eq("targetId", appeal.userId))
+          .order("desc")
+          .take(10);
+        const assessments = await ctx.db
+          .query("moderationAssessments")
+          .withIndex("by_target_created", (q) => q.eq("targetId", appeal.userId))
+          .order("desc")
+          .take(5);
+        return {
+          _id: appeal._id,
+          message: appeal.message,
+          createdAt: appeal.createdAt,
+          email: appeal.email,
+          userId: appeal.userId,
+          name: user ? accountLabel(user) : "Account unavailable",
+          username: user?.playerLogin ?? null,
+          profileKey: user ? (user.playerLogin ?? `account-${user._id}`) : null,
+          targetIsStaff: Boolean(user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim())),
+          banType: user?.banType ?? "permanent",
+          banReason: user?.siteBanReason ?? "No reason recorded",
+          banExpiresAt: user?.banExpiresAt ?? null,
+          bannedAt: user?.siteBannedAt ?? null,
+          reports: reports.map((report) => ({
+            _id: report._id,
+            category: report.category,
+            message: report.message,
+            evidenceLinks: report.evidenceLinks ?? [],
+            resolution: report.resolution ?? null,
+            createdAt: report.createdAt,
+          })),
+          assessments: assessments.map((assessment) => ({
+            _id: assessment._id,
+            category: assessment.category,
+            severity: assessment.severity,
+            evidenceScore: assessment.evidenceScore,
+            status: assessment.status,
+            actionTaken: assessment.actionTaken,
+            reasons: assessment.reasons,
+            createdAt: assessment.createdAt,
+          })),
+        };
       })),
     };
   },

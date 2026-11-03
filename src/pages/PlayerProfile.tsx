@@ -38,13 +38,14 @@ export default function PlayerProfile() {
   const [busy, setBusy] = useState(false);
   const [messageBody, setMessageBody] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
-  const [reportCategory, setReportCategory] = useState<"harassment" | "hate-speech" | "scam" | "cheating" | "inappropriate-content" | "other">("harassment");
+  const [reportCategory, setReportCategory] = useState<"harassment" | "hate-speech" | "scam" | "cheating" | "inappropriate-content" | "display-name" | "profile-picture" | "terms-violation" | "other">("harassment");
   const [reportText, setReportText] = useState("");
   const [reportEvidence, setReportEvidence] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
   const [reportMessage, setReportMessage] = useState("");
   const profile = useQuery(api.users.publicPlayerProfile, { username });
-  const reportState = useQuery(api.moderation.reportState, profile?.username ? { username: profile.username } : "skip");
+  const profileKey = profile?.profileKey ?? username;
+  const reportState = useQuery(api.moderation.reportState, profile ? { username: profileKey } : "skip");
   const presence = useQuery(api.presence.publicPresence, profile?.username ? { username: profile.username } : "skip");
   const submitReport = useMutation(api.moderation.submitPlayerReport);
   const friendStatus = useQuery(api.users.friendStatus, { username });
@@ -100,7 +101,7 @@ export default function PlayerProfile() {
     setReportMessage("");
     try {
       const evidenceLinks = reportEvidence.split(/\n+/).map((value) => value.trim()).filter(Boolean);
-      await submitReport({ username, category: reportCategory, message: reportText, evidenceLinks });
+      await submitReport({ username: profileKey, category: reportCategory, message: reportText, evidenceLinks });
       setReportText("");
       setReportEvidence("");
       setReportOpen(false);
@@ -327,13 +328,13 @@ export default function PlayerProfile() {
                     {profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-medium text-[#176b45] hover:underline">{profile.socialPlatform || "Social profile"}<ExternalLink className="size-4" /></a>}
                     {profile.isCompanyStaff && <Link to="/careers" className="block font-medium text-[#176b45] hover:underline">Open roles at OpenWorlds</Link>}
                     <Link to="/support" className="block text-slate-600 hover:text-[#176b45] hover:underline">Contact support</Link>
-                    {profile.username && !profile.isSelf && reportState?.canReport && !reportState.reported && (
+                    {!profile.isSelf && reportState?.canReport && !reportState.reported && (
                       <button type="button" onClick={() => setReportOpen(true)} className="inline-flex items-center gap-2 text-slate-500 hover:text-[#b42318] hover:underline">
-                        <Flag className="size-4" /> Report this player
+                        <Flag className="size-4" /> Report this account
                       </button>
                     )}
                     {reportState?.reported && <p className="text-xs text-slate-500">Report under review by the contact team.</p>}
-                    {profile.username && !profile.isSelf && reportState && !reportState.signedIn && <p className="text-xs text-slate-500"><Link to="/player-login" className="font-medium text-[#176b45] hover:underline">Sign in</Link> to report this player.</p>}
+                    {!profile.isSelf && reportState && !reportState.signedIn && <p className="text-xs text-slate-500"><Link to="/player-login" className="font-medium text-[#176b45] hover:underline">Sign in</Link> to report this account.</p>}
                   </div>
                   {reportMessage && <p role="status" className="mt-3 text-sm text-slate-600">{reportMessage}</p>}
                 </section>
@@ -346,8 +347,8 @@ export default function PlayerProfile() {
       <Dialog open={reportOpen} onOpenChange={(open) => { setReportOpen(open); if (!open) setReportMessage(""); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Report @{profile?.username}</DialogTitle>
-            <DialogDescription>Reports go to the OpenWorlds contact team. Only staff and admins reviewing reports can see this.</DialogDescription>
+            <DialogTitle>Report {profile?.username ? `@${profile.username}` : profile?.displayName ?? "this account"}</DialogTitle>
+            <DialogDescription>Report a display name, profile picture, Terms violation, or other behaviour. Reports go to the OpenWorlds contact team and are only visible to authorized moderators.</DialogDescription>
           </DialogHeader>
           <form onSubmit={sendReport} className="space-y-3">
             <div className="space-y-2">
@@ -358,6 +359,9 @@ export default function PlayerProfile() {
                 <option value="scam">Scam or fraud</option>
                 <option value="cheating">Cheating or exploits</option>
                 <option value="inappropriate-content">Inappropriate content</option>
+                <option value="display-name">Display name or username</option>
+                <option value="profile-picture">Profile picture</option>
+                <option value="terms-violation">Terms or policy violation</option>
                 <option value="other">Something else</option>
               </select>
             </div>

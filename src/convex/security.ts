@@ -1,20 +1,13 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalQuery, mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
-import { requireStaffUnlock, staffUnlockState } from "./staffUnlock";
+import { staffUnlockState } from "./staffUnlock";
+import { requireAppealReviewer, requireModerationViewer } from "./moderationAccess";
 import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
 import type { Doc, Id } from "./_generated/dataModel";
-
-async function requireSecurityStaff(ctx: QueryCtx | MutationCtx, verifyAdminPermission = true) {
-  const userId = await getAuthUserId(ctx);
-  const user = userId ? await ctx.db.get(userId) : null;
-  const isVerifiedStaff = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned && (user.staffAccess || user.department?.trim() || user.position?.trim()));
-  if (!user || (!isVerifiedStaff && !(await isAdmin(ctx)))) throw new Error("Not authorized.");
-  if (verifyAdminPermission && await isAdmin(ctx)) await requirePermissionVerification(ctx);
-}
 
 export async function recordSecurityViolation(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -102,7 +95,7 @@ export const submitAppeal = mutation({
 export const listBansAndAppeals = query({
   args: {},
   handler: async (ctx) => {
-    await requireSecurityStaff(ctx, false);
+    await requireModerationViewer(ctx);
     const users = await ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(500);
     const appeals = await ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(100);
     return {
@@ -124,7 +117,8 @@ export const listBansAndAppeals = query({
 export const setBan = mutation({
   args: { userId: v.id("users"), banned: v.boolean(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireSecurityStaff(ctx);
+    await requireAdmin(ctx);
+    await requirePermissionVerification(ctx);
     const actorId = await getAuthUserId(ctx);
     const actor = actorId ? await ctx.db.get(actorId) : null;
     if (!actor) throw new Error("Not authorized.");
@@ -170,8 +164,7 @@ async function recordAppealAudit(
 export const reviewAppeal = mutation({
   args: { appealId: v.id("securityAppeals"), decision: v.union(v.literal("approved"), v.literal("declined")) },
   handler: async (ctx, args) => {
-    await requireSecurityStaff(ctx);
-    await requireStaffUnlock(ctx);
+    await requireAppealReviewer(ctx);
     const appeal = await ctx.db.get(args.appealId);
     if (!appeal || appeal.status !== "pending") throw new Error("This appeal is no longer awaiting review.");
     const user = await ctx.db.get(appeal.userId);
@@ -183,7 +176,17 @@ export const reviewAppeal = mutation({
     }
     const reviewerId = await getAuthUserId(ctx);
     const reviewer = reviewerId ? await ctx.db.get(reviewerId) : null;
+    if (!reviewerId || !user) throw new Error("This appeal could not be reviewed.");
     const reviewerLabel = accountLabel(reviewer);
+    // A decision should not be reviewed by the person who issued it.
+    const recentBanEntries = await ctx.db
+      .query("moderationLog")
+      .withIndex("by_target_created", (q) => q.eq("targetId", user._id))
+      .order("desc")
+      .take(30);
+    if (recentBanEntries.some((entry) => entry.actorId === reviewerId && (entry.action === "ban-temporary" || entry.action === "ban-permanent"))) {
+      throw new Error("A different moderator must review an appeal for a ban they issued.");
+    }
     await ctx.db.patch(appeal._id, { status: args.decision, reviewedAt: Date.now(), reviewedBy: reviewerId ?? undefined });
     if (user && reviewer) {
       await recordAppealAudit(ctx, args.decision, user, reviewer._id, reviewerLabel);

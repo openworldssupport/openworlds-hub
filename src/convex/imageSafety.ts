@@ -1,9 +1,8 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { action, internalMutation, internalQuery, mutation, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { requireSiteAvailable } from "./siteStatus";
-import { requireStaffUnlock } from "./staffUnlock";
+import { requireModerationActor } from "./moderationAccess";
 import { accountLabel, recordAudit } from "./bans";
 import type { Id } from "./_generated/dataModel";
 
@@ -204,18 +203,6 @@ export const finalizeProfileImage = action({
     return { url: await ctx.storage.getUrl(storageId) };
   },
 });
-
-async function requireModerationActor(ctx: QueryCtx | MutationCtx) {
-  await requireSiteAvailable(ctx);
-  const userId = await getAuthUserId(ctx);
-  const user = userId ? await ctx.db.get(userId) : null;
-  const admin = Boolean(user && (user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk"));
-  const staff = Boolean(user && user.emailVerificationTime !== undefined && !user.isSiteBanned &&
-    (admin || user.staffAccess || user.department?.trim() || user.position?.trim()));
-  if (!user || !staff) throw new Error("Verified staff or administrator access is required.");
-  await requireStaffUnlock(ctx);
-  return user;
-}
 
 /**
  * Contact team decision on a flagged image. "allow" restores the quarantined

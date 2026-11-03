@@ -11,6 +11,9 @@ export const REPORT_CATEGORY_SEVERITY: Record<string, ModerationSeverity> = {
   scam: "high",
   cheating: "high",
   "inappropriate-content": "high",
+  "profile-picture": "high",
+  "display-name": "medium",
+  "terms-violation": "medium",
   other: "low",
 };
 
