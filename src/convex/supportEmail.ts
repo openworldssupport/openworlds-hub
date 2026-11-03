@@ -17,7 +17,17 @@ export const sendCompanySignInCode = internalAction({
   handler: async (_ctx, { email, code }) => {
     const subject = "Your OpenWorlds staff sign-in code";
     const text = `Your OpenWorlds staff sign-in code is ${code}. It expires in 15 minutes. Do not share it. If you did not request this code, you can ignore this email.`;
-    const html = `<p>Your OpenWorlds staff sign-in code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 15 minutes. Do not share it. If you did not request this code, you can ignore this email.</p>`;
+    const html = emailShell({
+      title: "Your sign-in code",
+      preheader: `Your OpenWorlds staff sign-in code is ${code}. It expires in 15 minutes.`,
+      footerAddress: DEFAULT_SUPPORT_EMAIL,
+      footer: "This is an automated message. If you did not request a code, you can ignore it.",
+      body: [
+        emailParagraphs(["Enter this code to finish signing in to the OpenWorlds staff portal. It expires in 15 minutes."]),
+        emailCode(code),
+        emailParagraphs(["Do not share this code. If you did not request it, you can ignore this email — nobody can sign in without it."]),
+      ].join(""),
+    });
     const result = await sendBotEmail({
       channel: "support",
       to: email,
@@ -36,7 +46,17 @@ export const sendPlayerRecoveryCode = internalAction({
   handler: async (_ctx, { email, code }) => {
     const subject = "OpenWorlds account recovery code";
     const text = `Your OpenWorlds account recovery code is ${code}. It expires in 10 minutes. Do not share it. If you did not request this, you can ignore this message.`;
-    const html = `<p>Your OpenWorlds account recovery code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires in 10 minutes. Do not share it. If you did not request this, you can ignore this message.</p>`;
+    const html = emailShell({
+      title: "Your account recovery code",
+      preheader: `Your OpenWorlds recovery code is ${code}. It expires in 10 minutes.`,
+      footerAddress: DEFAULT_SUPPORT_EMAIL,
+      footer: "This is an automated message. If you did not request a code, you can ignore it.",
+      body: [
+        emailParagraphs(["Enter this code to reset the password on your OpenWorlds account. It expires in 10 minutes."]),
+        emailCode(code),
+        emailParagraphs(["If you did not ask to reset your password, you can ignore this message. Your password has not changed."]),
+      ].join(""),
+    });
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
     if (vlyKey) {
       const response = await fetch(VLY_EMAIL_ENDPOINT, {
@@ -159,6 +179,7 @@ export const sendCareerEnquiry = internalAction({
       ],
       message: args.message,
       signature: "OpenWorlds Careers Bot",
+      footerAddress: CAREERS_EMAIL,
     });
     const forwarded = await sendBotEmail({
       channel: "careers",
@@ -206,6 +227,7 @@ export const sendCareerEnquiry = internalAction({
       ],
       details: args.roleTitle ? [["Position", args.roleTitle] as [string, string]] : [],
       signature: "OpenWorlds Careers Bot",
+      footerAddress: CAREERS_EMAIL,
     });
     const confirmation = await sendBotEmail({
       channel: "careers",
@@ -239,7 +261,10 @@ export const sendAdminNotificationTest = action({
       replyTo: channel === "support" ? DEFAULT_SUPPORT_EMAIL : CAREERS_EMAIL,
       subject: `OpenWorlds ${department} notification test`,
       text: `This is a test notification for the ${department} alert channel. The saved recipient address is receiving email successfully. Real submissions will generate a short ready-for-review alert.`,
-      html: readyForReviewHtml(`This is a test notification for the ${department} alert channel. The saved recipient address is receiving email successfully. Real submissions will generate a short ready-for-review alert.`),
+      html: readyForReviewHtml(
+        `This is a test notification for the ${department} alert channel. The saved recipient address is receiving email successfully. Real submissions will generate a short ready-for-review alert.`,
+        channel === "careers" ? CAREERS_EMAIL : DEFAULT_SUPPORT_EMAIL,
+      ),
     });
     if (!result.sent) throw new Error("The email provider could not deliver the test alert. Check the configured email provider and try again.");
     return { sent: true };
@@ -268,7 +293,7 @@ export const sendAdminReadyForReviewAlert = internalAction({
           replyTo: from === "support" ? DEFAULT_SUPPORT_EMAIL : CAREERS_EMAIL,
           subject,
           text: body,
-          html: readyForReviewHtml(body),
+          html: readyForReviewHtml(body, from === "support" ? DEFAULT_SUPPORT_EMAIL : CAREERS_EMAIL),
         });
         if (!result.sent) {
           console.error(`[adminNotifications] Delivery failed (${channel}): ${result.reason ?? "provider unavailable"}.`);
@@ -280,13 +305,132 @@ export const sendAdminReadyForReviewAlert = internalAction({
   },
 });
 
-function readyForReviewHtml(body: string): string {
-  const escaped = body
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-  return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:620px;margin:28px auto;background:#ffffff;border:1px solid #e2e8f0"><div style="padding:22px 28px;background:#073b70;color:#ffffff;font-size:18px;font-weight:700">OpenWorlds</div><div style="padding:28px"><p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">New submission — ready for review</p><div style="margin:18px 0;padding:16px;border-left:3px solid #0066cc;background:#f8fafc;white-space:pre-wrap;line-height:1.6;color:#334155">${escaped}</div><p style="margin:24px 0 0;line-height:1.6;color:#334155">Regards,<br><strong>OpenWorlds notification service</strong></p></div></div></body></html>`;
+/* Email palette mirrors the site: paper white, deep green, and the
+ * red/green/gold rule that marks OpenWorlds pages. */
+const EMAIL_INK = "#101c16";
+const EMAIL_BODY = "#3d4a43";
+const EMAIL_MUTED = "#69776f";
+const EMAIL_RULE = "#e6eae6";
+const EMAIL_TINT = "#f6f7f5";
+const EMAIL_GREEN = "#176b45";
+const EMAIL_RED = "#a52234";
+const EMAIL_GOLD = "#d6a63b";
+const EMAIL_BLUE = "#0875d1";
+const EMAIL_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const EMAIL_MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace";
+
+function emailRule(): string {
+  const cell = (background: string, width: string) =>
+    `<td height="3" width="${width}" style="height:3px;line-height:3px;font-size:0;background:${background}">&nbsp;</td>`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(EMAIL_RED, "34%")}${cell(EMAIL_GREEN, "49%")}${cell(EMAIL_GOLD, "17%")}</tr></table>`;
+}
+
+/** The globe plate, drawn with borders so it renders without a hosted image. */
+function emailLogo(): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:${EMAIL_BLUE};border-radius:9px">
+      <div style="width:22px;height:22px;margin:0 auto;border:2px solid #ffffff;border-radius:50%;line-height:0;font-size:0">
+        <div style="width:18px;height:2px;margin:8px auto 0;background:#ffffff;line-height:0;font-size:0">&nbsp;</div>
+      </div>
+    </td>
+    <td valign="middle" style="padding-left:12px">
+      <div style="font:700 17px/1.2 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">OpenWorlds</div>
+      <div style="padding-top:3px;font:400 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED};letter-spacing:0.4px">openworlds.dk</div>
+    </td>
+  </tr></table>`;
+}
+
+function emailShell({
+  title,
+  preheader,
+  body,
+  footerAddress,
+  footer,
+}: {
+  title: string;
+  preheader?: string;
+  body: string;
+  footerAddress: string;
+  footer?: string;
+}): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="color-scheme" content="light only" />
+<meta name="supported-color-schemes" content="light" />
+<title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#ffffff">
+${preheader ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:#ffffff">${escapeHtml(preheader)}</div>` : ""}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;background:#ffffff">
+  <tr>
+    <td align="center" style="padding:0 12px">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;border-collapse:collapse">
+        <tr><td style="padding:0">${emailRule()}</td></tr>
+        <tr><td style="padding:28px 24px 22px">${emailLogo()}</td></tr>
+        <tr>
+          <td style="border-top:1px solid ${EMAIL_RULE};padding:26px 24px 24px">
+            <h1 style="margin:0 0 16px;font:600 20px/1.35 ${EMAIL_FONT};color:${EMAIL_INK};letter-spacing:-0.2px">${escapeHtml(title)}</h1>
+            ${body}
+          </td>
+        </tr>
+        <tr>
+          <td style="border-top:1px solid ${EMAIL_RULE};padding:16px 24px 28px">
+            <p style="margin:0;font:400 12px/1.6 ${EMAIL_FONT};color:${EMAIL_MUTED}">OpenWorlds · ${escapeHtml(footerAddress)}</p>
+            ${footer ? `<p style="margin:6px 0 0;font:400 12px/1.6 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(footer)}</p>` : ""}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+function emailParagraphs(paragraphs: string[]): string {
+  return paragraphs
+    .map(
+      (paragraph) =>
+        `<p style="margin:0 0 14px;font:400 15px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY}">${escapeHtml(paragraph)}</p>`,
+    )
+    .join("");
+}
+
+function emailDetails(rows: ReadonlyArray<readonly [string, string]>): string {
+  if (!rows.length) return "";
+  const body = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td width="130" style="width:130px;padding:9px 12px 9px 0;border-bottom:1px solid ${EMAIL_RULE};font:400 13px/1.5 ${EMAIL_FONT};color:${EMAIL_MUTED};vertical-align:top">${escapeHtml(label)}</td><td style="padding:9px 0;border-bottom:1px solid ${EMAIL_RULE};font:400 13px/1.5 ${EMAIL_FONT};color:${EMAIL_INK};vertical-align:top">${escapeHtml(value)}</td></tr>`,
+    )
+    .join("");
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;margin:4px 0 20px">${body}</table>`;
+}
+
+function emailQuote(text: string, label?: string): string {
+  return `<div style="margin:18px 0 0;padding:14px 16px;border-left:3px solid ${EMAIL_GREEN};background:${EMAIL_TINT}">${label ? `<div style="padding-bottom:6px;font:600 11px/1.4 ${EMAIL_FONT};color:${EMAIL_MUTED}">${escapeHtml(label)}</div>` : ""}<div style="font:400 14px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY};white-space:pre-wrap;word-break:break-word">${escapeHtml(text)}</div></div>`;
+}
+
+function emailCode(code: string): string {
+  return `<div style="margin:18px 0 20px;padding:16px;border:1px solid ${EMAIL_RULE};background:${EMAIL_TINT};text-align:center"><span style="font:600 26px/1.3 ${EMAIL_MONO};letter-spacing:6px;color:${EMAIL_GREEN}">${escapeHtml(code)}</span></div>`;
+}
+
+function emailSignature(name: string): string {
+  return `<p style="margin:22px 0 0;font:400 15px/1.65 ${EMAIL_FONT};color:${EMAIL_BODY}">Regards,<br><strong style="color:${EMAIL_INK}">${escapeHtml(name)}</strong></p>`;
+}
+
+function readyForReviewHtml(body: string, footerAddress = DEFAULT_SUPPORT_EMAIL): string {
+  const firstLine = body.split("\n").find((line) => line.trim().length > 0) ?? "New submission";
+  return emailShell({
+    title: "New submission ready for review",
+    preheader: firstLine.slice(0, 120),
+    footerAddress,
+    footer: "Sent by the OpenWorlds notification service.",
+    body: [emailParagraphs(["A new submission arrived and is ready for review."]), emailQuote(body)].join(""),
+  });
 }
 
 export const sendSupportNotification = internalAction({
@@ -324,18 +468,24 @@ export const sendSupportNotification = internalAction({
       "Reply to this email to respond to the contacting user.",
     ].join("\n");
 
-    const html = [
-      "<h2>New OpenWorlds support ticket</h2>",
-      "<p><strong>Reference:</strong> " + escapeHtml(args.reference || "(none)") + "</p>",
-      "<p><strong>Reason:</strong> " + escapeHtml(args.reasonLabel) + "</p>",
-      "<p><strong>Name:</strong> " + escapeHtml(args.name || "(not provided)") + "</p>",
-      "<p><strong>Email:</strong> " + escapeHtml(args.email) + "</p>",
-      "<p><strong>OpenWorlds username:</strong> " + escapeHtml(args.username || "(not provided)") + "</p>",
-      "<p><strong>Subject:</strong> " + escapeHtml(args.subject || "(not provided)") + "</p>",
-      "<p><strong>Submitted:</strong> " + escapeHtml(submittedTime) + "</p>",
-      "<hr />",
-      "<p>" + escapeHtml(args.message).replace(/\n/g, "<br />") + "</p>",
-    ].join("\n");
+    const html = emailShell({
+      title: "New support request",
+      preheader: `${args.reasonLabel} — ${args.email}`,
+      footerAddress: to,
+      footer: "Reply to this email to answer the person who wrote in.",
+      body: [
+        emailDetails([
+          ["Reference", args.reference || "(none)"],
+          ["Topic", args.reasonLabel],
+          ["Name", args.name || "(not provided)"],
+          ["Email", args.email],
+          ["Username", args.username || "(not provided)"],
+          ["Subject", args.subject || "(not provided)"],
+          ["Received", submittedTime],
+        ]),
+        emailQuote(args.message, "Message"),
+      ].join(""),
+    });
 
     const vlyKey = process.env.VLY_INTEGRATION_KEY;
     const resendKey = process.env.RESEND_API_KEY;
@@ -574,6 +724,7 @@ function emailTemplate({
   message,
   signature,
   footer,
+  footerAddress = DEFAULT_SUPPORT_EMAIL,
 }: {
   title: string;
   greeting: string;
@@ -582,13 +733,21 @@ function emailTemplate({
   message?: string;
   signature: string;
   footer?: string;
+  footerAddress?: string;
 }) {
-  const detailsHtml = details?.length
-    ? `<table role="presentation" style="width:100%;border-collapse:collapse;margin:20px 0">${details.map(([label, value]) => `<tr><td style="padding:9px 12px;border-bottom:1px solid #e2e8f0;color:#475569;font-size:14px;width:130px">${escapeHtml(label)}</td><td style="padding:9px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:14px">${escapeHtml(value)}</td></tr>`).join("")}</table>`
-    : "";
-  const paragraphsHtml = paragraphs.map((paragraph) => `<p style="margin:0 0 14px;line-height:1.65;color:#334155">${escapeHtml(paragraph)}</p>`).join("");
-  const messageHtml = message ? `<div style="margin:18px 0;padding:16px;border-left:3px solid #0066cc;background:#f8fafc;white-space:pre-wrap;line-height:1.6;color:#334155">${escapeHtml(message)}</div>` : "";
-  return `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:620px;margin:28px auto;background:#ffffff;border:1px solid #e2e8f0"><div style="padding:22px 28px;background:#073b70;color:#ffffff;font-size:18px;font-weight:700">OpenWorlds</div><div style="padding:28px"><p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">${escapeHtml(title)}</p><p style="margin:0 0 18px;font-size:16px;font-weight:600">${escapeHtml(greeting)}</p>${paragraphsHtml}${detailsHtml}${messageHtml}<p style="margin:24px 0 0;line-height:1.6;color:#334155">Regards,<br><strong>${escapeHtml(signature)}</strong></p>${footer ? `<p style="margin:20px 0 0;border-top:1px solid #e2e8f0;padding-top:14px;color:#64748b;font-size:12px;line-height:1.5">${escapeHtml(footer)}</p>` : ""}</div></div></body></html>`;
+  return emailShell({
+    title,
+    preheader: paragraphs[0] ?? greeting,
+    footerAddress,
+    footer,
+    body: [
+      `<p style="margin:0 0 14px;font:600 15px/1.7 ${EMAIL_FONT};color:${EMAIL_INK}">${escapeHtml(greeting)}</p>`,
+      emailParagraphs(paragraphs),
+      details?.length ? emailDetails(details) : "",
+      message ? emailQuote(message) : "",
+      emailSignature(signature),
+    ].join(""),
+  });
 }
 
 function escapeHtml(value: string): string {
