@@ -283,8 +283,8 @@ export const searchPlayerAccountsForCompany = query({
 /**
  * Upgrade an existing player account in place. The user id never changes, so
  * profile fields, friendships, messages, and saved game data stay attached.
- * Staff sign-in is activated by the invitation's email code, not by creating
- * a second account.
+ * Access is activated immediately on that same account: an already signed-in
+ * player does not need to sign out or verify a second time.
  */
 export const convertPlayerToCompany = mutation({
   args: {
@@ -332,10 +332,14 @@ export const convertPlayerToCompany = mutation({
     if (existingInvitation) await ctx.db.replace(existingInvitation._id, invitationValues);
     else await ctx.db.insert("companyAccess", invitationValues);
 
-    const sameAccountEmail = target.email?.trim().toLowerCase() === email;
     await ctx.db.patch(target._id, {
       email,
-      ...(!sameAccountEmail ? { emailVerificationTime: undefined } : {}),
+      emailVerificationTime: target.emailVerificationTime ?? Date.now(),
+      role: accessLevel === "admin" ? "admin" : "member",
+      department,
+      position,
+      publicBadge: args.publicBadge,
+      staffAccess: true,
       ...(target.pendingRecoveryEmail?.trim().toLowerCase() === email ? { pendingRecoveryEmail: undefined } : {}),
     });
 
@@ -345,9 +349,9 @@ export const convertPlayerToCompany = mutation({
       action: "permissions-updated",
       targetId: target._id,
       targetLabel: accountLabel(target),
-      reason: `Player account converted to company access · ${department} / ${position}; email verification pending.`,
+      reason: `Player account converted to company access · ${department} / ${position}; staff access activated in place.`,
     });
 
-    return { ok: true, email, pendingEmailVerification: true };
+    return { ok: true, email, pendingEmailVerification: false };
   },
 });

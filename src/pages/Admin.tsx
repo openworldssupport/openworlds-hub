@@ -208,7 +208,7 @@ function PendingStaffPanel({ canChange }: { canChange: boolean }) {
   return (
     <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-5">
       <h2 className="font-semibold">New staff waiting to sign in</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-600">These people have been added but are not active in the directory yet. They appear in the staff directory after signing in with the email code sent to their company email.</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">These invited emails are not active yet. They appear in the staff directory after their first email-code sign-in. Converted player accounts activate immediately and appear below without another sign-in.</p>
       <ul className="mt-3 space-y-2">
         {pending.map((account: CompanyAccessAccount) => (
           <li key={account._id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm">
@@ -275,7 +275,7 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
         position,
         publicBadge: badge,
       });
-      setMessage(`${selected.username ? `@${selected.username}` : selected.displayName ?? "The player account"} keeps the same account and data. They can now use the email-code sign-in option with ${email} to activate staff access.`);
+      setMessage(`${selected.username ? `@${selected.username}` : selected.displayName ?? "The player account"} keeps the same account and data. Staff access is active now, so if they are already signed in they do not need to sign in again. If they are signed out, they sign in with an email code sent to ${email}.`);
       setSelected(null);
       setSearch("");
       setEmail("");
@@ -292,7 +292,7 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
     <section className="rounded-lg border border-slate-200 bg-white p-5">
       <h2 className="font-semibold">Convert a player account</h2>
       <p className="mt-1 text-sm leading-6 text-slate-600">
-        Search by OpenWorlds username, display name, or account email. The same account stays in place, including its profile, friends, messages, and game data. Staff access activates after the person signs in with the emailed code.
+        Search by OpenWorlds username, display name, or account email. The same account stays in place, including its profile, friends, messages, and game data. Staff access activates immediately, so an already signed-in player keeps their session and does not need to sign in again.
       </p>
       <div className="mt-4 max-w-md space-y-1">
         <Label htmlFor="convert-player-search">Find a player account</Label>
