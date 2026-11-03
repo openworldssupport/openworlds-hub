@@ -4,6 +4,7 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { consumeSecondFactor } from "./secondFactor";
 
 const MAX_DEVICE_ID_LENGTH = 128;
 const MAX_USER_AGENT_LENGTH = 512;
@@ -68,6 +69,31 @@ async function deleteSessionAndTokens(ctx: MutationCtx, sessionId: Id<"authSessi
     .collect();
   for (const unlock of unlocks) await ctx.db.delete(unlock._id);
   await ctx.db.delete(sessionId);
+}
+
+/**
+ * Ending another device is a high-impact action: it must be performed by an
+ * account with an authenticator enabled, and the action itself must include a
+ * fresh authenticator or recovery code. This prevents a stolen session from
+ * being used to kick the real owner off every other device.
+ */
+async function requireSessionRevocationVerification(ctx: MutationCtx, rawCode: string): Promise<Doc<"users">> {
+  const userId = await getAuthUserId(ctx);
+  const sessionId = await getAuthSessionId(ctx);
+  const user = userId ? await ctx.db.get(userId) : null;
+  const session = sessionId ? await ctx.db.get(sessionId) : null;
+  if (!userId || !sessionId || !user || !session || session.userId !== userId || session.expirationTime <= Date.now()) {
+    throw new Error("Sign in again to manage devices.");
+  }
+  if (user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage devices.");
+  if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+    throw new Error("Turn on two-step verification with an authenticator app before signing out devices.");
+  }
+  const code = rawCode.trim();
+  if (!code) throw new Error("Enter a current authenticator or recovery code.");
+  const result = await consumeSecondFactor(ctx, user, code);
+  if (!result.ok) throw new Error(result.message);
+  return user;
 }
 
 /**
@@ -206,20 +232,24 @@ export const devices = query({
           return b.lastSeenAt - a.lastSeenAt;
         }),
       emailAlerts: Boolean(verifiedAlertEmail(user)),
+      twoFactorEnabled: user.twoFactorEnabled === true,
     };
   },
 });
 
-/** End one other signed-in device. */
+/** End one other signed-in device. A fresh authenticator code is required. */
 export const revoke = mutation({
-  args: { sessionId: v.string() },
-  handler: async (ctx, { sessionId: rawSessionId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Sign in to manage devices.");
+  args: { sessionId: v.string(), code: v.string() },
+  handler: async (ctx, { sessionId: rawSessionId, code }) => {
+    const user = await requireSessionRevocationVerification(ctx, code);
     const sessionId = ctx.db.normalizeId("authSessions", rawSessionId);
     const session = sessionId ? await ctx.db.get(sessionId) : null;
-    if (!session || session.userId !== userId) {
+    if (!session || session.userId !== user._id) {
       throw new Error("That device is not signed in to your account.");
+    }
+    const currentSessionId = await getAuthSessionId(ctx);
+    if (session._id === currentSessionId) {
+      throw new Error("Use Sign out all devices to end this session.");
     }
     await deleteSessionAndTokens(ctx, session._id);
     const records = await ctx.db
@@ -233,18 +263,17 @@ export const revoke = mutation({
 
 /** End every session on the account, including the one making this request. */
 export const signOutAll = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Sign in to manage devices.");
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const user = await requireSessionRevocationVerification(ctx, code);
     const sessions = await ctx.db
       .query("authSessions")
-      .withIndex("userId", (q) => q.eq("userId", userId))
+      .withIndex("userId", (q) => q.eq("userId", user._id))
       .collect();
     for (const session of sessions) await deleteSessionAndTokens(ctx, session._id);
     const records = await ctx.db
       .query("accountDevices")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
     for (const record of records) await ctx.db.delete(record._id);
     return { ok: true, ended: sessions.length };

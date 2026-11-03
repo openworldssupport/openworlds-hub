@@ -3,6 +3,8 @@ import { useMutation, useQuery } from "convex/react";
 import { Laptop, LogOut, Smartphone, Tablet } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 
 function formatTime(value: number) {
@@ -24,20 +26,28 @@ export function DeviceSessionsSettings() {
   const revoke = useMutation(api.accountDevices.revoke);
   const signOutAll = useMutation(api.accountDevices.signOutAll);
   const [busy, setBusy] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   if (!user) return null;
   const devices = data?.devices ?? [];
   const activeNow = Date.now() - 5 * 60 * 1000;
+  const authenticatorReady = data?.twoFactorEnabled === true;
+  const codeReady = code.trim().length >= 6;
 
   async function endDevice(sessionId: string) {
+    if (!authenticatorReady || !codeReady) {
+      setError("Enter a current authenticator or recovery code.");
+      return;
+    }
     setBusy(sessionId);
     setMessage("");
     setError("");
     try {
-      await revoke({ sessionId });
-      setMessage("That device has been signed out.");
+      await revoke({ sessionId, code: code.trim() });
+      setCode("");
+      setMessage("That device has been signed out. Enter a fresh code to sign out another device.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign out that device.");
     } finally {
@@ -46,12 +56,16 @@ export function DeviceSessionsSettings() {
   }
 
   async function endAllDevices() {
+    if (!authenticatorReady || !codeReady) {
+      setError("Enter a current authenticator or recovery code.");
+      return;
+    }
     if (!window.confirm("Sign out every device signed in to your account, including this one?")) return;
     setBusy("all");
     setMessage("");
     setError("");
     try {
-      await signOutAll({});
+      await signOutAll({ code: code.trim() });
       await signOut();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign out all devices.");
@@ -70,6 +84,28 @@ export function DeviceSessionsSettings() {
         </div>
         {data && <span className="text-xs text-slate-500">{devices.length} active</span>}
       </div>
+
+      {data && !authenticatorReady && (
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Turn on two-step verification with an authenticator app before signing out other devices. This keeps a stolen session from locking you out of your account.
+        </p>
+      )}
+      {authenticatorReady && (
+        <div className="mt-3 max-w-xs space-y-1.5">
+          <Label htmlFor="device-auth-code">Authenticator or recovery code</Label>
+          <Input
+            id="device-auth-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={40}
+            disabled={busy !== null}
+            value={code}
+            onChange={(event) => setCode(event.target.value.toUpperCase().replace(/[^0-9A-F-]/g, "").slice(0, 40))}
+            placeholder="000000"
+          />
+          <p className="text-xs leading-5 text-slate-500">Required before signing out another device or signing out everywhere.</p>
+        </div>
+      )}
 
       {data === undefined ? (
         <p className="mt-3 text-sm text-slate-500">Loading devices…</p>
@@ -93,7 +129,7 @@ export function DeviceSessionsSettings() {
                 </div>
               </div>
               {!device.current && (
-                <Button type="button" size="sm" variant="outline" disabled={busy !== null} onClick={() => void endDevice(device.sessionId)}>
+                <Button type="button" size="sm" variant="outline" disabled={busy !== null || !authenticatorReady || !codeReady} onClick={() => void endDevice(device.sessionId)}>
                   <LogOut className="size-3.5" />{busy === device.sessionId ? "Signing out…" : "Sign out"}
                 </Button>
               )}
@@ -108,7 +144,7 @@ export function DeviceSessionsSettings() {
             ? "New-device alerts are on: we email your verified address when an unrecognised device signs in."
             : "Add and verify a recovery email to be emailed when a new device signs in."}
         </p>
-        <Button type="button" size="sm" variant="outline" className="text-red-700" disabled={busy !== null || devices.length === 0} onClick={() => void endAllDevices()}>
+        <Button type="button" size="sm" variant="outline" className="text-red-700" disabled={busy !== null || devices.length === 0 || !authenticatorReady || !codeReady} onClick={() => void endAllDevices()}>
           <LogOut className="size-3.5" />{busy === "all" ? "Signing out…" : "Sign out all devices"}
         </Button>
       </div>
