@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { StaffUnlock } from "@/components/StaffUnlock";
-import { deriveBadge, type PublicBadge } from "@/lib/staff";
+import { DEPARTMENTS, deriveBadge, type PublicBadge } from "@/lib/staff";
 import { AlertCircle, BadgeCheck, Loader2, Save, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 type AdminNotificationRecipientKind = "careers" | "support" | "both";
@@ -57,22 +57,6 @@ type TeamRowProps = {
     accessLevel: "staff" | "admin"
   ) => Promise<void>;
 };
-
-const DEPARTMENTS = [
-  "Executive Leadership",
-  "Engineering & Software Development",
-  "Game Design & Systems Architecture",
-  "Creative Content & Art Production",
-  "Community Operations & Player Engagement",
-  "Player Support & Service",
-  "Quality Assurance & Release Testing",
-  "Trust & Safety / Moderation",
-  "Data Science, Analytics & Research",
-  "AI & Procedural Systems",
-  "Operations & Internal Systems",
-  "Marketing & Growth",
-  "Business Development & Strategy",
-];
 
 const POSITIONS = [
   "Chief Executive Officer",

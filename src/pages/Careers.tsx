@@ -65,18 +65,25 @@ export default function Careers() {
           <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </div>
         <div className="space-y-5">
-          {careerBranches.map((branch) => (
-            <section key={branch.slug} aria-labelledby={`department-${branch.slug}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-              <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-                <h3 id={`department-${branch.slug}`} className="font-semibold">{branch.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-600">{branch.summary}</p>
-              </header>
-              <ul className="divide-y divide-slate-100">{branch.roles.map((role) => {
-                const isOpen = (availability?.find((item) => item.slug === role.slug)?.isOpen ?? role.status !== "Filled") === true;
-                return <PositionRow key={role.slug} role={role} isOpen={isOpen} />;
-              })}</ul>
-            </section>
-          ))}
+          {careerBranches.map((branch) => {
+            const listedRoles = branch.roles.filter((role) => role.status !== "Pending");
+            return (
+              <section key={branch.slug} aria-labelledby={`department-${branch.slug}`} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <header className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                  <h3 id={`department-${branch.slug}`} className="font-semibold">{branch.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">{branch.summary}</p>
+                </header>
+                <ul className="divide-y divide-slate-100">{listedRoles.map((role) => {
+                  const isOpen = (availability?.find((item) => item.slug === role.slug)?.isOpen ?? role.status !== "Filled") === true;
+                  return <PositionRow key={role.slug} role={role} isOpen={isOpen} />;
+                })}
+                  {listedRoles.length === 0 && (
+                    <li className="px-5 py-4 text-sm leading-6 text-slate-600">No positions are listed in this department right now.</li>
+                  )}
+                </ul>
+              </section>
+            );
+          })}
         </div>
         <aside className="mt-8 flex flex-wrap items-center justify-between gap-4 border-y border-slate-200 py-5">
           <div className="flex items-start gap-3">

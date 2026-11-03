@@ -1,25 +1,20 @@
 /** What the public website shows for a team member: "Staff" or "Dev". */
 export type PublicBadge = "staff" | "dev";
 
-import { careerRoles } from "./careers";
+import { careerBranches, careerRoles } from "./careers";
 
 /**
  * Company departments suggested in the admin panel (invite + team assignment).
+ * Derived from the careers page so every department stays listed and assignable
+ * before and after release, including departments with no current openings.
  * Any other department name can still be typed by hand.
  */
-export const DEPARTMENTS = [
-  "Executive Leadership",
-  "Engineering & Software Development",
-  "Game Design & Systems Architecture",
-  "Creative Content & Art Production",
-  "Community Operations & Player Engagement",
-  "Trust & Safety / Moderation",
-  "Data Science, Analytics & Research",
-  "AI & Procedural Systems",
-  "Operations & Internal Systems",
-  "Marketing & Growth",
-  "Business Development & Strategy",
-] as const;
+export const DEPARTMENTS: string[] = [
+  ...new Set([
+    ...careerBranches.map((branch) => branch.title),
+    "Trust & Safety / Moderation",
+  ]),
+];
 
 /**
  * Positions suggested in the admin panel: every role the careers page lists,
