@@ -12,6 +12,9 @@ const MAX_MEETING_LOCATION = 300;
 const MAX_MEETING_DAYS_AHEAD = 365;
 const MAX_STAFF_SCAN = 1_000;
 const EXECUTIVE_LEADERSHIP = "Executive Leadership";
+const EXECUTIVE_LEADERSHIP_KEY = departmentKey(EXECUTIVE_LEADERSHIP);
+const ALL_STAFF_DEPARTMENT = "All staff";
+const ALL_STAFF_KEY = "all-staff";
 
 /** Higher numbers are more senior within a department. */
 const POSITION_RANKS: Array<[RegExp, number]> = [
@@ -51,6 +54,10 @@ function isCompanyAdmin(user: { role?: string; email?: string; emailVerification
   );
 }
 
+function isExecutiveLeadership(user: Doc<"users">) {
+  return departmentKey(canonicalDepartmentName(user.department)) === EXECUTIVE_LEADERSHIP_KEY;
+}
+
 function isStaffAccount(user: Doc<"users">) {
   return Boolean(
     user.emailVerificationTime !== undefined &&
@@ -86,9 +93,8 @@ function canScheduleMeetingsFor(
   members: Doc<"users">[],
 ) {
   if (isCompanyAdmin(user)) return true;
-  const userDepartmentKey = departmentKey(canonicalDepartmentName(user.department));
-  if (userDepartmentKey !== "executive leadership") return canScheduleFromRank(user, key, members);
-  return true;
+  if (isExecutiveLeadership(user)) return true;
+  return canScheduleFromRank(user, key, members);
 }
 
 function canScheduleFromRank(user: Doc<"users">, key: string, members: Doc<"users">[]) {
@@ -122,6 +128,9 @@ async function requireMeetingScheduler(ctx: MutationCtx, rawDepartment: string) 
   const user = await requireStaff(ctx);
   const department = cleanDepartment(rawDepartment);
   const key = departmentKey(department);
+  if (key === ALL_STAFF_KEY || key === departmentKey(ALL_STAFF_DEPARTMENT)) {
+    throw new Error("Use the all-staff meeting form for company-wide meetings.");
+  }
   const rows = await loadStaffRows(ctx);
   const members = membersForDepartment(rows, key);
   if (!canScheduleMeetingsFor(user, key, members)) {
@@ -131,6 +140,15 @@ async function requireMeetingScheduler(ctx: MutationCtx, rawDepartment: string) 
     throw new Error("Only the highest position in this department or Executive Leadership can schedule meetings.");
   }
   return { user, department, key };
+}
+
+/** Company-wide meetings are reserved for Executive Leadership only. */
+async function requireAllStaffScheduler(ctx: MutationCtx) {
+  const user = await requireStaff(ctx);
+  if (!isExecutiveLeadership(user)) {
+    throw new Error("Only Executive Leadership can schedule all-staff meetings.");
+  }
+  return user;
 }
 
 function cleanPostBody(rawBody: string) {
@@ -166,9 +184,24 @@ function validMeetingDuration(raw: number) {
   return raw;
 }
 
+function meetingView(meeting: Doc<"departmentMeetings">) {
+  return {
+    _id: meeting._id,
+    title: meeting.title,
+    agenda: meeting.agenda ?? null,
+    startsAt: meeting.startsAt,
+    durationMinutes: meeting.durationMinutes,
+    location: meeting.location ?? null,
+    createdBy: meeting.createdBy,
+    createdByName: meeting.createdByName,
+    createdAt: meeting.createdAt,
+  };
+}
+
 /**
- * Read the whole company hub in one subscription. All verified staff can see
- * every department, but only department members or admins can contribute.
+ * Read the staff hub in one subscription. Regular staff only receive their own
+ * department; Executive Leadership and company admins receive every department.
+ * General comms and all-staff meetings are shared with everyone.
  */
 export const hub = query({
   args: {},
@@ -177,6 +210,8 @@ export const hub = query({
     if (!viewer) return null;
 
     const viewerIsAdmin = isCompanyAdmin(viewer);
+    const viewerIsExecutive = isExecutiveLeadership(viewer);
+    const viewerCanViewAllDepartments = viewerIsAdmin || viewerIsExecutive;
     const viewerDepartment = canonicalDepartmentName(viewer.department) || null;
     const viewerKey = departmentKey(viewerDepartment);
     const rows = await loadStaffRows(ctx);
@@ -242,6 +277,10 @@ export const hub = query({
           viewerCanSchedule: canScheduleMeetingsFor(viewer, group.key, rows.filter((user) => isStaffAccount(user) && departmentKey(canonicalDepartmentName(user.department)) === group.key)),
         };
       })
+      .filter((department) =>
+        department.key !== ALL_STAFF_KEY &&
+        (viewerCanViewAllDepartments || department.key === viewerKey),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const now = Date.now();
@@ -275,28 +314,48 @@ export const hub = query({
           body: post.body,
           createdAt: post.createdAt,
         })),
-        meetings: [...upcoming, ...past].map((meeting) => ({
-          _id: meeting._id,
-          title: meeting.title,
-          agenda: meeting.agenda ?? null,
-          startsAt: meeting.startsAt,
-          durationMinutes: meeting.durationMinutes,
-          location: meeting.location ?? null,
-          createdBy: meeting.createdBy,
-          createdByName: meeting.createdByName,
-          createdAt: meeting.createdAt,
-        })),
+        meetings: [...upcoming, ...past].map(meetingView),
       };
     }));
+
+    const [generalPostRows, allStaffMeetingRows] = await Promise.all([
+      ctx.db.query("staffGeneralPosts").withIndex("by_created").order("desc").take(20),
+      ctx.db
+        .query("departmentMeetings")
+        .withIndex("by_department_starts", (q) => q.eq("departmentKey", ALL_STAFF_KEY))
+        .order("desc")
+        .take(40),
+    ]);
+    const allStaffUpcoming = allStaffMeetingRows
+      .filter((meeting) => !meeting.cancelledAt && meeting.startsAt >= now)
+      .sort((a, b) => a.startsAt - b.startsAt)
+      .slice(0, 8);
+    const allStaffPast = allStaffMeetingRows
+      .filter((meeting) => !meeting.cancelledAt && meeting.startsAt < now)
+      .sort((a, b) => b.startsAt - a.startsAt)
+      .slice(0, 4);
 
     return {
       viewer: {
         id: viewer._id,
         isAdmin: viewerIsAdmin,
+        isExecutiveLeadership: viewerIsExecutive,
+        canViewAllDepartments: viewerCanViewAllDepartments,
         department: viewerDepartment,
         departmentKey: viewerKey || null,
       },
       departments: hydrated,
+      generalPosts: generalPostRows.map((post) => ({
+        _id: post._id,
+        authorId: post.authorId,
+        authorName: post.authorName,
+        authorDepartment: post.authorDepartment ?? null,
+        authorPosition: post.authorPosition ?? null,
+        authorBadge: post.authorBadge ?? null,
+        body: post.body,
+        createdAt: post.createdAt,
+      })),
+      allStaffMeetings: [...allStaffUpcoming, ...allStaffPast].map(meetingView),
     };
   },
 });
@@ -336,6 +395,40 @@ export const deletePost = mutation({
   },
 });
 
+/** Every verified staff member can post in the shared general comms feed. */
+export const createGeneralPost = mutation({
+  args: { body: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireStaff(ctx);
+    const body = cleanPostBody(args.body);
+    const postId = await ctx.db.insert("staffGeneralPosts", {
+      authorId: user._id,
+      authorName: displayNameFor(user),
+      authorDepartment: canonicalDepartmentName(user.department) || undefined,
+      authorPosition: user.position?.trim() || undefined,
+      authorBadge: user.publicBadge ?? deriveBadge(user.department, user.position),
+      body,
+      createdAt: Date.now(),
+    });
+    return { ok: true as const, postId };
+  },
+});
+
+/** Authors, admins, and Executive Leadership can remove general comms posts. */
+export const deleteGeneralPost = mutation({
+  args: { postId: v.id("staffGeneralPosts") },
+  handler: async (ctx, { postId }) => {
+    const user = await requireStaff(ctx);
+    const post = await ctx.db.get(postId);
+    if (!post) throw new Error("That message no longer exists.");
+    if (post.authorId !== user._id && !isCompanyAdmin(user) && !isExecutiveLeadership(user)) {
+      throw new Error("You can only remove your own general comms messages.");
+    }
+    await ctx.db.delete(postId);
+    return { ok: true as const };
+  },
+});
+
 /** Schedule a meeting where the viewer is the department lead or Executive Leadership. */
 export const createMeeting = mutation({
   args: {
@@ -367,7 +460,37 @@ export const createMeeting = mutation({
   },
 });
 
-/** Cancel a meeting. The organiser or an administrator can cancel it. */
+/** Schedule a company-wide meeting. Executive Leadership only. */
+export const createAllStaffMeeting = mutation({
+  args: {
+    title: v.string(),
+    agenda: v.optional(v.string()),
+    startsAt: v.number(),
+    durationMinutes: v.number(),
+    location: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireAllStaffScheduler(ctx);
+    const title = cleanMeetingText(args.title, "Meeting title", MAX_MEETING_TITLE, true)!;
+    const agenda = cleanMeetingText(args.agenda, "Agenda", MAX_MEETING_AGENDA, false);
+    const location = cleanMeetingText(args.location, "Location or meeting link", MAX_MEETING_LOCATION, false);
+    const meetingId = await ctx.db.insert("departmentMeetings", {
+      department: ALL_STAFF_DEPARTMENT,
+      departmentKey: ALL_STAFF_KEY,
+      title,
+      ...(agenda ? { agenda } : {}),
+      startsAt: validMeetingStart(args.startsAt),
+      durationMinutes: validMeetingDuration(args.durationMinutes),
+      ...(location ? { location } : {}),
+      createdBy: user._id,
+      createdByName: displayNameFor(user),
+      createdAt: Date.now(),
+    });
+    return { ok: true as const, meetingId };
+  },
+});
+
+/** Cancel a meeting. The organiser, an administrator, or an all-staff organiser's leadership can cancel it. */
 export const cancelMeeting = mutation({
   args: { meetingId: v.id("departmentMeetings"), reason: v.optional(v.string()) },
   handler: async (ctx, { meetingId, reason: rawReason }) => {
@@ -375,7 +498,8 @@ export const cancelMeeting = mutation({
     const meeting = await ctx.db.get(meetingId);
     if (!meeting) throw new Error("That meeting no longer exists.");
     if (meeting.cancelledAt) return { ok: true as const };
-    if (meeting.createdBy !== user._id && !isCompanyAdmin(user)) {
+    const canCancelAllStaff = meeting.departmentKey === ALL_STAFF_KEY && isExecutiveLeadership(user);
+    if (meeting.createdBy !== user._id && !isCompanyAdmin(user) && !canCancelAllStaff) {
       throw new Error("Only the organiser or an administrator can cancel this meeting.");
     }
     const reason = (rawReason ?? "").trim();

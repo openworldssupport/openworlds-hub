@@ -8,6 +8,7 @@ import {
   Loader2,
   MapPin,
   Megaphone,
+  MessageSquare,
   Mic,
   PhoneOff,
   Plus,
@@ -57,6 +58,17 @@ type DepartmentMeeting = {
   createdAt: number;
 };
 
+type GeneralPost = {
+  _id: Id<"staffGeneralPosts">;
+  authorId: Id<"users">;
+  authorName: string;
+  authorDepartment: string | null;
+  authorPosition: string | null;
+  authorBadge: "staff" | "dev" | null;
+  body: string;
+  createdAt: number;
+};
+
 type Department = {
   key: string;
   name: string;
@@ -70,10 +82,14 @@ type HubData = {
   viewer: {
     id: Id<"users">;
     isAdmin: boolean;
+    isExecutiveLeadership: boolean;
+    canViewAllDepartments: boolean;
     department: string | null;
     departmentKey: string | null;
   };
   departments: Department[];
+  generalPosts: GeneralPost[];
+  allStaffMeetings: DepartmentMeeting[];
 };
 
 function formatTime(timestamp: number) {
@@ -314,6 +330,7 @@ function MeetingCard({
   onCancel,
   cancelling,
   allowCancel,
+  executiveCanCancel,
   onJoinVoice,
 }: {
   meeting: DepartmentMeeting;
@@ -321,9 +338,14 @@ function MeetingCard({
   onCancel: (meeting: DepartmentMeeting) => void;
   cancelling: boolean;
   allowCancel: boolean;
+  executiveCanCancel?: boolean;
   onJoinVoice?: () => void;
 }) {
-  const canCancel = allowCancel && (viewer.isAdmin || meeting.createdBy === viewer.id);
+  const canCancel = allowCancel && (
+    viewer.isAdmin ||
+    meeting.createdBy === viewer.id ||
+    (Boolean(executiveCanCancel) && viewer.isExecutiveLeadership)
+  );
   return (
     <article className="rounded-xl border border-[#dce5df] bg-[#f8faf8] p-3.5">
       <div className="flex items-start gap-3">
@@ -548,6 +570,292 @@ function DepartmentMeetings({
   );
 }
 
+function GeneralFeed({ viewer, posts }: { viewer: HubData["viewer"]; posts: GeneralPost[] }) {
+  const createPost = useMutation(api.departments.createGeneralPost);
+  const deletePost = useMutation(api.departments.deleteGeneralPost);
+  const [body, setBody] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [deleting, setDeleting] = useState<Id<"staffGeneralPosts"> | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!body.trim()) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      await createPost({ body });
+      setBody("");
+      setNotice("Message posted to general comms.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not post this message.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(postId: Id<"staffGeneralPosts">) {
+    if (!window.confirm("Remove this general comms message? This cannot be undone.")) return;
+    setDeleting(postId);
+    setError("");
+    setNotice("");
+    try {
+      await deletePost({ postId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove this message.");
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div>
+      <SectionHeading icon={MessageSquare} title="General comms" detail="A shared feed for staff in every department" />
+      <form onSubmit={(event) => void submit(event)} className="mt-4">
+        <Textarea
+          value={body}
+          onChange={(event) => setBody(event.target.value)}
+          rows={3}
+          maxLength={2000}
+          placeholder="Talk to staff across the company…"
+          className="resize-none text-sm"
+          aria-label="Post a message to general staff comms"
+        />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="text-[11px] text-slate-400">{body.length}/2,000</span>
+          <Button type="submit" size="sm" disabled={busy || !body.trim()}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            Post message
+          </Button>
+        </div>
+      </form>
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {notice && <p role="status" className="mt-3 text-sm text-emerald-700">{notice}</p>}
+
+      {posts.length === 0 ? (
+        <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-500">No general messages yet. Start the conversation.</p>
+      ) : (
+        <div className="mt-4 max-h-[28rem] divide-y divide-slate-100 overflow-y-auto border-t border-slate-100 pr-1">
+          {posts.map((post) => (
+            <article key={post._id} className="py-4 first:pt-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-slate-800">
+                    {post.authorName}
+                    {post.authorBadge && <RoleBadge badge={post.authorBadge} />}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    {[post.authorPosition, post.authorDepartment, formatTime(post.createdAt)].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                {(viewer.isAdmin || viewer.isExecutiveLeadership || post.authorId === viewer.id) && (
+                  <button
+                    type="button"
+                    onClick={() => void remove(post._id)}
+                    disabled={deleting === post._id}
+                    aria-label="Remove general comms message"
+                    className="p-1 text-slate-400 transition hover:text-red-600 disabled:opacity-50"
+                  >
+                    {deleting === post._id ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{post.body}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AllStaffMeetings({ viewer, meetings }: { viewer: HubData["viewer"]; meetings: DepartmentMeeting[] }) {
+  const createMeeting = useMutation(api.departments.createAllStaffMeeting);
+  const cancelMeeting = useMutation(api.departments.cancelMeeting);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [startsAt, setStartsAt] = useState(defaultMeetingStart);
+  const [durationMinutes, setDurationMinutes] = useState(30);
+  const [location, setLocation] = useState("");
+  const [agenda, setAgenda] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState<Id<"departmentMeetings"> | null>(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [voiceRoom, setVoiceRoom] = useState<{ title: string; url: string } | null>(null);
+  const canSchedule = viewer.isExecutiveLeadership;
+  const now = Date.now();
+  const upcoming = meetings.filter((meeting) => meeting.startsAt >= now);
+  const past = meetings.filter((meeting) => meeting.startsAt < now);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const timestamp = new Date(startsAt).getTime();
+      if (!Number.isFinite(timestamp)) throw new Error("Choose a valid meeting date and time.");
+      await createMeeting({ title, agenda, startsAt: timestamp, durationMinutes, location });
+      setTitle("");
+      setAgenda("");
+      setLocation("");
+      setStartsAt(defaultMeetingStart());
+      setDurationMinutes(30);
+      setOpen(false);
+      setNotice("All-staff meeting scheduled for every department.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not schedule this meeting.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function cancel(meeting: DepartmentMeeting) {
+    if (!window.confirm(`Cancel “${meeting.title}”?`)) return;
+    setCancelling(meeting._id);
+    setError("");
+    setNotice("");
+    try {
+      await cancelMeeting({ meetingId: meeting._id });
+      setNotice("Meeting cancelled.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not cancel this meeting.");
+    } finally {
+      setCancelling(null);
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <SectionHeading icon={CalendarDays} title="All-staff meetings" detail="Company-wide sessions for every department" />
+        {canSchedule && (
+          <Button type="button" size="sm" variant="outline" onClick={() => setOpen((value) => !value)} className="shrink-0">
+            <Plus className="size-3.5" />
+            {open ? "Close" : "Schedule"}
+          </Button>
+        )}
+      </div>
+
+      {open && canSchedule && (
+        <form onSubmit={(event) => void submit(event)} className="mt-4 space-y-3 rounded-xl border border-[#dce5df] bg-[#f8faf8] p-3.5">
+          <div className="space-y-1.5">
+            <Label htmlFor="all-staff-meeting-title" className="text-xs">Title</Label>
+            <Input id="all-staff-meeting-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required placeholder="Company-wide town hall" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="all-staff-meeting-start" className="text-xs">When</Label>
+              <Input id="all-staff-meeting-start" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="all-staff-meeting-duration" className="text-xs">Minutes</Label>
+              <Input id="all-staff-meeting-duration" type="number" min={15} max={480} value={durationMinutes} onChange={(event) => setDurationMinutes(Number(event.target.value))} required />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="all-staff-meeting-location" className="text-xs">Room or meeting link</Label>
+            <Input id="all-staff-meeting-location" value={location} onChange={(event) => setLocation(event.target.value)} maxLength={300} placeholder="Main hall, or https://…" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="all-staff-meeting-agenda" className="text-xs">Agenda</Label>
+            <Textarea id="all-staff-meeting-agenda" value={agenda} onChange={(event) => setAgenda(event.target.value)} rows={3} maxLength={2000} className="resize-none text-sm" placeholder="What should every department prepare?" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" size="sm" disabled={busy || !title.trim() || !startsAt}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <CalendarDays className="size-4" />}
+              Schedule all-staff meeting
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          </div>
+        </form>
+      )}
+
+      {!canSchedule && (
+        <p className="mt-4 rounded-lg border border-[#f0dfb8] bg-[#fdf8ec] p-3 text-xs leading-5 text-[#6b4e0b]">
+          Only Executive Leadership can schedule company-wide meetings.
+        </p>
+      )}
+      {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
+      {notice && <p role="status" className="mt-3 text-sm text-emerald-700">{notice}</p>}
+
+      <div className="mt-4 space-y-2.5">
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-slate-500">No upcoming all-staff meetings.</p>
+        ) : upcoming.map((meeting) => (
+          <MeetingCard
+            key={meeting._id}
+            meeting={meeting}
+            viewer={viewer}
+            onCancel={(item) => void cancel(item)}
+            cancelling={cancelling === meeting._id}
+            allowCancel
+            executiveCanCancel
+            onJoinVoice={() => setVoiceRoom({ title: meeting.title, url: voiceRoomUrl(`all-staff-${meeting._id}`) })}
+          />
+        ))}
+      </div>
+
+      {past.length > 0 && (
+        <details className="mt-4 border-t border-slate-100 pt-3">
+          <summary className="cursor-pointer text-xs font-medium text-slate-500">Recent all-staff meetings ({past.length})</summary>
+          <div className="mt-2 space-y-2 opacity-75">
+            {past.map((meeting) => (
+              <MeetingCard
+                key={meeting._id}
+                meeting={meeting}
+                viewer={viewer}
+                onCancel={() => undefined}
+                cancelling={false}
+                allowCancel={false}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="mt-4 w-full"
+        onClick={() => setVoiceRoom({ title: "General staff voice channel", url: voiceRoomUrl("general-staff") })}
+      >
+        <Mic className="size-3.5" /> Join general voice channel
+      </Button>
+
+      {voiceRoom && <VoiceRoomOverlay title={voiceRoom.title} roomUrl={voiceRoom.url} onClose={() => setVoiceRoom(null)} />}
+    </div>
+  );
+}
+
+function CompanyWideSection({ data }: { data: HubData }) {
+  return (
+    <section id="company-wide" className="scroll-mt-24 overflow-hidden rounded-2xl border border-[#dce5df] bg-white shadow-sm">
+      <div className="h-1" style={{ background: "linear-gradient(90deg, #a52234 0 34%, #176b45 34% 83%, #d6a63b 83% 100%)" }} />
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8eeea] bg-[#f8faf8] px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#14583c] text-white">
+            <MessageSquare className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-slate-900">Company-wide</h2>
+            <p className="mt-0.5 text-xs text-slate-500">General comms, voice, and all-staff meetings · visible to every department</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-[#eef4ef] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#14583c]">All staff</span>
+      </header>
+      <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] xl:gap-0 xl:divide-x xl:divide-slate-100">
+        <div className="xl:pr-6"><GeneralFeed viewer={data.viewer} posts={data.generalPosts} /></div>
+        <div className="xl:pl-6"><AllStaffMeetings viewer={data.viewer} meetings={data.allStaffMeetings} /></div>
+      </div>
+    </section>
+  );
+}
+
 function DepartmentSection({ department, viewer }: { department: Department; viewer: HubData["viewer"] }) {
   const isViewerTeam = viewer.departmentKey === department.key;
   return (
@@ -608,7 +916,9 @@ export function DepartmentHub() {
     return aMine - bMine || a.name.localeCompare(b.name);
   });
   const totalMembers = departments.reduce((total, department) => total + department.members.length, 0);
-  const upcomingMeetings = departments.reduce((total, department) => total + department.meetings.filter((meeting) => meeting.startsAt >= Date.now()).length, 0);
+  const upcomingMeetings =
+    departments.reduce((total, department) => total + department.meetings.filter((meeting) => meeting.startsAt >= Date.now()).length, 0) +
+    data.allStaffMeetings.filter((meeting) => meeting.startsAt >= Date.now()).length;
 
   return (
     <div className="space-y-6">
@@ -618,7 +928,9 @@ export function DepartmentHub() {
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#a9c8b6]">OpenWorlds company hub</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Department hub</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#cfe0d5]">
-              Everyone’s rosters, department news, and upcoming meetings in one place. Post updates and schedule time with your team without leaving the workspace.
+              {data.viewer.canViewAllDepartments
+                ? "Every department’s rosters, news, and upcoming meetings, plus shared general comms and all-staff sessions."
+                : "Your department’s roster, news, and meetings, plus shared general comms and all-staff sessions for the whole company."}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
@@ -629,29 +941,40 @@ export function DepartmentHub() {
         </div>
       </section>
 
-      {departments.length > 0 && (
-        <nav className="rounded-2xl border border-[#dce5df] bg-white p-3" aria-label="Jump to a department">
-          <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jump to a department</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {departments.map((department) => (
-              <a
-                key={department.key}
-                href={`#${departmentAnchor(department.key)}`}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition ${data.viewer.departmentKey === department.key ? "border-[#d6a63b] bg-[#fbf2dc] font-medium text-[#795600]" : "border-[#e3e9e5] text-slate-600 hover:border-[#b9d0bf] hover:bg-[#f8faf8] hover:text-[#14583c]"}`}
-              >
-                {department.name}
-                <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-500">{department.members.length}</span>
-              </a>
-            ))}
-          </div>
-        </nav>
-      )}
+      <CompanyWideSection data={data} />
+
+      <nav className="rounded-2xl border border-[#dce5df] bg-white p-3" aria-label="Jump to a section">
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Jump to</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <a
+            href="#company-wide"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#e3e9e5] px-2.5 py-1.5 text-xs text-slate-600 transition hover:border-[#b9d0bf] hover:bg-[#f8faf8] hover:text-[#14583c]"
+          >
+            <MessageSquare className="size-3.5" />
+            General
+          </a>
+          {departments.map((department) => (
+            <a
+              key={department.key}
+              href={`#${departmentAnchor(department.key)}`}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition ${data.viewer.departmentKey === department.key ? "border-[#d6a63b] bg-[#fbf2dc] font-medium text-[#795600]" : "border-[#e3e9e5] text-slate-600 hover:border-[#b9d0bf] hover:bg-[#f8faf8] hover:text-[#14583c]"}`}
+            >
+              {department.name}
+              <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-500">{department.members.length}</span>
+            </a>
+          ))}
+        </div>
+      </nav>
 
       {departments.length === 0 ? (
         <section className="rounded-2xl border border-dashed border-[#cfdad3] bg-white p-8 text-center">
           <Building2 className="mx-auto size-8 text-slate-400" />
-          <h2 className="mt-3 font-semibold">No department rosters yet</h2>
-          <p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-slate-600">An administrator can assign people to departments and positions from the admin console. Once a team has members, it will appear here.</p>
+          <h2 className="mt-3 font-semibold">No department assigned yet</h2>
+          <p className="mx-auto mt-1 max-w-lg text-sm leading-6 text-slate-600">
+            {data.viewer.canViewAllDepartments
+              ? "An administrator can assign people to departments and positions from the admin console. General comms and all-staff meetings are still available above."
+              : "An administrator can assign you to a department from the admin console. General comms and all-staff meetings are still available above."}
+          </p>
         </section>
       ) : (
         departments.map((department) => <DepartmentSection key={department.key} department={department} viewer={data.viewer} />)

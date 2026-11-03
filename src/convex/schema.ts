@@ -589,6 +589,18 @@ const schema = defineSchema(
       .index("by_department_created", ["departmentKey", "createdAt"])
       .index("by_created", ["createdAt"]),
 
+    // Cross-department staff comms. Visible to every verified staff member,
+    // regardless of which department they belong to.
+    staffGeneralPosts: defineTable({
+      authorId: v.id("users"),
+      authorName: v.string(),
+      authorDepartment: v.optional(v.string()),
+      authorPosition: v.optional(v.string()),
+      authorBadge: v.optional(v.union(v.literal("staff"), v.literal("dev"))),
+      body: v.string(),
+      createdAt: v.number(),
+    }).index("by_created", ["createdAt"]),
+
     // Upcoming and past department meetings shown in the staff department hub.
     departmentMeetings: defineTable({
       department: v.string(),
