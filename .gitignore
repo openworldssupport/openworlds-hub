@@ -6,3 +6,6 @@
 node_modules
 dist
 src/convex/_generated
+
+# Database backups contain private account data; never commit them.
+backups/

@@ -291,3 +291,38 @@ When using convex, make sure:
 - This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
 - Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
 - NEVER have return type validators.
+
+# Data safety, backups, and staying signed in
+
+Convex stores accounts, profiles, friends, messages, moderation cases, and game saves in the deployment database, not in the frontend bundle. Deploying new code or pushing an additive schema does not reset that data, and it does not sign users out.
+
+## Safe schema updates
+
+- Add new fields as optional and backfill them with a one-off mutation; never rename or remove a field that still holds live data in the same change.
+- Keep existing indexes in place. Add a new index instead of replacing one that queries still depend on.
+- Do not ship code that deletes users, profiles, or game saves as part of a routine update.
+- Convex keeps data when functions are pushed; a schema push only validates documents against the new schema.
+
+## Backups
+
+Export a full snapshot (including uploaded files) before risky changes and on a regular schedule. Run this against `--prod` for production, from the project root:
+
+```bash
+bun convex export --prod --include-file-storage --path "backups/openworlds-$(date +%F).zip"
+```
+
+- `backups/` is git-ignored. A snapshot contains private account data, password hashes, and 2FA/recovery material — store it encrypted and off-site, never in the repository.
+- Restore with `bun convex import <snapshot.zip>`. `--replace-all` wipes the target deployment first; test a restore on a fresh deployment before using it in production.
+
+## Account sessions
+
+- Convex Auth stores the refresh token in the browser's local storage and refreshes it automatically. A code or schema deploy does not clear it.
+- The app only signs out from the explicit sign-out controls; there is no automatic sign-out on route changes, errors, or updates.
+- Do not edit `src/convex/auth.ts`, `src/convex/auth.config.ts`, or `src/convex/auth/emailOtp.ts` during routine work, and never rotate `JWT_PRIVATE_KEY`/`JWKS` or change `SITE_URL`/the Convex deployment URL as part of an update — those invalidate existing sessions and force everyone to sign in again.
+- Never add code that clears local storage or session storage globally.
+
+## Keeping public data private
+
+- Secrets stay in Convex environment variables; only publishable `VITE_*` values belong in the frontend.
+- Public queries (`currentUser`, `publicPlayerProfile`, `searchPlayerProfiles`, friends, worlds) must not return sign-in emails, password hashes, 2FA secrets, recovery codes, or moderation notes.
+- Admin and staff mutations keep their server-side authorization and second-factor checks; the UI is not the security boundary.
