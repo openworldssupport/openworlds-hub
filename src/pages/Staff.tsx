@@ -53,9 +53,15 @@ function formatTime(timestamp: number) {
 type StaffSection = "overview" | "announcements" | "messages" | "appeals";
 
 function MoreStaffTools() {
+  const moderationAccess = useQuery(api.moderation.myAccess);
+  const toolSummary = moderationAccess?.canViewAppeals
+    ? "player reports, bans, appeals, site status"
+    : moderationAccess?.canView
+      ? "player reports, bans, site status"
+      : "site status";
   return (
     <details className="mb-6 border-y border-slate-200">
-      <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools <span className="ml-2 text-xs font-normal text-slate-500">player reports, bans, appeals, site status</span></summary>
+      <summary className="cursor-pointer py-3 text-sm font-medium">Staff tools <span className="ml-2 text-xs font-normal text-slate-500">{toolSummary}</span></summary>
       <div className="space-y-6 border-t border-slate-200 py-4">
         <SiteStatusControl />
         <StaffSecurityPanel />
@@ -72,6 +78,7 @@ function WorkspaceOverview({
   me: ReturnType<typeof useQuery<typeof api.staff.me>>;
 }) {
   const announcements = useQuery(api.staff.announcements);
+  const moderationAccess = useQuery(api.moderation.myAccess);
   const recent = (announcements ?? []).slice(0, 3);
 
   return (
@@ -141,7 +148,7 @@ function WorkspaceOverview({
         <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">
           <QuickLink to="/staff/announcements" title="Announcements" />
           <QuickLink to="/staff/messages" title="Team board" />
-          <QuickLink to="/staff/appeals" title="Appeals" />
+          {moderationAccess?.canViewAppeals && <QuickLink to="/staff/appeals" title="Appeals" />}
           <QuickLink to="/staff/creators" title="Creator verification" />
           {isAdmin && <QuickLink to="/admin" title="Admin console" />}
           <QuickLink to="/news" title="Public news" />
@@ -933,11 +940,12 @@ type SafeStaffWorkspaceProps = { isAdmin: boolean; userId: StaffUserId | undefin
 const SafeStaffWorkspace: React.FC<SafeStaffWorkspaceProps> = ({ isAdmin, userId }) => {
   const location = useLocation();
   const me = useQuery(api.staff.me);
+  const moderationAccess = useQuery(api.moderation.myAccess);
   const tabs = [
     { id: "overview" as const, label: "Workspace" },
     { id: "announcements" as const, label: "Announcements" },
     { id: "messages" as const, label: "Team board" },
-    { id: "appeals" as const, label: "Appeals" },
+    ...(moderationAccess?.canViewAppeals ? [{ id: "appeals" as const, label: "Appeals" }] : []),
   ];
 
   const selectedTab: StaffSection =
@@ -1331,7 +1339,7 @@ function StaffSecurityPanel() {
     <section>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 className="font-semibold">Reports &amp; moderation</h2><p className="mt-1 text-sm text-slate-600">Player reports land here for the contact team. Every decision is saved with your account for review.</p></div>
-        <span className="text-xs text-slate-500">{data.reports.length} open · {data.bans.length} bans · {data.appeals.length} appeals</span>
+        <span className="text-xs text-slate-500">{data.reports.length} open · {data.bans.length} bans{data.canViewAppeals ? ` · ${data.appeals.length} appeals` : ""}</span>
       </div>
       <div className="mt-3"><StaffUnlock description="Moderation actions need an authenticator unlock." /></div>
       {!data.canAct && <p className="mt-3 rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">Your department/position can view this queue but cannot issue warnings, bans, or image decisions. Ask an administrator if you need an expanded role.</p>}
@@ -1375,8 +1383,12 @@ function StaffSecurityPanel() {
       <p className="mt-1 text-xs text-slate-500">Profile photos are checked before they are saved. Flagged images are removed automatically and the upload is paused on that account.</p>
       {data.media.length === 0 ? <p className="mt-2 text-sm text-slate-500">No open image-safety cases.</p> : <div className="mt-2 border-t border-slate-200">{data.media.map((item) => <MediaCaseRow key={item._id} item={item} canAct={data.canAct} />)}</div>}
 
-      <h3 className="mt-6 text-sm font-semibold">Pending appeals</h3>
-      {data.appeals.length === 0 ? <p className="mt-2 text-sm text-slate-500">No appeals waiting.</p> : <div className="mt-2 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex flex-wrap items-center gap-2"><Button size="sm" disabled={!data.canReviewAppeals || busyId === appeal._id || (!data.isAdmin && (appeal.banType === "permanent" || appeal.targetIsStaff))} onClick={() => void decideAppeal(appeal._id, "approved")}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={!data.canReviewAppeals || busyId === appeal._id} onClick={() => void decideAppeal(appeal._id, "declined")}><XCircle className="size-4" /> Decline</Button>{!data.canReviewAppeals && <span className="text-xs text-slate-500">Your position cannot decide appeals.</span>}{!data.isAdmin && (appeal.banType === "permanent" || appeal.targetIsStaff) && <span className="text-xs text-slate-500">Permanent bans and staff accounts need an administrator.</span>}</div></article>)}</div>}
+      {data.canViewAppeals && (
+        <>
+          <h3 className="mt-6 text-sm font-semibold">Pending appeals</h3>
+          {data.appeals.length === 0 ? <p className="mt-2 text-sm text-slate-500">No appeals waiting.</p> : <div className="mt-2 border-t border-slate-200">{data.appeals.map((appeal) => <article key={appeal._id} className="border-t border-slate-200 py-4"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-medium">{appeal.name}</p><p className="text-xs text-slate-500">{appeal.email} · {new Date(appeal.createdAt).toLocaleString()}</p></div><span className="text-xs text-slate-500">Appeal pending</span></div><p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{appeal.message}</p><div className="mt-3 flex flex-wrap items-center gap-2"><Button size="sm" disabled={!data.canReviewAppeals || busyId === appeal._id || (!data.isAdmin && (appeal.banType === "permanent" || appeal.targetIsStaff))} onClick={() => void decideAppeal(appeal._id, "approved")}><Check className="size-4" /> Approve &amp; unban</Button><Button size="sm" variant="outline" disabled={!data.canReviewAppeals || busyId === appeal._id} onClick={() => void decideAppeal(appeal._id, "declined")}><XCircle className="size-4" /> Decline</Button>{!data.canReviewAppeals && <span className="text-xs text-slate-500">Your position cannot decide appeals.</span>}{!data.isAdmin && (appeal.banType === "permanent" || appeal.targetIsStaff) && <span className="text-xs text-slate-500">Permanent bans and staff accounts need an administrator.</span>}</div></article>)}</div>}
+        </>
+      )}
 
       <h3 className="mt-6 text-sm font-semibold">Active bans</h3>
       {data.bans.length === 0 ? <p className="mt-2 text-sm text-slate-500">No active bans.</p> : <ul className="mt-2 divide-y divide-slate-200 border-y border-slate-200">{data.bans.map((ban) => <BanRow key={ban.userId} ban={ban} isAdmin={data.isAdmin} canAct={data.canAct} />)}</ul>}
@@ -1412,7 +1424,7 @@ function AppealsPanel() {
     return (
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-semibold">Appeals</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">Your department or position does not include moderation access. Ask an administrator if you need access to the appeals queue.</p>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Your department or position does not include access to the appeals queue. Ask an administrator if you need appeal access.</p>
       </section>
     );
   }

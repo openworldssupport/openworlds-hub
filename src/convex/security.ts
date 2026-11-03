@@ -5,7 +5,7 @@ import { v } from "convex/values";
 import { isAdmin, requireAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { staffUnlockState } from "./staffUnlock";
-import { requireAppealReviewer, requireModerationViewer } from "./moderationAccess";
+import { moderationAccess, requireAppealReviewer, requireModerationViewer } from "./moderationAccess";
 import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
 import type { Doc, Id } from "./_generated/dataModel";
 
@@ -102,7 +102,10 @@ export const submitAppeal = mutation({
 export const listBansAndAppeals = query({
   args: {},
   handler: async (ctx) => {
-    await requireModerationViewer(ctx);
+    const viewer = await requireModerationViewer(ctx);
+    if (!moderationAccess(viewer).canViewAppeals) {
+      throw new Error("Your department or position can view moderation cases but not appeal details.");
+    }
     const users = await ctx.db.query("users").filter((q) => q.eq(q.field("isSiteBanned"), true)).take(500);
     const appeals = await ctx.db.query("securityAppeals").withIndex("by_status_created", (q) => q.eq("status", "pending")).order("desc").take(100);
     return {

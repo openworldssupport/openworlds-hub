@@ -152,7 +152,7 @@ export const queue = query({
     const access = moderationAccess(viewer);
     if (!access.canView) {
       return {
-        isAdmin: false, canView: false, canAct: false, canReviewAppeals: false, canPermanentBan: false,
+        isAdmin: false, canView: false, canAct: false, canViewAppeals: false, canReviewAppeals: false, canPermanentBan: false,
         reports: [], bans: [], appeals: [], media: [], assessments: [], audit: [],
       };
     }
@@ -168,6 +168,7 @@ export const queue = query({
       isAdmin: access.isAdmin,
       canView: access.canView,
       canAct: access.canAct,
+      canViewAppeals: access.canViewAppeals,
       canReviewAppeals: access.canReviewAppeals,
       canPermanentBan: access.canPermanentBan,
       reports: reports.map((report) => ({
@@ -209,7 +210,7 @@ export const queue = query({
         expiresAt: user.banExpiresAt ?? null,
         bannedAt: user.siteBannedAt ?? 0,
       })),
-      appeals: await Promise.all(appeals.map(async (appeal) => {
+      appeals: access.canViewAppeals ? await Promise.all(appeals.map(async (appeal) => {
         const user = await ctx.db.get(appeal.userId);
         return {
           _id: appeal._id,
@@ -220,7 +221,7 @@ export const queue = query({
           banType: user?.banType ?? "permanent",
           targetIsStaff: Boolean(user && (user.role !== "user" || user.staffAccess || user.department?.trim() || user.position?.trim())),
         };
-      })),
+      })) : [],
       media: await Promise.all(media.map(async (item) => ({
         _id: item._id,
         displayName: item.displayName,
@@ -230,14 +231,16 @@ export const queue = query({
         createdAt: item.createdAt,
         imageUrl: item.storageId ? await ctx.storage.getUrl(item.storageId) : null,
       }))),
-      audit: audit.map((entry) => ({
-        _id: entry._id,
-        actorLabel: entry.actorLabel,
-        action: entry.action,
-        targetLabel: entry.targetLabel,
-        reason: entry.reason,
-        createdAt: entry.createdAt,
-      })),
+      audit: audit
+        .filter((entry) => access.canViewAppeals || !entry.action.startsWith("appeal-"))
+        .map((entry) => ({
+          _id: entry._id,
+          actorLabel: entry.actorLabel,
+          action: entry.action,
+          targetLabel: entry.targetLabel,
+          reason: entry.reason,
+          createdAt: entry.createdAt,
+        })),
     };
   },
 });
@@ -249,8 +252,8 @@ export const appealsQueue = query({
     const viewerId = await getAuthUserId(ctx);
     const viewer = viewerId ? await ctx.db.get(viewerId) : null;
     const access = moderationAccess(viewer);
-    if (!access.canView) {
-      return { canView: false, canAct: false, canReviewAppeals: false, canPermanentBan: false, appeals: [] };
+    if (!access.canView || !access.canViewAppeals) {
+      return { canView: false, canViewAppeals: false, canAct: false, canReviewAppeals: false, canPermanentBan: false, appeals: [] };
     }
     const appeals = await ctx.db
       .query("securityAppeals")
@@ -260,6 +263,7 @@ export const appealsQueue = query({
 
     return {
       canView: true,
+      canViewAppeals: true,
       canAct: access.canAct,
       canReviewAppeals: access.canReviewAppeals,
       canPermanentBan: access.canPermanentBan,
@@ -310,6 +314,17 @@ export const appealsQueue = query({
         };
       })),
     };
+  },
+});
+
+/** Capability flags for the signed-in account; used to hide staff tabs that
+ *  the account cannot use. Sensitive data is still gated in its own query. */
+export const myAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    const user = userId ? await ctx.db.get(userId) : null;
+    return moderationAccess(user);
   },
 });
 
