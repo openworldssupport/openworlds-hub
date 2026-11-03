@@ -1,0 +1,8 @@
+import{j as a}from"./framer-motion-D5IBGcks.js";import{I as o}from"./input-p5-UwJwh.js";import{L as p}from"./label-CaM4UFn8.js";import{T as c}from"./index-CFdP8CeH.js";function u({sections:n}){return a.jsx("div",{className:"space-y-8",children:n.map(t=>a.jsxs("fieldset",{className:"m-0 min-w-0 space-y-4 border-0 p-0",children:[a.jsx("legend",{className:"w-full border-b border-slate-200 pb-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500",children:t.title}),a.jsx("div",{className:"grid gap-4 sm:grid-cols-2",children:t.fields.map(e=>{const r=`application-${e.name}`,m=e.wide||e.type==="textarea";return a.jsxs("div",{className:m?"space-y-2 sm:col-span-2":"space-y-2",children:[a.jsxs(p,{htmlFor:r,children:[e.label," ",!e.required&&a.jsx("span",{className:"font-normal text-slate-500",children:"(optional)"})]}),e.type==="textarea"?a.jsx(c,{id:r,name:e.name,rows:e.rows??4,required:e.required,minLength:e.minLength,maxLength:e.maxLength,placeholder:e.placeholder}):e.type==="select"?a.jsxs("select",{id:r,name:e.name,required:e.required,defaultValue:"",className:"h-10 w-full rounded-md border border-input bg-background px-3 text-sm",children:[a.jsx("option",{value:"",disabled:!0,children:"Choose an option…"}),e.options?.map(s=>a.jsx("option",{value:s,children:s},s))]}):a.jsx(o,{id:r,name:e.name,type:e.type??"text",required:e.required,min:e.min,max:e.max,minLength:e.minLength,maxLength:e.maxLength,placeholder:e.placeholder})]},e.name)})})]},t.title))})}function d(n,t){return t.map(e=>[e.title,...e.fields.map(r=>`${r.label}:
+${String(n.get(r.name)??"").trim()||"Not provided"}`)].join(`
+
+`)).join(`
+
+---
+
+`)}export{u as A,d as a};
