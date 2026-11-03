@@ -325,6 +325,7 @@ const SITE_THEME = {
   hero: "#14583c", // .ow-page-hero background
   heroInk: "#ffffff", // text on the green banner
   heroMuted: "#cddcd3", // secondary text on the green banner
+  logoPlate: "#0875d1", // brand plate behind the globe
   font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
   mono: "ui-monospace,SFMono-Regular,Menlo,Consolas,'Courier New',monospace",
 } as const;
@@ -335,12 +336,13 @@ function emailRule(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(SITE_THEME.red, "34%")}${cell(SITE_THEME.green, "49%")}${cell(SITE_THEME.gold, "17%")}</tr></table>`;
 }
 
-/** The outline globe mark, drawn with borders so it renders without an image. */
+/** The brand mark: blue plate, white globe. Drawn with borders so it renders
+ *  without a hosted image (Gmail blocks SVG and hides images by default). */
 function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-    <td width="34" height="34" align="center" valign="middle" style="width:34px;height:34px;border:2px solid ${SITE_THEME.heroInk};border-radius:9px">
-      <div style="width:18px;height:18px;margin:0 auto;border:2px solid ${SITE_THEME.heroInk};border-radius:50%;line-height:0;font-size:0">
-        <div style="width:14px;height:2px;margin:6px auto 0;background:${SITE_THEME.heroInk};line-height:0;font-size:0">&nbsp;</div>
+    <td width="32" height="32" align="center" valign="middle" style="width:32px;height:32px;background:${SITE_THEME.logoPlate};border-radius:8px">
+      <div style="width:16px;height:16px;margin:0 auto;border:2px solid ${SITE_THEME.heroInk};border-radius:50%;line-height:0;font-size:0">
+        <div style="width:12px;height:2px;margin:5px auto 0;background:${SITE_THEME.heroInk};line-height:0;font-size:0">&nbsp;</div>
       </div>
     </td>
     <td valign="middle" style="padding-left:12px">
