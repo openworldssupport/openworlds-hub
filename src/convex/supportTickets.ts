@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
@@ -272,6 +272,51 @@ export const markResponded = mutation({
     await requireAdmin(ctx);
     await ctx.db.patch(args.ticketId, { respondedAt: Date.now() });
     return { ok: true };
+  },
+});
+
+/**
+ * Records that the team answered a ticket, so the status the player sees
+ * updates on its own. Called by the support inbox webhook (see http.ts):
+ * - a reply sent from the support inbox is matched by the player's address
+ * - a reply relayed or forwarded with the reference in the subject/text is
+ *   matched by that reference.
+ */
+export const recordTeamReply = internalMutation({
+  args: {
+    matchBy: v.union(v.literal("email"), v.literal("reference")),
+    email: v.optional(v.string()),
+    reference: v.optional(v.string()),
+    at: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const at = args.at ?? Date.now();
+    let ticket = null;
+
+    if (args.matchBy === "reference") {
+      const reference = args.reference?.trim().toUpperCase();
+      if (!reference) return { updated: false as const, reason: "missing-reference" as const };
+      ticket = await ctx.db
+        .query("supportTickets")
+        .withIndex("by_reference", (q) => q.eq("reference", reference))
+        .first();
+    } else {
+      const email = args.email?.trim().toLowerCase();
+      if (!email) return { updated: false as const, reason: "missing-email" as const };
+      const recent = await ctx.db
+        .query("supportTickets")
+        .withIndex("by_email_submitted_at", (q) => q.eq("email", email))
+        .order("desc")
+        .take(10);
+      ticket = recent.find((row) => !row.closedAt) ?? recent[0] ?? null;
+    }
+
+    if (!ticket) return { updated: false as const, reason: "no-ticket" as const };
+    if (ticket.closedAt) return { updated: false as const, reason: "ticket-closed" as const };
+    if ((ticket.respondedAt ?? 0) >= at) return { updated: false as const, reason: "already-recorded" as const };
+
+    await ctx.db.patch(ticket._id, { respondedAt: at, status: "responded" });
+    return { updated: true as const, reference: ticket.reference ?? null };
   },
 });
 

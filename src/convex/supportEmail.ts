@@ -459,9 +459,9 @@ export const sendSupportNotification = internalAction({
   handler: async (_ctx, args) => {
     const to = process.env.SUPPORT_EMAIL ?? DEFAULT_SUPPORT_EMAIL;
     const submittedTime = new Date(args.submittedAt).toISOString();
-    const subjectLine = args.subject
-      ? `[OpenWorlds Support] ${args.subject}`
-      : `[OpenWorlds Support] ${args.reasonLabel}`;
+    // The reference keeps reply threads identifiable, so a reply sent from the
+    // support inbox can be matched back to its ticket automatically.
+    const subjectLine = `${args.reference ? `[${args.reference}] ` : ""}[OpenWorlds Support] ${args.subject || args.reasonLabel}`;
 
     const text = [
       "New OpenWorlds support ticket",
