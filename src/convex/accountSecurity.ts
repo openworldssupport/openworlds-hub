@@ -195,7 +195,7 @@ export const completeStaffSignIn = internalAction({
     const email = rawEmail.trim().toLowerCase();
     const account = await ctx.runQuery(internal.accountSecurity.staffAccountForSignIn, { email });
     if (!account) throw new Error("Staff sign-in verification failed.");
-    if (account.twoFactorEnabled) {
+    if (account.twoFactorEnabled && account.userId) {
       const user = await ctx.runQuery(internal.accountSecurity.staffTwoFactorApproved, { userId: account.userId });
       if (!user) throw new Error("Two-step verification is required to finish signing in.");
     }
@@ -263,12 +263,21 @@ export const staffAccountForSignIn = internalQuery({
   args: { email: v.string() },
   handler: async (ctx, { email }) => {
     const normalized = email.trim().toLowerCase();
-    const user = await ctx.db.query("users").filter((q) => q.eq(q.field("email"), normalized)).first();
-    if (!user || user.role === "user" || user.isAnonymous) return null;
-    const invitation = await ctx.db.query("companyAccess").withIndex("by_email", (q) => q.eq("email", normalized)).first();
-    const assigned = Boolean(user.staffAccess || user.department?.trim() || user.position?.trim());
-    if (normalized !== "contact@openworlds.dk" && !invitation && !assigned) return null;
-    return { userId: user._id, twoFactorEnabled: user.twoFactorEnabled === true };
+    const [user, invitation] = await Promise.all([
+      ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalized)).first(),
+      ctx.db.query("companyAccess").withIndex("by_email", (q) => q.eq("email", normalized)).first(),
+    ]);
+    if (user?.isAnonymous) return null;
+    // An invitation is enough before the first sign-in. Converted player
+    // accounts keep role "user" until this callback assigns their staff role.
+    const assigned = Boolean(user && user.role !== "user" &&
+      (user.staffAccess || user.department?.trim() || user.position?.trim()));
+    const allowed = normalized === "contact@openworlds.dk" || Boolean(invitation) || assigned || user?.role === "admin";
+    if (!allowed) return null;
+    return {
+      userId: user?._id ?? null,
+      twoFactorEnabled: Boolean(user?.twoFactorEnabled),
+    };
   },
 });
 
@@ -276,7 +285,7 @@ export const authorizeStaffTwoFactor = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.role === "user" || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) throw new Error("Staff two-step verification failed.");
+    if (!user || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) throw new Error("Staff two-step verification failed.");
     await ctx.db.patch(userId, { twoFactorLoginVerifiedUntil: Date.now() + 90 * 1000 });
     return true;
   },
@@ -292,13 +301,14 @@ export const prepareStaffSignIn = action({
     if (!validOtp) throw new Error("That email code is incorrect or expired.");
     if (account.twoFactorEnabled && !authenticatorCode?.trim()) return { needsTwoFactor: true };
     if (account.twoFactorEnabled) {
+      if (!account.userId) throw new Error("Staff sign-in verification failed.");
       const result = await ctx.runMutation(internal.accountSecurity.consumeStaffSignInCode, {
         userId: account.userId,
         code: authenticatorCode!.trim().toUpperCase(),
       });
       if (!result.ok) throw new Error(result.message);
+      await ctx.runMutation(internal.accountSecurity.authorizeStaffTwoFactor, { userId: account.userId });
     }
-    if (account.twoFactorEnabled) await ctx.runMutation(internal.accountSecurity.authorizeStaffTwoFactor, { userId: account.userId });
     return { needsTwoFactor: false };
   },
 });
@@ -307,7 +317,7 @@ export const consumeStaffSignInCode = internalMutation({
   args: { userId: v.id("users"), code: v.string() },
   handler: async (ctx, { userId, code }) => {
     const user = await ctx.db.get(userId);
-    if (!user || user.role === "user" || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    if (!user || user.isAnonymous || !user.twoFactorEnabled || !user.twoFactorSecret) {
       return { ok: false as const, message: "Staff sign-in verification failed." };
     }
     const result = await consumeSecondFactor(ctx, user, code);
