@@ -71,7 +71,7 @@ export const termsSections: Section[] = [
   {
     title: "10. Changes to these terms",
     body: [
-      "We may update these Terms as the website, game, or services change. The current version is shown above. Signed-in website users will be asked to review and accept the current versions when either these Terms or the Privacy Policy changes.",
+      "We may update these Terms as the website, game, or services change. The current version is shown above and remains available here to read whenever it changes.",
     ],
   },
   {

@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Wordmark } from "@/components/Wordmark";
-import { LegalPolicyGate } from "@/components/LegalPolicyGate";
+import { AccountStatusGate } from "@/components/AccountStatusGate";
 import { OfflinePage } from "@/components/OfflinePage";
 import { StaffSignInNotice } from "@/components/StaffSignInNotice";
 import { PresenceHeartbeat } from "@/components/PresenceHeartbeat";
@@ -249,7 +249,7 @@ createRoot(document.getElementById("root")!).render(
           <DeviceSessionTracker />
           <StaffSignInNotice />
           <OfflinePage>
-            <LegalPolicyGate>
+            <AccountStatusGate>
               <Suspense fallback={<RouteLoading />}>
                 <Routes>
               <Route path="/" element={<Landing />} />
@@ -356,7 +356,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/staff/appeals" element={<Navigate to="/moderation?tab=appeals" replace />} />
               <Route path="*" element={<NotFound />} />                </Routes>
               </Suspense>
-            </LegalPolicyGate>
+            </AccountStatusGate>
           </OfflinePage>
         </BrowserRouter>
         <Toaster />
