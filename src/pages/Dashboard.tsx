@@ -99,8 +99,10 @@ export default function Dashboard() {
       const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
       if (!response.ok) throw new Error("The image upload failed. Please try again.");
       const { storageId } = await response.json() as { storageId: Id<"_storage"> };
-      await finalizeProfileImage({ storageId });
-      setProfileMessage("Profile photo updated.");
+      const result = await finalizeProfileImage({ storageId });
+      setProfileMessage(result.screened
+        ? "Profile photo updated."
+        : "Profile photo updated. Automatic image screening is not configured, so this photo was saved without it.");
     } catch (error) {
       setProfileMessage(error instanceof Error ? error.message : "Could not upload your profile photo.");
     } finally {

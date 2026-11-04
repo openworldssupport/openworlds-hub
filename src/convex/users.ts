@@ -494,10 +494,10 @@ export const myFriends = query({
     const pending = requests.filter((r) => r.status === "pending" && r.receiverId === userId);
     const friends = await Promise.all(friendIds.map((id) => ctx.db.get(id)));
     const requestsWithUsers = await Promise.all(pending.map(async (request) => ({ requestId: request._id, user: await ctx.db.get(request.senderId) })));
-    const safeProfile = (friend: typeof friends[number]) => friend && hasPublicUsername(friend) ? {
+    const safeProfile = async (friend: typeof friends[number]) => friend && hasPublicUsername(friend) ? {
       username: friend.playerLogin!.trim(),
       displayName: publicAccountName(friend),
-      image: friend.profileImageStorageId ? null : friend.image ?? null,
+      image: friend.profileImageStorageId ? await ctx.storage.getUrl(friend.profileImageStorageId) : friend.image ?? null,
     } : null;
     const friendProfiles = await Promise.all(friends.map(async (friend) => {
       if (!friend || !hasPublicUsername(friend)) return null;
@@ -510,7 +510,10 @@ export const myFriends = query({
     }));
     return {
       friends: friendProfiles.filter((friend): friend is NonNullable<typeof friend> => friend !== null),
-      requests: requestsWithUsers.flatMap(({ requestId, user: sender }) => { const profile = safeProfile(sender); return profile ? [{ requestId, ...profile }] : []; }),
+      requests: (await Promise.all(requestsWithUsers.map(async ({ requestId, user: sender }) => {
+        const profile = await safeProfile(sender);
+        return profile ? [{ requestId, ...profile }] : [];
+      }))).flat(),
     };
   },
 });

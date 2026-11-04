@@ -42,8 +42,9 @@ function score(value: unknown) {
 
 /**
  * Automatic image safety check. Uses Sightengine (nudity, offensive, gore).
- * Fails closed: if the provider is not configured or unreachable, the image is
- * refused rather than published unchecked.
+ * If the provider is not configured, the upload is saved without screening so
+ * profile photos still work; provider failures still fail closed. Set
+ * IMAGE_MODERATION_STRICT=true to also refuse uploads without credentials.
  */
 async function checkImage(blob: Blob, apiUser: string, apiSecret: string): Promise<SafetyResult> {
   const form = new FormData();
@@ -224,8 +225,13 @@ export const finalizeProfileImage = action({
     const apiUser = process.env.SIGHTENGINE_API_USER?.trim();
     const apiSecret = process.env.SIGHTENGINE_API_SECRET?.trim();
     if (!apiUser || !apiSecret) {
-      await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
-      throw new Error("Profile photo uploads are paused while the automatic image safety check is unavailable. Please email contact@openworlds.dk if this continues.");
+      if (process.env.IMAGE_MODERATION_STRICT === "true") {
+        await ctx.runMutation(internal.imageSafety.discardUpload, { userId: uploader.userId, storageId });
+        throw new Error("Profile photo uploads are paused while the automatic image safety check is unavailable. Please email contact@openworlds.dk if this continues.");
+      }
+      console.warn("[image-safety] Sightengine is not configured; saving the profile photo without automatic screening.");
+      const fallback: { url: string | null } = await ctx.runMutation(internal.imageSafety.applyProfileImage, { userId: uploader.userId, storageId });
+      return { url: fallback.url, screened: false };
     }
     const blob = await ctx.storage.get(storageId);
     if (!blob) {
@@ -248,8 +254,8 @@ export const finalizeProfileImage = action({
       });
       throw new Error("This image can’t be used because it breaks our content rules. It was removed and the contact team has been notified.");
     }
-    await ctx.runMutation(internal.imageSafety.applyProfileImage, { userId: uploader.userId, storageId });
-    return { url: await ctx.storage.getUrl(storageId) };
+    const applied: { url: string | null } = await ctx.runMutation(internal.imageSafety.applyProfileImage, { userId: uploader.userId, storageId });
+    return { url: applied.url, screened: true };
   },
 });
 
