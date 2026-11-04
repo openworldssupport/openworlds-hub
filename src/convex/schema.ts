@@ -414,6 +414,18 @@ const schema = defineSchema(
       .index("by_session", ["sessionId"])
       .index("by_user_device", ["userId", "deviceId"]),
 
+    // Owner-only investigation access. Each dossier opening is recorded with
+    // the actor, target, stated reason, and timestamp for accountability.
+    investigationAccessLog: defineTable({
+      actorId: v.id("users"),
+      targetId: v.id("users"),
+      reason: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_created", ["createdAt"])
+      .index("by_target_created", ["targetId", "createdAt"])
+      .index("by_actor_created", ["actorId", "createdAt"]),
+
     // One short-lived elevation per signed-in session. Created by
     // staffUnlock.unlock after the member confirms a code from their own
     // authenticator app; every sensitive staff action checks it.

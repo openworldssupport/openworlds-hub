@@ -5,10 +5,11 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RoleBadge } from "@/components/RoleBadge";
 import { StaffUnlock } from "@/components/StaffUnlock";
 import { DEPARTMENTS, POSITIONS, deriveBadge, isChiefExecutivePosition, type PublicBadge } from "@/lib/staff";
-import { AlertCircle, BadgeCheck, Loader2, Save, Bell, CheckCircle2 } from "lucide-react";
+import { AlertCircle, BadgeCheck, Bell, CheckCircle2, Download, FileSearch, Loader2, Save, ShieldAlert } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
 type AdminNotificationRecipientKind = "careers" | "support" | "both";
@@ -73,6 +74,17 @@ type PendingStaffConversion = {
   createdAt: number;
   expiresAt: number;
   expired: boolean;
+};
+
+type InvestigationSearchResult = {
+  userId: Id<"users">;
+  username: string | null;
+  displayName: string | null;
+  email: string | null;
+  role: string | null;
+  department: string | null;
+  position: string | null;
+  isBanned: boolean;
 };
 
 function formatConversionCode(code: string) {
@@ -197,6 +209,7 @@ function TeamPanel() {
       <PendingStaffPanel canChange={isPermissionVerified} />
       <PlayerConversionPanel canChange={isPermissionVerified} />
       <StaffInvitePanel canChange={isPermissionVerified} canGrantAdmin={canGrantAdmin} />
+      {canGrantAdmin && <InvestigationPanel canOpen={isPermissionVerified} />}
       {members.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p>
       ) : (
@@ -1107,6 +1120,142 @@ function SubmissionNotificationPanel() {
 
       {!isVerified && <div className="mt-4"><StaffUnlock description="Unlock to add or remove alert recipients for the next 15 minutes." /></div>}
       {error && <p role="alert" className="mt-3 flex items-center gap-2 text-sm text-red-800"><AlertCircle className="size-4" />{error}</p>}
+    </section>
+  );
+}
+
+function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<InvestigationSearchResult | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<unknown>(null);
+  const term = search.trim();
+  const results = useQuery(
+    api.investigations.searchAccounts,
+    canOpen && term.length >= 2 ? { search: term } : "skip",
+  );
+  const openInvestigation = useMutation(api.investigations.openAccountInvestigation);
+
+  async function handleOpen() {
+    if (!selected) return;
+    setBusy(true);
+    setError("");
+    setResult(null);
+    try {
+      const dossier = await openInvestigation({ userId: selected.userId, reason: reason.trim() });
+      setResult(dossier);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not open the investigation file.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function downloadDossier() {
+    if (!result) return;
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `openworlds-investigation-${selected?.username ?? "account"}-${Date.now()}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="rounded-lg border border-amber-300 bg-amber-50/50 p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-800"><ShieldAlert className="size-5" /></span>
+        <div>
+          <h2 className="font-semibold">Investigation access</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Owner-only, authenticator-unlocked access to the full private record for one account. Use this only for a specific safety, fraud, or legal investigation. Every opening is logged with your account, the target, your reason, and the time. The JSON file contains unmasked personal data — store it securely and delete it when no longer needed.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 max-w-xl space-y-1">
+        <Label htmlFor="investigation-search">Find an account</Label>
+        <Input
+          id="investigation-search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setSelected(null);
+            setResult(null);
+            setError("");
+          }}
+          maxLength={80}
+          placeholder="Username, display name, account ID, or exact email"
+          disabled={!canOpen}
+        />
+        <p className="text-xs text-slate-500">Results are masked. The full record is revealed only after you enter a reason.</p>
+      </div>
+
+      {canOpen && term.length >= 2 && (
+        <div className="mt-3 max-w-xl space-y-1">
+          {results === undefined ? (
+            <p className="text-sm text-slate-500">Searching…</p>
+          ) : results.length === 0 ? (
+            <p className="text-sm text-slate-500">No accounts matched that search.</p>
+          ) : (
+            results.map((account) => (
+              <button
+                key={account.userId}
+                type="button"
+                onClick={() => {
+                  setSelected(account);
+                  setResult(null);
+                  setError("");
+                }}
+                className={`flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm ${selected?.userId === account.userId ? "border-amber-500 bg-white" : "border-amber-200 bg-white/70 hover:bg-white"}`}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-slate-900">{account.username ? `@${account.username}` : account.displayName ?? "Unnamed account"}</span>
+                  <span className="block truncate text-xs text-slate-500">{account.email ?? "No email on file"}{account.role ? ` · ${account.role}` : ""}{account.position ? ` · ${account.position}` : ""}{account.isBanned ? " · restricted" : ""}</span>
+                </span>
+                <span className="shrink-0 text-xs font-medium text-amber-800">{selected?.userId === account.userId ? "Selected" : "Select"}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {selected && (
+        <div className="mt-4 max-w-xl space-y-2 rounded-md border border-amber-200 bg-white p-4">
+          <p className="text-sm font-medium">Opening the file for {selected.username ? `@${selected.username}` : selected.displayName ?? "this account"}</p>
+          <div className="space-y-1">
+            <Label htmlFor="investigation-reason">Reason for access</Label>
+            <Textarea
+              id="investigation-reason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={500}
+              minLength={10}
+              placeholder="Describe the safety, fraud, or legal concern and the case reference if you have one."
+            />
+            <p className="text-xs text-slate-500">10–500 characters. This reason is written to the access log.</p>
+          </div>
+          <Button type="button" disabled={!canOpen || busy || reason.trim().length < 10} onClick={() => void handleOpen()}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <FileSearch className="size-4" />}
+            {busy ? "Building file…" : "Open investigation file"}
+          </Button>
+        </div>
+      )}
+
+      {error && <p role="alert" className="mt-3 flex items-center gap-2 text-sm text-red-800"><AlertCircle className="size-4" />{error}</p>}
+
+      {result !== null && (
+        <div className="mt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Investigation file ready</p>
+            <Button type="button" size="sm" variant="outline" onClick={downloadDossier}><Download className="size-4" /> Download JSON</Button>
+          </div>
+          <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-slate-950 p-4 text-xs leading-5 text-slate-100">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
     </section>
   );
 }
