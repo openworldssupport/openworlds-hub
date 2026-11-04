@@ -56,42 +56,59 @@ export type DefaultModerationRole = {
 };
 
 const ALL: ModerationCapability[] = [...MODERATION_CAPABILITIES];
-const TRUST_LEAD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "ip-ban", "review-appeals", "view-audit"];
-const COMMUNITY_MOD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "view-audit"];
+
+/** Read-only oversight without enforcement. */
+const OVERSIGHT: ModerationCapability[] = ["view", "view-audit"];
+/** Light-touch community support: can flag and warn, but cannot restrict accounts. */
+const COMMUNITY_SUPPORT: ModerationCapability[] = ["view", "warn"];
+/** Frontline moderation: temporary restrictions, no permanent or network bans. */
+const FRONTLINE_MOD: ModerationCapability[] = ["view", "warn", "suspend"];
+/** Trust & Safety lead: permanent bans and network blocks, but no appeal decisions. */
+const TRUST_LEAD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "ip-ban", "view-audit"];
+/** Senior community safety: permanent bans, without network-level or appeal powers. */
+const SAFETY_LEAD: ModerationCapability[] = ["view", "warn", "suspend", "ban", "view-audit"];
+/** Independent appeals review, kept separate from enforcement. */
 const APPEALS: ModerationCapability[] = ["view", "review-appeals", "view-audit"];
 
 /**
- * Sensible starting roles. An administrator can change any of these in the
- * Trust & Safety permissions tab without editing code. These defaults are only
- * used until an override row exists for that exact department + position.
+ * Role-appropriate starting powers. An administrator can change any of these
+ * in the Trust & Safety permissions tab without editing code. These defaults
+ * are only used until an override row exists for that exact department + position.
+ *
+ * Positions not listed here deliberately have no moderation access: engineers,
+ * designers, analysts, marketers, and other contributors should not be able to
+ * read reports or restrict accounts just because they are staff.
  */
 export const DEFAULT_MODERATION_ROLES: DefaultModerationRole[] = [
-  // Executive leadership: oversight of every moderation capability.
-  { department: "Executive Leadership", position: "Chief Technical Officer (CTO)", capabilities: ALL },
-  { department: "Executive Leadership", position: "Chief Operating Officer (COO)", capabilities: ALL },
-  { department: "Executive Leadership", position: "Chief Financial Officer (CFO)", capabilities: ALL },
-  { department: "Executive Leadership", position: "Chief Marketing Officer (CMO)", capabilities: ALL },
-  { department: "Executive Leadership", position: "Executive Strategic & Advisory Board", capabilities: ["view", "view-audit"] },
+  // Executive leadership gets oversight proportional to the role. Finance,
+  // marketing, and the advisory board can read and review, but do not enforce.
+  { department: "Executive Leadership", position: "Chief Technical Officer (CTO)", capabilities: ["view", "warn", "suspend", "ip-ban", "view-audit"] },
+  { department: "Executive Leadership", position: "Chief Operating Officer (COO)", capabilities: ["view", "warn", "suspend", "ban", "review-appeals", "view-audit"] },
+  { department: "Executive Leadership", position: "Chief Financial Officer (CFO)", capabilities: OVERSIGHT },
+  { department: "Executive Leadership", position: "Chief Marketing Officer (CMO)", capabilities: OVERSIGHT },
+  { department: "Executive Leadership", position: "Executive Strategic & Advisory Board", capabilities: OVERSIGHT },
 
-  // Community operations: the coordinator can act on reports; the other roles
-  // have lighter-touch access instead of inheriting every power.
-  { department: "Community Operations & Player Engagement", position: "Community Operations Coordinator", capabilities: ["view", "warn", "suspend", "ban", "review-appeals", "view-audit"] },
-  { department: "Community Operations & Player Engagement", position: "Community Events Coordinator", capabilities: ["view", "warn", "suspend"] },
-  { department: "Community Operations & Player Engagement", position: "Player Feedback Coordinator", capabilities: ["view", "warn"] },
+  // Community operations: coordinators can act on immediate community issues;
+  // events and feedback roles can flag and warn without restricting accounts.
+  { department: "Community Operations & Player Engagement", position: "Community Operations Coordinator", capabilities: ["view", "warn", "suspend", "view-audit"] },
+  { department: "Community Operations & Player Engagement", position: "Community Events Coordinator", capabilities: COMMUNITY_SUPPORT },
+  { department: "Community Operations & Player Engagement", position: "Player Feedback Coordinator", capabilities: COMMUNITY_SUPPORT },
 
-  // Faction moderation roles.
-  { department: "Faction", position: "Community Moderator", capabilities: COMMUNITY_MOD },
+  // Faction moderation roles. Appeals are deliberately independent from
+  // enforcement, and frontline moderators cannot issue permanent bans.
+  { department: "Faction", position: "Community Moderator", capabilities: FRONTLINE_MOD },
   { department: "Faction", position: "Trust & Safety Moderator", capabilities: TRUST_LEAD },
-  { department: "Faction", position: "Player Reports Moderator", capabilities: COMMUNITY_MOD },
+  { department: "Faction", position: "Player Reports Moderator", capabilities: FRONTLINE_MOD },
   { department: "Faction", position: "Moderation Appeals Reviewer", capabilities: APPEALS },
-  { department: "Faction", position: "Community Safety Coordinator", capabilities: TRUST_LEAD },
+  { department: "Faction", position: "Community Safety Coordinator", capabilities: SAFETY_LEAD },
 
   // Legacy department name kept so existing assignments keep working.
   { department: "Trust & Safety / Moderation", position: "Trust & Safety Moderator", capabilities: TRUST_LEAD },
   { department: "Trust & Safety / Moderation", position: "Moderation Appeals Reviewer", capabilities: APPEALS },
-  { department: "Trust & Safety / Moderation", position: "Community Moderator", capabilities: COMMUNITY_MOD },
+  { department: "Trust & Safety / Moderation", position: "Community Moderator", capabilities: FRONTLINE_MOD },
 
-  // Support can see reports and bans, but not appeals or audit history.
+  // Support escalations can read reports and bans to resolve cases, but cannot
+  // enforce. Other support roles have no moderation access by default.
   { department: "Player Support & Service", position: "Support Escalations Coordinator", capabilities: ["view"] },
 ];
 
