@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RoleBadge } from "@/components/RoleBadge";
 import { StaffUnlock } from "@/components/StaffUnlock";
-import { DEPARTMENTS, POSITIONS, deriveBadge, type PublicBadge } from "@/lib/staff";
+import { DEPARTMENTS, POSITIONS, deriveBadge, isChiefExecutivePosition, type PublicBadge } from "@/lib/staff";
 import { AlertCircle, BadgeCheck, Loader2, Save, Bell, CheckCircle2 } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { Link } from "react-router";
@@ -35,6 +35,8 @@ type TeamMember = {
   position: string | null;
   isStaff: boolean;
   isAdmin: boolean;
+  isOwnerAccount: boolean;
+  isChiefExecutive: boolean;
   role: string | null;
   badge: PublicBadge | null;
   memberStatus: "volunteer-thank-you" | null;
@@ -106,8 +108,13 @@ function TeamPanel() {
   const isRosterVerified = Boolean(rosterStatus?.isAdmin && rosterStatus.verifiedUntil > verificationClock);
   const isPermissionVerified = isRosterVerified;
   const canGrantAdmin = Boolean(me?.isOwnerAdmin);
+  // The hidden CEO seat is owner-only, so non-owner admins never see it as a
+  // suggested position. The server still rejects a manually typed value.
+  const availablePositions = canGrantAdmin
+    ? POSITIONS
+    : POSITIONS.filter((position) => !isChiefExecutivePosition(position));
   const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, isRosterVerified ? {} : "skip", { initialNumItems: 50 });
-  const positionAvailability = useQuery(api.careerApplications.roleAvailability, isRosterVerified ? {} : "skip");
+  const positionAvailability = useQuery(api.careerApplications.adminPositionAvailability, isRosterVerified ? {} : "skip");
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
@@ -129,7 +136,17 @@ function TeamPanel() {
     setSavedId(null);
     setBusyId(member.userId);
     try {
-      if (member.isAdmin) {
+      // The owner account itself is managed by the bootstrap flow. Every other
+      // admin or CEO can be reassigned by the owner through this row.
+      const canEditAdmin = member.isAdmin && canGrantAdmin && !member.isOwnerAccount;
+      const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
+      const assignmentChanged =
+        department !== (member.department ?? "") ||
+        position !== (member.position ?? "") ||
+        badge !== defaultBadge ||
+        accessLevel !== (member.isAdmin ? "admin" : "staff") ||
+        banned !== member.isBanned;
+      if (member.isAdmin && (!canEditAdmin || !assignmentChanged)) {
         await setMemberStatus({ userId: member.userId, memberStatus });
         setSavedId(member.userId);
         return;
@@ -163,12 +180,12 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Administrators can change department and position; only the owner account can grant admin access or appoint the hidden CEO. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above; appointing a high-power role without that unlock is refused by the server.</p>
+      <p className="text-sm text-slate-600">Staff directory. Administrators can change department and position; only the owner account can grant admin access, appoint the hidden CEO, or reassign an existing admin/CEO row. The bootstrap owner is managed separately. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above; appointing a high-power role without that unlock is refused by the server.</p>
       {positionAvailability && <details className="rounded-lg border border-slate-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-medium text-slate-800">Position limits</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {positionAvailability.map((role) => <div key={role.slug} className="flex items-center justify-between gap-3 rounded-md border border-slate-100 px-3 py-2 text-xs">
-            <span className="min-w-0 truncate text-slate-700">{role.title}</span>
+            <span className="min-w-0 truncate text-slate-700">{role.title}{role.isHidden && <span className="ml-1.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">Hidden</span>}</span>
             <span className={`shrink-0 rounded-full px-2 py-0.5 font-medium ${role.full ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{role.assignedCount}/{role.capacity}</span>
           </div>)}
         </div>
@@ -176,7 +193,7 @@ function TeamPanel() {
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>
-      <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
+      <datalist id="ow-positions">{availablePositions.map((item) => <option key={item} value={item} />)}</datalist>
       <PendingStaffPanel canChange={isPermissionVerified} />
       <PlayerConversionPanel canChange={isPermissionVerified} />
       <StaffInvitePanel canChange={isPermissionVerified} canGrantAdmin={canGrantAdmin} />
@@ -446,6 +463,7 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
             <div className="space-y-1">
               <Label htmlFor="convert-position">Position</Label>
               <Input id="convert-position" list="ow-positions" required maxLength={100} value={position} onChange={(event) => setPosition(event.target.value)} placeholder="Developer" />
+              {isChiefExecutivePosition(position) && <p className="text-xs text-slate-500">The CEO is hidden from careers, single-seat, and owner-only. This conversion will receive full admin authority.</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor="convert-badge">Badge</Label>
@@ -528,7 +546,7 @@ function StaffInvitePanel({ canChange, canGrantAdmin }: { canChange: boolean; ca
         publicBadge: badge,
         accessLevel,
       });
-      setSaved(`${normalizedEmail} can now sign in with a staff code.`);
+      setSaved("The staff account is ready. It can now sign in with a one-time email code.");
       setEmail("");
       setDepartment("");
       setPosition("");
@@ -580,9 +598,14 @@ function StaffInvitePanel({ canChange, canGrantAdmin }: { canChange: boolean; ca
             required
             maxLength={100}
             value={position}
-            onChange={(event) => setPosition(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setPosition(next);
+              if (canGrantAdmin && isChiefExecutivePosition(next)) setAccessLevel("admin");
+            }}
             placeholder="Developer"
           />
+          {isChiefExecutivePosition(position) && <p className="text-xs text-slate-500">The CEO is hidden from careers, single-seat, and owner-only. Admin access is selected automatically.</p>}
         </div>
         <div className="space-y-1">
           <Label htmlFor="staff-invite-badge">Badge</Label>
@@ -629,16 +652,20 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
   const [memberStatus, setMemberStatus] = useState<"none" | "volunteer-thank-you">(member.memberStatus ?? "none");
   const [accessLevel, setAccessLevel] = useState<"staff" | "admin">(member.isAdmin ? "admin" : "staff");
   const [banned, setBanned] = useState(member.isBanned);
-  const isDirty = member.isAdmin
-    ? memberStatus !== (member.memberStatus ?? "none")
-    : department !== (member.department ?? "") ||
-      position !== (member.position ?? "") ||
-      badge !== defaultBadge ||
-      memberStatus !== (member.memberStatus ?? "none") ||
-      accessLevel !== "staff" ||
-      banned !== member.isBanned;
+  const canEditAssignment = !member.isAdmin || (canGrantAdmin && !member.isOwnerAccount);
+  const assignmentDirty =
+    department !== (member.department ?? "") ||
+    position !== (member.position ?? "") ||
+    badge !== defaultBadge ||
+    accessLevel !== (member.isAdmin ? "admin" : "staff") ||
+    banned !== member.isBanned;
+  const isDirty = canEditAssignment
+    ? assignmentDirty || memberStatus !== (member.memberStatus ?? "none")
+    : memberStatus !== (member.memberStatus ?? "none");
   const active = Boolean(department.trim() || position.trim());
-  const canSave = member.isAdmin ? canChangeAccess && isDirty : isDirty && canChangeAccess && (active || member.isStaff || banned !== member.isBanned);
+  const canSave = canEditAssignment
+    ? isDirty && canChangeAccess && (active || member.isStaff || banned !== member.isBanned)
+    : isDirty && canChangeAccess;
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4">
@@ -646,7 +673,11 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold">
             {member.nickname || member.name || member.playerLogin || "Unnamed account"}
-            {member.isAdmin ? (
+            {member.isOwnerAccount ? (
+              <span className="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">Owner</span>
+            ) : member.isChiefExecutive ? (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">CEO</span>
+            ) : member.isAdmin ? (
               <span className="text-xs font-medium text-slate-500">Admin</span>
             ) : member.isStaff && (
               <RoleBadge badge={member.badge ?? defaultBadge} />
@@ -655,7 +686,7 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
           <p className="text-xs text-slate-500">{member.email || "Email unavailable"}</p>
           {member.playerLogin && <p className="mt-1 text-xs text-slate-600">OpenWorlds username: <span className="font-medium">{member.playerLogin}</span></p>}
           <p className="mt-1 text-xs text-slate-600">
-            {member.isAdmin ? "Administrator" : member.isStaff ? "Staff member" : "Player account"}
+            {member.isOwnerAccount ? "Bootstrap owner (managed separately)" : member.isChiefExecutive ? "Chief Executive Officer" : member.isAdmin ? "Administrator" : member.isStaff ? "Staff member" : "Player account"}
             {member.department ? ` - ${member.department}` : ""}
             {member.position ? ` - ${member.position}` : ""}
             {member.isBanned ? " - access restricted" : ""}
@@ -682,7 +713,7 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
         </div>
       )}
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-        {!member.isAdmin && (
+        {canEditAssignment && (
           <>
             <div className="space-y-1">
               <Label htmlFor={`dept-${member.userId}`}>Department</Label>
@@ -702,9 +733,14 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
                 list="ow-positions"
                 maxLength={100}
                 value={position}
-                onChange={(e) => setPosition(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPosition(next);
+                  if (canGrantAdmin && isChiefExecutivePosition(next)) setAccessLevel("admin");
+                }}
                 placeholder="Developer"
               />
+              {isChiefExecutivePosition(position) && <p className="text-xs text-slate-500">The CEO is a hidden, single-seat appointment with full operational authority. It always carries admin access and only the owner can assign it.</p>}
             </div>
             <div className="space-y-1">
               <Label htmlFor={`badge-${member.userId}`}>Badge</Label>

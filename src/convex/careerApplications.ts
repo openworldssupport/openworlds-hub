@@ -1,9 +1,9 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { careerRoles } from "../lib/careers";
+import { careerRoles, HIDDEN_STAFF_ROLES, staffRoles } from "../lib/careers";
 import { requireAdmin } from "./admin";
-import { requirePermissionVerification } from "./adminRoster";
+import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { requireSiteAvailable } from "./siteStatus";
 import { loadPositionSnapshot, roleAvailabilityFromSnapshot, roleAvailabilityState } from "./staffPositions";
 
@@ -91,6 +91,20 @@ export const roleAvailability = query({
     await requireSiteAvailable(ctx);
     const snapshot = await loadPositionSnapshot(ctx);
     return careerRoles.map((role) => roleAvailabilityFromSnapshot(snapshot, role));
+  },
+});
+
+/** Admin-only: include hidden appointments such as the CEO in position limits. */
+export const adminPositionAvailability = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireRosterVerification(ctx);
+    const snapshot = await loadPositionSnapshot(ctx);
+    const hiddenSlugs = new Set(HIDDEN_STAFF_ROLES.map((role) => role.slug));
+    return staffRoles.map((role) => ({
+      ...roleAvailabilityFromSnapshot(snapshot, role),
+      isHidden: hiddenSlugs.has(role.slug),
+    }));
   },
 });
 

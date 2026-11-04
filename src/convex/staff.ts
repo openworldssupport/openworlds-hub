@@ -247,6 +247,8 @@ export const listMembers = query({
           position,
           isStaff: true,
           isAdmin: user.role === "admin" || user.email?.trim().toLowerCase() === "contact@openworlds.dk",
+          isOwnerAccount: user.email?.trim().toLowerCase() === SUPPORT_EMAIL,
+          isChiefExecutive: isChiefExecutivePosition(position),
           badge: assigned && !user.isSiteBanned ? (user.publicBadge ?? deriveBadge(department, position)) : null,
           memberStatus: user.memberStatus ?? null,
           isBanned: user.isSiteBanned === true,
