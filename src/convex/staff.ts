@@ -1,6 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { isAdmin, requireAdmin, requireRoleAdministrator } from "./admin";
+import { isAdmin, isOwnerAdmin, requireAdmin, requireRoleAdministrator, SUPPORT_EMAIL } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { canonicalDepartmentName, deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
@@ -79,6 +79,7 @@ export const me = query({
         userId: null as string | null,
         isStaff: false,
         isAdmin: false,
+        isOwnerAdmin: false,
         name: null as string | null,
         nickname: null as string | null,
         department: null as string | null,
@@ -91,6 +92,7 @@ export const me = query({
     }
 
     const admin = await isAdmin(ctx);
+    const ownerAdmin = admin && user.email?.trim().toLowerCase() === SUPPORT_EMAIL;
     const staff = (admin || (user.emailVerificationTime !== undefined && Boolean(user.staffAccess || user.department?.trim() || user.position?.trim()))) && !user.isSiteBanned;
     const department = canonicalDepartmentName(user.department) || null;
     const position = user.position?.trim() || null;
@@ -100,6 +102,7 @@ export const me = query({
       userId: user._id,
       isStaff: staff,
       isAdmin: admin,
+      isOwnerAdmin: ownerAdmin,
       isBanned: user.isSiteBanned === true,
       memberStatus: staff ? user.memberStatus ?? null : null,
       canPublishAnnouncements: staff && canPublishAnnouncementsFor(user, admin),
@@ -342,6 +345,9 @@ export const setAssignment = mutation({
     const currentTarget = await ctx.db.get(args.userId);
     if (!currentTarget) throw new Error("Account not found.");
     const nextLevel = args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
+    if ((currentTarget.role === "admin" || args.accessLevel === "admin") && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can grant or change administrator access.");
+    }
     const wasStaff = Boolean(currentTarget.emailVerificationTime !== undefined && !currentTarget.isSiteBanned &&
       (currentTarget.role === "admin" || currentTarget.staffAccess || currentTarget.department?.trim() || currentTarget.position?.trim()));
     if (currentTarget.role === "admin" && args.accessLevel === "staff" && !department && !position) {

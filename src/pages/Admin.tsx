@@ -82,6 +82,7 @@ type TeamRowProps = {
   member: TeamMember;
   busy: boolean;
   saved: boolean;
+  canGrantAdmin: boolean;
   onSave: (
     member: TeamMember,
     department: string,
@@ -105,6 +106,7 @@ function TeamPanel() {
   }, [rosterStatus?.verifiedUntil]);
   const isRosterVerified = Boolean(rosterStatus?.isAdmin && rosterStatus.verifiedUntil > verificationClock);
   const isPermissionVerified = isRosterVerified;
+  const canGrantAdmin = Boolean(me?.isOwnerAdmin);
   const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, isRosterVerified ? {} : "skip", { initialNumItems: 50 });
   const positionAvailability = useQuery(api.careerApplications.roleAvailability, isRosterVerified ? {} : "skip");
   const setAssignment = useMutation(api.staff.setAssignment);
@@ -162,7 +164,7 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
+      <p className="text-sm text-slate-600">Staff directory. Administrators can change department and position; only the owner account can grant or change admin access. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
       {positionAvailability && <details className="rounded-lg border border-slate-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-medium text-slate-800">Position limits</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -178,7 +180,7 @@ function TeamPanel() {
       <datalist id="ow-positions">{POSITIONS.map((item) => <option key={item} value={item} />)}</datalist>
       <PendingStaffPanel canChange={isPermissionVerified} />
       <PlayerConversionPanel canChange={isPermissionVerified} />
-      <StaffInvitePanel canChange={isPermissionVerified} />
+      <StaffInvitePanel canChange={isPermissionVerified} canGrantAdmin={canGrantAdmin} />
       {members.length === 0 ? (
         <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm">No accounts found.</p>
       ) : (
@@ -202,6 +204,7 @@ function TeamPanel() {
               }
             }}
             canChangeAccess={isPermissionVerified}
+            canGrantAdmin={canGrantAdmin}
           />
         ))
       )}
@@ -499,7 +502,7 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
   );
 }
 
-function StaffInvitePanel({ canChange }: { canChange: boolean }) {
+function StaffInvitePanel({ canChange, canGrantAdmin }: { canChange: boolean; canGrantAdmin: boolean }) {
   const invite = useMutation(api.admin.inviteCompanyAccount);
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
@@ -601,8 +604,9 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
             className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
           >
             <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
+            <option value="admin" disabled={!canGrantAdmin}>Admin</option>
           </select>
+          {!canGrantAdmin && <p className="text-xs text-slate-500">Only the owner account can grant admin access.</p>}
         </div>
         <div className="sm:col-span-2">
           <Button type="submit" disabled={!canChange || busy || !email.trim()}>
@@ -616,7 +620,7 @@ function StaffInvitePanel({ canChange }: { canChange: boolean }) {
   );
 }
 
-function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeAccess }: TeamRowProps & { canChangeAccess: boolean; onSetOfficialCreator: (userId: Id<"users">, isOfficialCreator: boolean) => Promise<void> }) {
+function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeAccess, canGrantAdmin }: TeamRowProps & { canChangeAccess: boolean; onSetOfficialCreator: (userId: Id<"users">, isOfficialCreator: boolean) => Promise<void> }) {
   const defaultBadge = member.badge ?? deriveBadge(member.department, member.position);
   const [department, setDepartment] = useState(member.department ?? "");
   const [position, setPosition] = useState(member.position ?? "");
@@ -717,8 +721,9 @@ function TeamRow({ member, busy, saved, onSave, onSetOfficialCreator, canChangeA
               <Label htmlFor={`access-level-${member.userId}`}>Permission</Label>
               <select id={`access-level-${member.userId}`} value={accessLevel} onChange={(event) => setAccessLevel(event.target.value as "staff" | "admin")} className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm">
                 <option value="staff">Staff</option>
-                <option value="admin" disabled={!canChangeAccess}>Admin</option>
+                <option value="admin" disabled={!canChangeAccess || !canGrantAdmin}>Admin</option>
               </select>
+              {!canGrantAdmin && <p className="text-xs text-slate-500">Only the owner account can grant admin access.</p>}
             </div>
           </>
         )}

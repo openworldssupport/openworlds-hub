@@ -33,6 +33,11 @@ async function hashStaffConversionCode(userId: Id<"users">, code: string) {
   return await hashValue(`${userId}:${normalizeStaffConversionCode(code)}`);
 }
 
+/** The bootstrap owner account is the only account allowed to mint administrators. */
+export function isOwnerAdmin(user: { email?: string | null } | null | undefined): boolean {
+  return user?.email?.trim().toLowerCase() === SUPPORT_EMAIL;
+}
+
 /** Verified company administrator (the support mailbox is the bootstrap admin). */
 export async function isAdmin(ctx: QueryCtx | MutationCtx): Promise<boolean> {
   return await isCompanyAdmin(ctx);
@@ -64,6 +69,19 @@ export async function requireRoleAdministrator(ctx: MutationCtx): Promise<Doc<"u
   const userId = await getAuthUserId(ctx);
   const user = userId ? await ctx.db.get(userId) : null;
   if (!user) throw new Error("Not authorized.");
+  return user;
+}
+
+/**
+ * Role changes that create or alter an administrator are reserved for the
+ * bootstrap owner. Regular administrators can still manage non-admin staff,
+ * which prevents a single admin from minting allies with full site access.
+ */
+export async function requireOwnerAdministrator(ctx: MutationCtx): Promise<Doc<"users">> {
+  const user = await requireRoleAdministrator(ctx);
+  if (!isOwnerAdmin(user)) {
+    throw new Error("Only the owner administrator can grant or change administrator access.");
+  }
   return user;
 }
 
@@ -150,6 +168,9 @@ export const inviteCompanyAccount = mutation({
     }
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
     if (existingUser?.isSiteBanned) throw new Error("This account is restricted. Review the restriction before changing company access.");
+    if ((existingUser?.role === "admin" || args.accessLevel === "admin") && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can grant or change administrator access.");
+    }
     if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
     const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
@@ -161,6 +182,9 @@ export const inviteCompanyAccount = mutation({
       .query("companyAccess")
       .withIndex("by_email", (q) => q.eq("email", email))
       .unique();
+    if (existing?.accessLevel === "admin" && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can change an administrator invitation.");
+    }
     const values: {
       email: string;
       department: string;
@@ -220,6 +244,9 @@ export const revokeCompanyAccount = mutation({
     const actor = await requireRoleAdministrator(ctx);
     const invitation = await ctx.db.get(accountId);
     if (!invitation) return { ok: true };
+    if (invitation.accessLevel === "admin" && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can revoke an administrator invitation.");
+    }
     const normalized = invitation.email.trim().toLowerCase();
     if (normalized === SUPPORT_EMAIL) throw new Error("The bootstrap admin cannot be revoked here.");
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalized)).first();
@@ -337,6 +364,9 @@ export const convertPlayerToCompany = mutation({
     if (!position || position.length > 100) throw new Error("Position must be 1-100 characters.");
     await assertPositionCapacity(ctx, position, target._id);
     const accessLevel = args.accessLevel ?? "staff";
+    if (accessLevel === "admin" && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can grant administrator access.");
+    }
 
     const existingInvitation = await ctx.db
       .query("companyAccess")
@@ -444,6 +474,9 @@ export const regenerateStaffConversionCode = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
     if (!pending) throw new Error("That staff conversion is no longer pending.");
+    if (pending.accessLevel === "admin" && !isOwnerAdmin(actor)) {
+      throw new Error("Only the owner administrator can reissue an administrator conversion.");
+    }
     const target = await ctx.db.get(userId);
     if (!target || target.role !== "user" || target.isSiteBanned) {
       throw new Error("That account is no longer eligible for staff conversion.");
@@ -513,6 +546,12 @@ export const confirmStaffConversion = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
     if (!pending) throw new Error("No staff conversion is waiting for this account.");
+    if (pending.accessLevel === "admin") {
+      const inviter = await ctx.db.get(pending.invitedBy);
+      if (!isOwnerAdmin(inviter)) {
+        throw new Error("This administrator conversion was not approved by the owner. Ask the owner to restart it.");
+      }
+    }
     if (pending.expiresAt <= Date.now()) {
       throw new Error("That confirmation code expired. Ask an administrator for a new code.");
     }
