@@ -180,11 +180,16 @@ export const currentSession = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
+    // Not signed in at all: this is not evidence that a session was revoked.
+    if (!userId) return { active: null };
+    // Federated identities (for example a Vly sign-in) are valid auth users but
+    // have no local authSessions row. Never treat that as a revoked session.
     const sessionId = await getAuthSessionId(ctx);
-    if (!userId || !sessionId) return { active: false };
+    if (!sessionId) return { active: true, managed: false };
     const session = await ctx.db.get(sessionId);
     return {
       active: Boolean(session && session.userId === userId && session.expirationTime > Date.now()),
+      managed: true,
     };
   },
 });

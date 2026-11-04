@@ -38,9 +38,12 @@ export function DeviceSessionTracker() {
   const session = useQuery(api.accountDevices.currentSession, hasAccount ? {} : "skip");
 
   // If this session is revoked from another device (or by "Sign out all"),
-  // clear this tab as soon as the deletion is observed.
+  // clear this tab once the deletion is confirmed. The short delay avoids
+  // logging out during a brief auth-refresh gap.
   useEffect(() => {
-    if (hasAccount && session?.active === false) void signOut();
+    if (!hasAccount || session?.active !== false) return;
+    const timer = window.setTimeout(() => void signOut(), 3000);
+    return () => window.clearTimeout(timer);
   }, [hasAccount, session?.active, signOut]);
 
   useEffect(() => {
