@@ -6,13 +6,26 @@ import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-function PositionRow({ role, isOpen }: { role: CareerRole; isOpen: boolean }) {
+type RoleAvailability = {
+  isOpen: boolean;
+  assignedCount: number;
+  capacity: number;
+  full: boolean;
+};
+
+function PositionRow({ role, availability }: { role: CareerRole; availability?: RoleAvailability }) {
+  const isOpen = availability?.isOpen ?? role.status !== "Filled";
+  const isFull = role.status === "Filled" || availability?.full === true;
+  const filled = role.status === "Filled"
+    ? "Filled"
+    : availability ? `${availability.assignedCount} of ${availability.capacity} filled` : `${role.capacity} places`;
   return (
     <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-2">
           <h3 className="font-semibold text-slate-900">{role.title}</h3>
           <span className="text-xs text-slate-500">Voluntary · unpaid</span>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isFull ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{filled}</span>
         </div>
         <p className="mt-1 text-sm leading-6 text-slate-600">{role.summary}</p>
       </div>
@@ -63,7 +76,7 @@ export default function Careers() {
         <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Current positions</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Select a role to read its details and submit a role-specific application by email.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Select a role to read its details and submit a role-specific application by email. Each position has a fixed number of places and closes automatically when it is full.</p>
           </div>
           <CareerEnquiryDialog label="Ask Careers a question" variant="outline" mode="question" />
         </div>
@@ -77,8 +90,8 @@ export default function Careers() {
                   <p className="mt-1 text-sm leading-6 text-slate-600">{branch.summary}</p>
                 </header>
                 <ul className="divide-y divide-slate-100">{listedRoles.map((role) => {
-                  const isOpen = (availability?.find((item) => item.slug === role.slug)?.isOpen ?? role.status !== "Filled") === true;
-                  return <PositionRow key={role.slug} role={role} isOpen={isOpen} />;
+                  const state = availability?.find((item) => item.slug === role.slug);
+                  return <PositionRow key={role.slug} role={role} availability={state} />;
                 })}
                   {listedRoles.length === 0 && (
                     <li className="px-5 py-4 text-sm leading-6 text-slate-600">No positions are listed in this department right now.</li>

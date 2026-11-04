@@ -11,6 +11,7 @@ export function CareerRole() {
   const availabilityEntry = availability?.find((item) => item.slug === roleSlug);
   const role = careerRoles.find((item) => item.slug === roleSlug);
   const roleIsOpen = role ? availabilityEntry?.isOpen ?? role.status !== "Filled" : false;
+  const roleIsFull = Boolean(role && (role.status === "Filled" || availabilityEntry?.full));
 
   if (!role) {
     return (
@@ -40,7 +41,8 @@ export function CareerRole() {
         <article className="border-y border-slate-200 py-6">
           <div className="flex flex-wrap gap-2 text-xs text-slate-600">
             <span className="rounded-md bg-slate-100 px-3 py-1.5">Department: {role.department}</span>
-            <span className={`rounded-md px-3 py-1.5 font-medium ${roleIsOpen ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{roleIsOpen ? "Open" : "Filled"}</span>
+            <span className={`rounded-md px-3 py-1.5 font-medium ${roleIsOpen ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>{roleIsOpen ? "Open" : roleIsFull ? "Full" : "Closed"}</span>
+            {availabilityEntry && <span className="rounded-md bg-slate-100 px-3 py-1.5">{availabilityEntry.assignedCount} of {availabilityEntry.capacity} places filled</span>}
             <span className="rounded-md bg-slate-100 px-3 py-1.5">Voluntary · unpaid</span>
           </div>
           <div className="mt-8 space-y-6">
@@ -54,7 +56,11 @@ export function CareerRole() {
             {roleIsOpen ? (
               <Link to={`/careers/apply/${role.slug}`} className="inline-flex h-10 items-center justify-center rounded-sm bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90">Apply for this position</Link>
             ) : (
-              <p className="text-sm font-medium text-slate-600">This position is filled and is not accepting enquiries.</p>
+              <p className="text-sm font-medium text-slate-600">{roleIsFull
+                ? availabilityEntry?.full
+                  ? `This position is full (${availabilityEntry.assignedCount} of ${availabilityEntry.capacity} places) and is not accepting applications.`
+                  : "This position is marked as filled and is not accepting applications."
+                : "This position is closed and is not accepting applications."}</p>
             )}
             <Link to="/careers" className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900">All positions <ArrowRight className="size-4" /></Link>
           </div>

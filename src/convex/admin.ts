@@ -7,6 +7,7 @@ import { requirePermissionVerification, requireRosterVerification } from "./admi
 import { accountLabel, recordAudit } from "./bans";
 import { canonicalDepartmentName, isEmailAddress } from "../lib/staff";
 import { hashValue } from "./secondFactor";
+import { assertPositionCapacity } from "./staffPositions";
 
 /** The careers inbox for direct, email-only enquiries. */
 export const CAREERS_EMAIL = "careers@openworlds.dk";
@@ -154,6 +155,7 @@ export const inviteCompanyAccount = mutation({
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1–100 characters.");
+    await assertPositionCapacity(ctx, position, existingUser?._id);
 
     const existing = await ctx.db
       .query("companyAccess")
@@ -333,6 +335,7 @@ export const convertPlayerToCompany = mutation({
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1-80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1-100 characters.");
+    await assertPositionCapacity(ctx, position, target._id);
     const accessLevel = args.accessLevel ?? "staff";
 
     const existingInvitation = await ctx.db
@@ -445,6 +448,7 @@ export const regenerateStaffConversionCode = mutation({
     if (!target || target.role !== "user" || target.isSiteBanned) {
       throw new Error("That account is no longer eligible for staff conversion.");
     }
+    await assertPositionCapacity(ctx, pending.position, userId);
     const code = makeStaffConversionCode();
     const now = Date.now();
     const expiresAt = now + STAFF_CONVERSION_TTL_MS;
@@ -532,6 +536,7 @@ export const confirmStaffConversion = mutation({
     if (emailOwner && emailOwner._id !== target._id) {
       throw new Error("That company email is now used by another account. Ask an administrator to restart the conversion.");
     }
+    await assertPositionCapacity(ctx, pending.position, target._id);
 
     const existingInvitation = await ctx.db
       .query("companyAccess")

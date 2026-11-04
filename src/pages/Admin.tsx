@@ -106,6 +106,7 @@ function TeamPanel() {
   const isRosterVerified = Boolean(rosterStatus?.isAdmin && rosterStatus.verifiedUntil > verificationClock);
   const isPermissionVerified = isRosterVerified;
   const { results: members, status, loadMore } = usePaginatedQuery(api.staff.listMembers, isRosterVerified ? {} : "skip", { initialNumItems: 50 });
+  const positionAvailability = useQuery(api.careerApplications.roleAvailability, isRosterVerified ? {} : "skip");
   const setAssignment = useMutation(api.staff.setAssignment);
   const setMemberStatus = useMutation(api.staff.setMemberStatus);
   const setBan = useMutation(api.security.setBan);
@@ -137,8 +138,8 @@ function TeamPanel() {
         await setBan({ userId: member.userId, banned, reason: "Staff access changed by an administrator" });
       }
       setSavedId(member.userId);
-    } catch {
-      setError("Could not save the assignment. Please try again.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save the assignment. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -161,7 +162,16 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
+      <p className="text-sm text-slate-600">Staff directory. Only administrators can change department, position, or admin access. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
+      {positionAvailability && <details className="rounded-lg border border-slate-200 bg-white p-4">
+        <summary className="cursor-pointer text-sm font-medium text-slate-800">Position limits</summary>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {positionAvailability.map((role) => <div key={role.slug} className="flex items-center justify-between gap-3 rounded-md border border-slate-100 px-3 py-2 text-xs">
+            <span className="min-w-0 truncate text-slate-700">{role.title}</span>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 font-medium ${role.full ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{role.assignedCount}/{role.capacity}</span>
+          </div>)}
+        </div>
+      </details>}
       <p className="text-xs text-slate-500">{members.length} accounts loaded{status === "Exhausted" ? " - all accounts shown" : " - load more below to see the rest"}</p>
       {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
       <datalist id="ow-departments">{DEPARTMENTS.map((item) => <option key={item} value={item} />)}</datalist>

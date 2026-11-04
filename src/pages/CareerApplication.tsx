@@ -85,8 +85,8 @@ export default function CareerApplication() {
       });
       if (!result.accepted) throw new Error("Submission was not accepted.");
       setSent(true);
-    } catch {
-      setError("We couldn’t send your application. Check your details and try again shortly.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "We couldn’t send your application. Check your details and try again shortly.");
     } finally {
       setBusy(false);
     }
@@ -106,7 +106,9 @@ export default function CareerApplication() {
       {!role ? (
         <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8"><p className="text-slate-600">This position may have moved or closed.</p><Link to="/careers" className="mt-4 inline-flex text-sm font-medium text-[#0066cc] hover:underline">Browse current positions</Link></section>
       ) : !isOpen ? (
-        <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8"><p className="text-slate-600">This position is no longer accepting applications.</p><Link to={`/careers/role/${role.slug}`} className="mt-4 inline-flex text-sm font-medium text-[#0066cc] hover:underline">Back to position</Link></section>
+        <section className="mx-auto max-w-3xl px-5 py-12 sm:px-8"><p className="text-slate-600">{availabilityEntry?.full
+          ? `This position is full (${availabilityEntry.assignedCount} of ${availabilityEntry.capacity} places) and is no longer accepting applications.`
+          : "This position is no longer accepting applications."}</p><Link to={`/careers/role/${role.slug}`} className="mt-4 inline-flex text-sm font-medium text-[#0066cc] hover:underline">Back to position</Link></section>
       ) : (
         <section className="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-12">
           <div className="mb-7 border-b border-slate-200 pb-6">

@@ -12,6 +12,7 @@ import { accountLabel, recordAudit } from "./bans";
 import { linkVerifiedCreatorAccount } from "./users";
 import { requireSiteAvailable } from "./siteStatus";
 import { isStaffUnlocked } from "./staffUnlock";
+import { assertPositionCapacity } from "./staffPositions";
 
 /** Longest staff message the board accepts. */
 export const MAX_MESSAGE_LENGTH = 2000;
@@ -393,6 +394,7 @@ export const setAssignment = mutation({
     if (target.email?.trim().toLowerCase() === "contact@openworlds.dk") {
       throw new Error("The bootstrap admin cannot be changed from the team assignment panel.");
     }
+    await assertPositionCapacity(ctx, position, target._id);
     const accessLevel = nextLevel;
     const finalStatus = args.memberStatus ?? (target.memberStatus ? "volunteer-thank-you" : "none");
     const isBanned = target.isSiteBanned === true;
