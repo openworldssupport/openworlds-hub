@@ -2,8 +2,8 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   careerPositionAliases,
-  careerRoles,
   normalizeCareerPosition,
+  staffRoles,
   type CareerRole,
 } from "../lib/careers";
 
@@ -14,11 +14,11 @@ type PositionSnapshot = {
   overrides: Doc<"careerRoleAvailability">[];
 };
 
-/** The career listing that owns a free-text staff position, if there is one. */
+/** The staff role that owns a free-text position, including hidden appointments. */
 export function careerRoleForPosition(position: string | null | undefined) {
   const normalized = normalizeCareerPosition(position ?? "");
   if (!normalized) return null;
-  return careerRoles.find((role) => careerPositionAliases(role).includes(normalized)) ?? null;
+  return staffRoles.find((role) => careerPositionAliases(role).includes(normalized)) ?? null;
 }
 
 /** Load the staff and availability data once for all role checks in a request. */

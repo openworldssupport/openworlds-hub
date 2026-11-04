@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
-import { canonicalDepartmentName, isEmailAddress } from "../lib/staff";
+import { canonicalDepartmentName, isChiefExecutivePosition, isEmailAddress } from "../lib/staff";
 import { hashValue } from "./secondFactor";
 import { assertPositionCapacity } from "./staffPositions";
 
@@ -168,10 +168,13 @@ export const inviteCompanyAccount = mutation({
     }
     const existingUser = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", email)).first();
     if (existingUser?.isSiteBanned) throw new Error("This account is restricted. Review the restriction before changing company access.");
-    if ((existingUser?.role === "admin" || args.accessLevel === "admin") && !isOwnerAdmin(actor)) {
+    // The CEO is a single hidden appointment with full operational authority,
+    // so it always carries admin access and only the owner can grant it.
+    const accessLevel = isChiefExecutivePosition(args.position) ? "admin" : args.accessLevel;
+    if ((existingUser?.role === "admin" || accessLevel === "admin") && !isOwnerAdmin(actor)) {
       throw new Error("Only the owner administrator can grant or change administrator access.");
     }
-    if (existingUser?.role === "admin" && args.accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
+    if (existingUser?.role === "admin" && accessLevel !== "admin") throw new Error("Existing admin accounts must be changed from the account directory.");
     const department = canonicalDepartmentName(args.department);
     const position = args.position.trim();
     if (!department || department.length > 80) throw new Error("Department must be 1–80 characters.");
@@ -199,7 +202,7 @@ export const inviteCompanyAccount = mutation({
       department,
       position,
       publicBadge: args.publicBadge,
-      accessLevel: args.accessLevel,
+      accessLevel,
       ...(args.memberStatus === "volunteer-thank-you" ? { memberStatus: "volunteer-thank-you" as const } : {}),
       invitedAt: Date.now(),
       invitedBy: actor._id,
@@ -216,7 +219,7 @@ export const inviteCompanyAccount = mutation({
         department,
         position,
         publicBadge: args.publicBadge,
-        role: args.accessLevel === "admin" ? "admin" : "member",
+        role: accessLevel === "admin" ? "admin" : "member",
         staffAccess: true,
         memberStatus: args.memberStatus === "volunteer-thank-you" ? "volunteer-thank-you" : undefined,
         securityViolationCount: 0,
@@ -230,7 +233,7 @@ export const inviteCompanyAccount = mutation({
         action: "permissions-updated",
         targetId: user?._id,
         targetLabel: user ? accountLabel(user) : "Company account invitation",
-        reason: `Company invitation set to ${args.accessLevel} · ${department} / ${position}.`,
+        reason: `Company invitation set to ${accessLevel} · ${department} / ${position}.`,
       });
     }
     return { ok: true };
@@ -363,7 +366,7 @@ export const convertPlayerToCompany = mutation({
     if (!department || department.length > 80) throw new Error("Department must be 1-80 characters.");
     if (!position || position.length > 100) throw new Error("Position must be 1-100 characters.");
     await assertPositionCapacity(ctx, position, target._id);
-    const accessLevel = args.accessLevel ?? "staff";
+    const accessLevel = isChiefExecutivePosition(position) ? "admin" : args.accessLevel ?? "staff";
     if (accessLevel === "admin" && !isOwnerAdmin(actor)) {
       throw new Error("Only the owner administrator can grant administrator access.");
     }

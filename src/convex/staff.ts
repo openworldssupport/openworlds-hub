@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, isOwnerAdmin, requireAdmin, requireRoleAdministrator, SUPPORT_EMAIL } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
-import { canonicalDepartmentName, deriveBadge, isEmailAddress, type PublicBadge } from "../lib/staff";
+import { canonicalDepartmentName, deriveBadge, isChiefExecutivePosition, isEmailAddress, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -344,8 +344,10 @@ export const setAssignment = mutation({
 
     const currentTarget = await ctx.db.get(args.userId);
     if (!currentTarget) throw new Error("Account not found.");
-    const nextLevel = args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
-    if ((currentTarget.role === "admin" || args.accessLevel === "admin") && !isOwnerAdmin(actor)) {
+    // The hidden CEO position carries full operational authority, so it always
+    // implies admin access. Only the owner may appoint the CEO or remove them.
+    const nextLevel = isChiefExecutivePosition(position) ? "admin" : args.accessLevel ?? (currentTarget.role === "admin" ? "admin" : "staff");
+    if ((currentTarget.role === "admin" || isChiefExecutivePosition(currentTarget.position) || nextLevel === "admin") && !isOwnerAdmin(actor)) {
       throw new Error("Only the owner administrator can grant or change administrator access.");
     }
     const wasStaff = Boolean(currentTarget.emailVerificationTime !== undefined && !currentTarget.isSiteBanned &&

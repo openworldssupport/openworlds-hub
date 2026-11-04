@@ -317,12 +317,43 @@ export const careerRoles: (CareerRole & { branch: CareerBranch })[] =
       .map((item) => ({ ...item, branch })),
   );
 
+/**
+ * The CEO is appointed internally and is deliberately not advertised as a
+ * careers opening. It remains a single-seat staff position so the admin panel
+ * can enforce the limit and assign it with the same safeguards as other roles.
+ */
+export const CEO_ROLE: CareerRole = {
+  slug: "chief-executive-officer",
+  title: "Chief Executive Officer (CEO)",
+  department: "Executive Leadership",
+  status: "Open",
+  summary: "Lead the company, hold final operating authority, and report to the owner.",
+  responsibilities: [
+    "Set company direction and hold executive teams accountable.",
+    "Make final operating decisions within the authority delegated by the owner.",
+    "Represent the company and protect its long-term health.",
+  ],
+  qualifications: [
+    "Proven executive leadership and sound judgement.",
+    "Comfortable making high-impact decisions with incomplete information.",
+    "Trusted with the company's most sensitive access.",
+  ],
+  capacity: 1,
+};
+
+/** Internal positions that are assignable but never appear in public careers. */
+export const HIDDEN_STAFF_ROLES: CareerRole[] = [CEO_ROLE];
+
+/** Every assignable staff position, including hidden internal appointments. */
+export const staffRoles: CareerRole[] = [...HIDDEN_STAFF_ROLES, ...careerRoles];
+
 export function normalizeCareerPosition(position: string) {
   return position.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 export function careerPositionAliases(role: CareerRole) {
   const aliases: Record<string, string[]> = {
+    "chief-executive-officer": ["ceo", "chief executive", "chief executive officer", "head of executive", "head of executive leadership"],
     "executive-advisory-board": ["executive advisory board", "advisory board"],
     "chief-technical-officer": ["chief technical officer", "chief technology officer", "cto"],
     "chief-operating-officer": ["chief operating officer", "coo"],

@@ -164,7 +164,7 @@ function TeamPanel() {
   return (
     <div className="mt-6 space-y-3">
       <CreatorRosterPanel canChange={isPermissionVerified} />
-      <p className="text-sm text-slate-600">Staff directory. Administrators can change department and position; only the owner account can grant or change admin access. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above.</p>
+      <p className="text-sm text-slate-600">Staff directory. Administrators can change department and position; only the owner account can grant admin access or appoint the hidden CEO. Set a member’s position to “Head of Department” to designate that department’s head. Each listed position has a fixed number of places; a full position refuses new assignments. To upgrade a normal player account, use “Convert a player account” below. Viewing and changing assignments both need the authenticator unlock above; appointing a high-power role without that unlock is refused by the server.</p>
       {positionAvailability && <details className="rounded-lg border border-slate-200 bg-white p-4">
         <summary className="cursor-pointer text-sm font-medium text-slate-800">Position limits</summary>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireStaffUnlock } from "./staffUnlock";
-import { canonicalDepartmentName } from "../lib/staff";
+import { canonicalDepartmentName, isChiefExecutivePosition } from "../lib/staff";
 
 /**
  * Moderation is capability-based. Administrators always have every capability;
@@ -198,6 +198,7 @@ export function defaultModerationAccess(user: Doc<"users"> | null | undefined): 
   if (!user) return noneAccess();
   if (isCompanyAdminAccount(user)) return adminAccess();
   if (!isVerifiedStaffAccount(user)) return noneAccess();
+  if (isChiefExecutivePosition(user.position)) return adminAccess();
   const department = canonicalDepartmentName(user.department) || null;
   const position = user.position?.trim() || null;
   const capabilities = DEFAULT_BY_KEY.get(moderationRoleKey(department, position));
@@ -239,6 +240,7 @@ export async function resolveModerationAccess(
   if (!user) return noneAccess();
   if (isCompanyAdminAccount(user)) return adminAccess();
   if (!isVerifiedStaffAccount(user)) return noneAccess();
+  if (isChiefExecutivePosition(user.position)) return adminAccess();
   const department = canonicalDepartmentName(user.department) || null;
   const position = user.position?.trim() || null;
   const override = await findRoleOverride(ctx, department, position);

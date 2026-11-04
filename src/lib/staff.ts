@@ -1,7 +1,13 @@
 /** What the public website shows for a team member: "Staff" or "Dev". */
 export type PublicBadge = "staff" | "dev";
 
-import { careerBranches, careerRoles } from "./careers";
+import {
+  CEO_ROLE,
+  careerBranches,
+  careerPositionAliases,
+  normalizeCareerPosition,
+  staffRoles,
+} from "./careers";
 
 /**
  * Department names that mean the same team should share one roster, role
@@ -18,6 +24,16 @@ export const DEPARTMENT_HEAD_TITLE = "Head of Department";
 /** True when a position is the designated head of a department. */
 export function isDepartmentHeadPosition(position?: string | null): boolean {
   return /^(head of department|department head)\b/i.test(position?.trim() ?? "");
+}
+
+/**
+ * The CEO is a hidden, owner-appointed position. These aliases must resolve to
+ * the same single seat so capacity and authority cannot be bypassed by typing
+ * a different spelling.
+ */
+export function isChiefExecutivePosition(position?: string | null): boolean {
+  const normalized = normalizeCareerPosition(position ?? "");
+  return Boolean(normalized) && careerPositionAliases(CEO_ROLE).includes(normalized);
 }
 
 /** Normalize a department name without changing its public spelling. */
@@ -46,7 +62,7 @@ export const DEPARTMENTS: string[] = [
  */
 export const POSITIONS: string[] = [
   DEPARTMENT_HEAD_TITLE,
-  ...new Set(careerRoles.map((role) => role.title)),
+  ...new Set(staffRoles.map((role) => role.title)),
 ];
 
 /**
