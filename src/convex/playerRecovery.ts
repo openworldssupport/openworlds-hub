@@ -76,9 +76,13 @@ export const verifyRecoveryEmail = mutation({
   handler: async (ctx, { code: rawCode }) => {
     const user = await requireAccount(ctx);
     const code = rawCode.trim();
-    if (!/^\d{6}$/.test(code)) throw new Error("Enter the six-digit code from your email.");
+    if (!/^\d{6}$/.test(code)) {
+      return { ok: false as const, message: "Enter the six-digit code from your email." };
+    }
     const row = await ctx.db.query("playerRecoveryCodes").withIndex("by_user_created", (q) => q.eq("userId", user._id)).order("desc").first();
-    if (!row || row.purpose !== "verify-email" || row.expiresAt < Date.now()) throw new Error("That code has expired. Request another code.");
+    if (!row || row.purpose !== "verify-email" || row.expiresAt < Date.now()) {
+      return { ok: false as const, message: "That code has expired. Request another code." };
+    }
     if (await hashCode(code) !== row.codeHash) {
       const attempts = row.attempts + 1;
       await ctx.db.patch(row._id, { attempts });
@@ -93,11 +97,19 @@ export const verifyRecoveryEmail = mutation({
     const prior = await ctx.db.query("users").withIndex("email", (q) => q.eq("email", row.email)).first();
     const priorRecovery = await ctx.db.query("users").withIndex("by_recovery_email", (q) => q.eq("recoveryEmail", row.email)).first();
     if ((prior && prior._id !== user._id) || (priorRecovery && priorRecovery._id !== user._id)) {
-      throw new Error("That email cannot be used as a recovery email.");
+      return { ok: false as const, message: "That email cannot be used as a recovery email." };
     }
     await ctx.db.patch(user._id, { recoveryEmail: row.email, recoveryEmailVerifiedAt: Date.now(), pendingRecoveryEmail: undefined });
     await ctx.db.delete(row._id);
-    if (user.role === "user") await linkVerifiedCreatorAccount(ctx, user._id);
+    // Creator linking is a convenience side effect. It must never make a
+    // successfully verified recovery email look like a failed request.
+    if (user.role === "user") {
+      try {
+        await linkVerifiedCreatorAccount(ctx, user._id);
+      } catch (error) {
+        console.error("Recovery email verified, but creator linking failed.", error);
+      }
+    }
     return { ok: true as const };
   },
 });
