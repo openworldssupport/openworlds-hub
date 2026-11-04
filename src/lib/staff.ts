@@ -27,6 +27,20 @@ export function isDepartmentHeadPosition(position?: string | null): boolean {
 }
 
 /**
+ * Privacy-safe address for rosters and lists. The mailbox is never sent in
+ * full; the domain is kept only so staff can tell addresses apart.
+ */
+export function maskEmail(email?: string | null): string | null {
+  const value = email?.trim();
+  if (!value) return null;
+  const at = value.lastIndexOf("@");
+  if (at <= 0 || at === value.length - 1) return "Email hidden";
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  return `${local.slice(0, 1)}${"•".repeat(Math.min(Math.max(local.length - 1, 2), 6))}@${domain}`;
+}
+
+/**
  * The CEO is a hidden, owner-appointed position. These aliases must resolve to
  * the same single seat so capacity and authority cannot be bypassed by typing
  * a different spelling.

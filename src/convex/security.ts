@@ -7,6 +7,7 @@ import { requirePermissionVerification } from "./adminRoster";
 import { staffUnlockState } from "./staffUnlock";
 import { currentModerationAccess, requireAppealReviewer } from "./moderationAccess";
 import { accountLabel, applyBan, isBanActive, liftBan, recordAudit } from "./bans";
+import { maskEmail } from "../lib/staff";
 import type { Doc, Id } from "./_generated/dataModel";
 
 export async function recordSecurityViolation(ctx: MutationCtx) {
@@ -113,13 +114,13 @@ export const listBansAndAppeals = query({
       bans: users.map((user) => ({
         userId: user._id,
         name: user.nickname ?? user.name ?? "Company account",
-        email: user.email ?? "",
+        email: maskEmail(user.email) ?? "",
         reason: user.siteBanReason ?? "Automated security protection",
         bannedAt: user.siteBannedAt ?? 0,
       })),
       appeals: await Promise.all(appeals.map(async (appeal) => {
         const user = await ctx.db.get(appeal.userId);
-        return { ...appeal, name: user?.nickname ?? user?.name ?? "Account appeal" };
+        return { ...appeal, email: maskEmail(appeal.email) ?? "", name: user?.nickname ?? user?.name ?? "Account appeal" };
       })),
     };
   },

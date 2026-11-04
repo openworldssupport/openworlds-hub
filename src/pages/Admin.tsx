@@ -48,7 +48,6 @@ type ConvertiblePlayer = {
   userId: Id<"users">;
   username: string | null;
   displayName: string | null;
-  suggestedEmail: string | null;
 };
 
 type CompanyAccessAccount = {
@@ -238,7 +237,7 @@ function PendingStaffPanel({ canChange }: { canChange: boolean }) {
   return (
     <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-5">
       <h2 className="font-semibold">New staff waiting to sign in</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-600">These invited emails are not active yet. They appear in the staff directory after their first email-code sign-in. Player conversions are managed under “Convert a player account” until the player confirms the code.</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">These invited accounts are not active yet. They appear in the staff directory after their first email-code sign-in. Player conversions are managed under “Convert a player account” until the player confirms the code.</p>
       <ul className="mt-3 space-y-2">
         {pending.map((account: CompanyAccessAccount) => (
           <li key={account._id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm">
@@ -297,7 +296,9 @@ function PlayerConversionPanel({ canChange }: { canChange: boolean }) {
 
   function choosePlayer(player: ConvertiblePlayer) {
     setSelected(player);
-    setEmail(player.suggestedEmail ?? "");
+    // Never prefill or reveal an account's private email. The administrator
+    // enters the company address they are authorized to assign.
+    setEmail("");
     setDepartment("");
     setPosition("");
     setBadge("staff");

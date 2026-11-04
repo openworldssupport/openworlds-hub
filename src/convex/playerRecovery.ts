@@ -4,6 +4,7 @@ import { action, internalMutation, internalQuery, mutation, query, type Mutation
 import { internal } from "./_generated/api";
 import { linkVerifiedCreatorAccount } from "./users";
 import { requireSiteAvailable } from "./siteStatus";
+import { maskEmail } from "../lib/staff";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CODE_TTL_MS = 10 * 60 * 1000;
@@ -45,7 +46,7 @@ export const recoveryStatus = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     if (!user || user.isAnonymous || user.isSiteBanned) throw new Error("Sign in to manage your recovery email.");
-    return { recoveryEmail: user.recoveryEmail ?? null, pendingEmail: user.pendingRecoveryEmail ?? null, isVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt) };
+    return { recoveryEmail: maskEmail(user.recoveryEmail), pendingEmail: maskEmail(user.pendingRecoveryEmail), isVerified: Boolean(user.recoveryEmail && user.recoveryEmailVerifiedAt) };
   },
 });
 

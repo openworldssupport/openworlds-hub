@@ -16,7 +16,7 @@ import {
   type ModerationCapability,
 } from "./moderationAccess";
 import { requireRoleAdministrator } from "./admin";
-import { canonicalDepartmentName } from "../lib/staff";
+import { canonicalDepartmentName, maskEmail } from "../lib/staff";
 import type { Doc, Id } from "./_generated/dataModel";
 
 const reportCategory = v.union(
@@ -208,9 +208,9 @@ export const queue = query({
         userId: user._id,
         name: accountLabel(user),
         // Support can confirm and manage restrictions without receiving the
-        // account's private contact address. Appeal reviewers get the email
-        // because it is needed to review the appeal.
-        email: access.canViewAppeals || access.isAdmin ? user.email ?? "" : "",
+        // account's private contact address. Even appeal reviewers only get a
+        // masked address; the mailbox stays on the server.
+        email: access.canViewAppeals || access.isAdmin ? maskEmail(user.email) ?? "" : "",
         username: user.playerLogin ?? null,
         reason: user.siteBanReason ?? "No reason recorded",
         banType: user.banType ?? "permanent",
@@ -221,8 +221,8 @@ export const queue = query({
         const user = await ctx.db.get(appeal.userId);
         return {
           _id: appeal._id,
-          name: appeal.email || "Banned account",
-          email: appeal.email,
+          name: user ? accountLabel(user) : "Banned account",
+          email: maskEmail(appeal.email) ?? "",
           message: appeal.message,
           createdAt: appeal.createdAt,
           banType: user?.banType ?? "permanent",
@@ -286,7 +286,7 @@ export const appealsQueue = query({
           _id: appeal._id,
           message: appeal.message,
           createdAt: appeal.createdAt,
-          email: appeal.email,
+          email: maskEmail(appeal.email) ?? "",
           userId: appeal.userId,
           name: user ? accountLabel(user) : "Account unavailable",
           username: user?.playerLogin ?? null,

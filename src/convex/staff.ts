@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { isAdmin, isOwnerAdmin, requireAdmin, requireRoleAdministrator, SUPPORT_EMAIL } from "./admin";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
-import { canonicalDepartmentName, deriveBadge, isChiefExecutivePosition, isEmailAddress, type PublicBadge } from "../lib/staff";
+import { canonicalDepartmentName, deriveBadge, isChiefExecutivePosition, isEmailAddress, maskEmail, type PublicBadge } from "../lib/staff";
 import { assertCleanPublicText } from "../lib/contentFilter";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -241,7 +241,7 @@ export const listMembers = query({
           userId: user._id,
           name: !isEmailAddress(user.name) ? user.name?.trim() || null : null,
           nickname: user.nickname ?? null,
-          email: user.email ?? null,
+          email: maskEmail(user.email),
           role: user.role ?? null,
           department,
           position,

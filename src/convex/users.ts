@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
-import { deriveBadge, isEmailAddress } from "../lib/staff";
+import { deriveBadge, isEmailAddress, maskEmail } from "../lib/staff";
 import { assertCleanPublicText, containsBlockedLanguage } from "../lib/contentFilter";
 import { requireSiteAvailable } from "./siteStatus";
 import { requireCompanyAdmin, SUPPORT_EMAIL } from "./admin";
@@ -152,7 +152,7 @@ export const adminOfficialCreators = query({
     return (await ctx.db.query("officialCreators").take(1000))
       .sort((a, b) => a.displayName.localeCompare(b.displayName))
       .map(({ _id, email, username, displayName, socialPlatform, socialUrl, linkedUserId }) => ({
-        _id, email, username, displayName,
+        _id, email: maskEmail(email) ?? "Email hidden", username, displayName,
         socialPlatform: socialPlatform ?? null,
         socialUrl: socialUrl ?? null,
         isLinked: Boolean(linkedUserId),

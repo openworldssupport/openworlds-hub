@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requirePermissionVerification, requireRosterVerification } from "./adminRoster";
 import { accountLabel, recordAudit } from "./bans";
-import { canonicalDepartmentName, isChiefExecutivePosition, isEmailAddress } from "../lib/staff";
+import { canonicalDepartmentName, isChiefExecutivePosition, isEmailAddress, maskEmail } from "../lib/staff";
 import { hashValue } from "./secondFactor";
 import { assertPositionCapacity } from "./staffPositions";
 
@@ -139,7 +139,7 @@ export const listCompanyAccess = query({
         publicBadge,
         accessLevel,
         memberStatus: memberStatus ?? null,
-        email,
+        email: maskEmail(email) ?? "Email hidden",
         username: user?.playerLogin ?? null,
         isActive,
       };
@@ -313,15 +313,11 @@ export const searchPlayerAccountsForCompany = query({
       .map((user) => {
         const username = user.playerLogin?.trim() ?? null;
         const displayName = isEmailAddress(user.name) ? null : user.name?.trim() || null;
-        const accountEmail = user.email?.trim().toLowerCase() ?? "";
-        const realAccountEmail = accountEmail && !accountEmail.endsWith("@players.openworlds.invalid") ? accountEmail : null;
-        const verifiedRecoveryEmail = user.recoveryEmailVerifiedAt !== undefined ? user.recoveryEmail?.trim().toLowerCase() ?? null : null;
         const exact = username?.toLowerCase() === usernameTerm || displayName?.toLowerCase() === normalizedTerm;
         return {
           userId: user._id,
           username,
           displayName,
-          suggestedEmail: verifiedRecoveryEmail ?? realAccountEmail,
           exact,
         };
       })
@@ -416,7 +412,7 @@ export const convertPlayerToCompany = mutation({
       reason: `Player account conversion requested · ${department} / ${position}; waiting for account-holder confirmation.`,
     });
 
-    return { ok: true, email, department, position, confirmationCode, expiresAt: values.expiresAt };
+    return { ok: true, email: maskEmail(email) ?? "Email hidden", department, position, confirmationCode, expiresAt: values.expiresAt };
   },
 });
 
@@ -432,7 +428,7 @@ export const myPendingStaffConversion = query({
       .first();
     if (!pending) return null;
     return {
-      email: pending.email,
+      email: maskEmail(pending.email) ?? "Email hidden",
       department: canonicalDepartmentName(pending.department) || pending.department,
       position: pending.position,
       createdAt: pending.createdAt,
@@ -453,7 +449,7 @@ export const listPendingStaffConversions = query({
       const target = await ctx.db.get(conversion.userId);
       return {
         userId: conversion.userId,
-        email: conversion.email,
+        email: maskEmail(conversion.email) ?? "Email hidden",
         username: target?.playerLogin ?? null,
         displayName: target && !isEmailAddress(target.name) ? target.name?.trim() || null : null,
         department: canonicalDepartmentName(conversion.department) || conversion.department,
@@ -502,7 +498,7 @@ export const regenerateStaffConversionCode = mutation({
       targetLabel: accountLabel(target),
       reason: "Staff conversion confirmation code reissued.",
     });
-    return { ok: true, email: pending.email, confirmationCode: code, expiresAt };
+    return { ok: true, email: maskEmail(pending.email) ?? "Email hidden", confirmationCode: code, expiresAt };
   },
 });
 
@@ -620,7 +616,7 @@ export const confirmStaffConversion = mutation({
 
     return {
       ok: true,
-      email: pending.email,
+      email: maskEmail(pending.email) ?? "Email hidden",
       department: pending.department,
       position: pending.position,
       accessLevel: pending.accessLevel,

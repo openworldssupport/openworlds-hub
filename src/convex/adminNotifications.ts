@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { isAdmin } from "./admin";
 import { requirePermissionVerification } from "./adminRoster";
 import { isStaffUnlocked } from "./staffUnlock";
+import { maskEmail } from "../lib/staff";
 
 export type AdminNotificationRecipientKind = "careers" | "support" | "both";
 
@@ -26,8 +27,8 @@ export const listAdminNotificationRecipients = query({
     if (!(await isAdmin(ctx))) return null;
     const recipients = await ctx.db.query("adminNotificationRecipients").take(200);
     return recipients
-      .map(({ _id, email, kind }) => ({ _id, email, kind }))
-      .sort((a, b) => a.email.localeCompare(b.email));
+      .sort((a, b) => a.email.localeCompare(b.email))
+      .map(({ _id, email, kind }) => ({ _id, email: maskEmail(email) ?? "Email hidden", kind }));
   },
 });
 
@@ -80,7 +81,7 @@ export const addAdminNotificationRecipient = mutation({
       .first();
     if (existing) await ctx.db.patch(existing._id, { kind });
     else await ctx.db.insert("adminNotificationRecipients", { email: normalized, kind, createdAt: Date.now() });
-    return { ok: true, email: normalized, kind };
+    return { ok: true, email: maskEmail(normalized) ?? "Email hidden", kind };
   },
 });
 
@@ -92,6 +93,6 @@ export const removeAdminNotificationRecipient = mutation({
     const recipient = await ctx.db.get(recipientId);
     if (!recipient) return { ok: true };
     await ctx.db.delete(recipientId);
-    return { ok: true, email: recipient.email };
+    return { ok: true, email: maskEmail(recipient.email) ?? "Email hidden" };
   },
 });
