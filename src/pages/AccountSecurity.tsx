@@ -22,6 +22,7 @@ export function AccountSecuritySettings() {
   const confirmSetup = useMutation(api.accountSecurity.confirmSetup);
   const disable = useMutation(api.accountSecurity.disable);
   const phoneStatus = useQuery(api.phoneVerification.status, user ? {} : "skip");
+  const smsStatus = useQuery(api.phoneVerification.smsStatus, user ? {} : "skip");
   const requestPhoneVerification = useAction(api.phoneVerification.requestPhoneVerification);
   const verifyPhoneNumber = useAction(api.phoneVerification.verifyPhoneNumber);
   const removePhoneNumber = useMutation(api.phoneVerification.removePhoneNumber);
@@ -103,6 +104,7 @@ export function AccountSecuritySettings() {
     try {
       const result = await requestPhoneVerification({ phoneNumber: phoneInput });
       setPhoneCode("");
+      setChangingPhone(false);
       setPhoneMessage(`We texted a six-digit code to ${result.phoneNumber ?? "your phone"}. Enter it below to verify the number.`);
     } catch (err) { setPhoneError(err instanceof Error ? err.message : "Could not send the verification text."); }
     finally { setPhoneBusy(false); }
@@ -159,6 +161,12 @@ export function AccountSecuritySettings() {
         <div className="mt-6 border-t border-slate-100 pt-4">
           <div className="flex items-center gap-2"><Phone className="size-4 text-slate-500" /><p className="text-sm font-medium">Phone number: {phoneStatus.verified ? "verified" : "not set"}</p></div>
           <p className="mt-1 text-xs leading-5 text-slate-500">Optional. A verified phone can receive a six-digit text message as a backup second factor when you cannot use your authenticator app. Your full number is never shown in staff or administrator lists.</p>
+          {smsStatus?.signedIn && !smsStatus.configured && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
+              <p className="font-medium">SMS is not configured on this deployment yet.</p>
+              <p className="mt-1">Add {smsStatus.missing.join(", ")} to the deployment environment before a text can be sent. No code has been sent.</p>
+            </div>
+          )}
           {phoneStatus.verified && !changingPhone ? (
             <div className="mt-3 flex flex-wrap items-end gap-3">
               <p className="text-sm font-medium text-emerald-700">{phoneStatus.phoneNumber}</p>
@@ -168,7 +176,7 @@ export function AccountSecuritySettings() {
               )}
               <Button type="button" size="sm" variant="outline" className="text-red-700" disabled={phoneBusy || (accountSecurity.enabled && !phoneRemoveCode.trim())} onClick={() => void removePhone()}>{phoneBusy ? "Removing…" : "Remove phone"}</Button>
             </div>
-          ) : phoneStatus.pendingPhoneNumber ? (
+          ) : phoneStatus.pendingPhoneNumber && !changingPhone ? (
             <form onSubmit={(event) => void confirmPhoneCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
               <div className="w-full max-w-xs space-y-2"><Label htmlFor="phone-verification-code">Code sent to {phoneStatus.pendingPhoneNumber}</Label><Input id="phone-verification-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
               <Button type="submit" disabled={phoneBusy || phoneCode.length !== 6}>{phoneBusy ? "Verifying…" : "Verify phone"}</Button>
@@ -177,7 +185,7 @@ export function AccountSecuritySettings() {
           ) : (
             <form onSubmit={(event) => void sendPhoneCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
               <div className="w-full max-w-xs space-y-2"><Label htmlFor="phone-number">Phone number</Label><Input id="phone-number" type="tel" autoComplete="tel" maxLength={24} required value={phoneInput} onChange={(event) => setPhoneInput(event.target.value)} placeholder="+4512345678" /><p className="text-xs text-slate-500">Use international format with the country code. Message rates may apply.</p></div>
-              <Button type="submit" disabled={phoneBusy || !phoneInput.trim()}>{phoneBusy ? "Sending…" : "Send code"}</Button>
+              <Button type="submit" disabled={phoneBusy || !phoneInput.trim() || smsStatus?.configured === false}>{phoneBusy ? "Sending…" : smsStatus?.configured === false ? "SMS unavailable" : "Send code"}</Button>
               {changingPhone && <Button type="button" variant="ghost" onClick={() => { setChangingPhone(false); setPhoneInput(""); setPhoneMessage(""); setPhoneError(""); }}>Cancel</Button>}
             </form>
           )}

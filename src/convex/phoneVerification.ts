@@ -13,6 +13,7 @@ import { v } from "convex/values";
 import { consumeSecondFactor, hashValue } from "./secondFactor";
 import { maskPhone } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
+import { twilioConfigStatus } from "./twilioConfig";
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const SEND_WINDOW_MS = 60 * 60 * 1000;
@@ -23,11 +24,16 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 function normalizePhone(raw: string) {
   const compact = raw.trim().replace(/[\s().-]/g, "");
+  // Danish mobile numbers are eight digits. Accept them without +45 so the
+  // common local format works, while still requiring a country code for
+  // everything else.
   const normalized = compact.startsWith("00")
     ? `+${compact.slice(2)}`
     : compact.startsWith("+")
       ? compact
-      : `+${compact}`;
+      : /^\d{8}$/.test(compact)
+        ? `+45${compact}`
+        : `+${compact}`;
   if (!/^\+[1-9]\d{7,14}$/.test(normalized)) {
     throw new Error("Enter a phone number in international format, for example +4512345678.");
   }
@@ -65,6 +71,15 @@ export const status = query({
       pendingPhoneNumber: maskPhone(user.pendingPhoneNumber),
       verified: Boolean(user.phoneNumber && user.phoneVerifiedAt !== undefined),
     };
+  },
+});
+
+export const smsStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireSiteAvailable(ctx);
+    const userId = await getAuthUserId(ctx);
+    return { signedIn: Boolean(userId), ...twilioConfigStatus() };
   },
 });
 
@@ -115,7 +130,16 @@ export const cancelPhoneVerification = internalMutation({
   handler: async (ctx, { userId, phoneNumber }) => {
     const user = await ctx.db.get(userId);
     if (user?.pendingPhoneNumber === phoneNumber) {
-      await ctx.db.patch(user._id, { pendingPhoneNumber: undefined });
+      // A failed Twilio request should not consume the resend cooldown or the
+      // hourly quota. Roll back the reservation made by preparePhoneVerification.
+      const sends = user.phoneCodeSendCount ?? 1;
+      const remainingSends = Math.max(sends - 1, 0);
+      await ctx.db.patch(user._id, {
+        pendingPhoneNumber: undefined,
+        phoneCodeLastSentAt: undefined,
+        phoneCodeWindowAt: remainingSends === 0 ? undefined : user.phoneCodeWindowAt,
+        phoneCodeSendCount: remainingSends === 0 ? undefined : remainingSends,
+      });
     }
   },
 });
@@ -395,7 +419,22 @@ export const createStaffPhoneChallenge = internalMutation({
       attempts: 0,
       phoneSentAt: now,
     });
-    return { tokenHash, token, phoneNumber: user.phoneNumber, maskedPhone: maskPhone(user.phoneNumber) };
+    return { userId, tokenHash, token, phoneNumber: user.phoneNumber, maskedPhone: maskPhone(user.phoneNumber) };
+  },
+});
+
+export const rollbackStaffPhoneSend = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return;
+    const sends = user.phoneCodeSendCount ?? 1;
+    const remainingSends = Math.max(sends - 1, 0);
+    await ctx.db.patch(user._id, {
+      phoneCodeLastSentAt: undefined,
+      phoneCodeWindowAt: remainingSends === 0 ? undefined : user.phoneCodeWindowAt,
+      phoneCodeSendCount: remainingSends === 0 ? undefined : remainingSends,
+    });
   },
 });
 
@@ -440,6 +479,7 @@ export const sendStaffPhoneSignInCode = action({
       await ctx.runAction(internal.phone.sendCode, { phoneNumber: challenge.phoneNumber });
     } catch (error) {
       await ctx.runMutation(internal.phoneVerification.deletePhoneChallenge, { tokenHash: challenge.tokenHash });
+      await ctx.runMutation(internal.phoneVerification.rollbackStaffPhoneSend, { userId: challenge.userId });
       throw error;
     }
     return { ok: true as const, token: challenge.token, phoneNumber: challenge.maskedPhone };
