@@ -76,7 +76,7 @@ type PendingStaffConversion = {
   expired: boolean;
 };
 
-type InvestigationRequestType = "internal-safety" | "law-enforcement" | "legal";
+type InvestigationRequestType = "law-enforcement" | "legal";
 
 type InvestigationSearchResult = {
   userId: Id<"users">;
@@ -1130,7 +1130,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<InvestigationSearchResult | null>(null);
   const [reason, setReason] = useState("");
-  const [requestType, setRequestType] = useState<InvestigationRequestType>("internal-safety");
+  const [requestType, setRequestType] = useState<InvestigationRequestType>("law-enforcement");
   const [legalAuthority, setLegalAuthority] = useState("");
   const [legalReference, setLegalReference] = useState("");
   const [jurisdiction, setJurisdiction] = useState("");
@@ -1139,13 +1139,11 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
   const term = search.trim();
-  const isLegalRequest = requestType !== "internal-safety";
-  const legalDetailsComplete = !isLegalRequest || (
+  const legalDetailsComplete =
     legalAuthority.trim().length >= 2 &&
     legalReference.trim().length >= 2 &&
     jurisdiction.trim().length >= 2 &&
-    legalConfirmed
-  );
+    legalConfirmed;
   const results = useQuery(
     api.investigations.searchAccounts,
     canOpen && term.length >= 2 ? { search: term } : "skip",
@@ -1166,9 +1164,9 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
         userId: selected.userId,
         reason: reason.trim(),
         requestType,
-        legalAuthority: isLegalRequest ? legalAuthority.trim() : undefined,
-        legalReference: isLegalRequest ? legalReference.trim() : undefined,
-        jurisdiction: isLegalRequest ? jurisdiction.trim() : undefined,
+        legalAuthority: legalAuthority.trim(),
+        legalReference: legalReference.trim(),
+        jurisdiction: jurisdiction.trim(),
       });
       setResult(dossier);
     } catch (err) {
@@ -1194,9 +1192,9 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-800"><ShieldAlert className="size-5" /></span>
         <div>
-          <h2 className="font-semibold">Investigation access</h2>
+          <h2 className="font-semibold">Legal disclosure access</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Owner-only, authenticator-unlocked access to the full private record for one account. Use this only for a specific safety, fraud, or legal investigation. Every opening is logged with your account, the target, the request type, your reason, and the time. Law-enforcement and legal requests also require the authority, case reference, and jurisdiction to be recorded. The JSON file contains unmasked personal data — store it securely, share only what the request requires, and delete it when no longer needed.
+            Full private records are not available for internal review. This owner-only, authenticator-unlocked panel opens a record only after a valid law-enforcement or court/legal request has been received. The requesting authority, case or order reference, jurisdiction, your reason, and the time are logged. The JSON file contains unmasked personal data — disclose only what the request legally requires, store it securely, and delete it when no longer needed.
           </p>
         </div>
       </div>
@@ -1265,13 +1263,11 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
               }}
               className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
-              <option value="internal-safety">Internal safety or fraud investigation</option>
               <option value="law-enforcement">Law-enforcement request</option>
               <option value="legal">Court order, subpoena, or other legal request</option>
             </select>
           </div>
-          {isLegalRequest && (
-            <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-3">
+          <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-3">
               <p className="text-xs leading-5 text-red-900">
                 Verify the request is authentic and legally valid before exporting. Record only the details supplied by the requesting authority, and provide only the records covered by the request.
               </p>
@@ -1314,23 +1310,22 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
                 />
                 <span>I confirmed this request is valid and that the export will be limited to what it legally requires.</span>
               </label>
-            </div>
-          )}
+          </div>
           <div className="space-y-1">
-            <Label htmlFor="investigation-reason">Reason for access</Label>
+            <Label htmlFor="investigation-reason">Reason and scope of the legal request</Label>
             <Textarea
               id="investigation-reason"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               maxLength={500}
               minLength={10}
-              placeholder="Describe the safety, fraud, or legal concern and the case reference if you have one."
+              placeholder="Describe the legal request and the records it covers."
             />
             <p className="text-xs text-slate-500">10–500 characters. This reason is written to the access log.</p>
           </div>
           <Button type="button" disabled={!canOpen || busy || reason.trim().length < 10 || !legalDetailsComplete} onClick={() => void handleOpen()}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <FileSearch className="size-4" />}
-            {busy ? "Building file…" : "Open investigation file"}
+            {busy ? "Building file…" : "Open legally requested file"}
           </Button>
         </div>
       )}
@@ -1349,8 +1344,8 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
 
       {canOpen && recentAccess && recentAccess.length > 0 && (
         <div className="mt-5 border-t border-amber-200 pt-4">
-          <h3 className="text-sm font-semibold">Recent account access</h3>
-          <p className="mt-1 text-xs text-slate-500">The most recent dossier openings. Target emails stay masked in this log.</p>
+          <h3 className="text-sm font-semibold">Recent legal-disclosure access</h3>
+          <p className="mt-1 text-xs text-slate-500">The most recent dossier openings. Target emails stay masked in this log; legacy internal-access rows remain visible for audit history.</p>
           <ul className="mt-3 space-y-2">
             {recentAccess.slice(0, 8).map((entry) => (
               <li key={entry._id} className="rounded-md border border-amber-200 bg-white/70 px-3 py-2 text-xs text-slate-600">
@@ -1358,7 +1353,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
                   <span className="font-semibold text-slate-900">{entry.targetLabel}</span>
                   <span>{entry.targetEmail ?? "No email on file"}</span>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                    {entry.requestType === "law-enforcement" ? "Law enforcement" : entry.requestType === "legal" ? "Legal request" : "Internal safety"}
+                    {entry.requestType === "law-enforcement" ? "Law enforcement" : entry.requestType === "legal" ? "Legal request" : "Legacy access"}
                   </span>
                   <span>{new Date(entry.createdAt).toLocaleString()}</span>
                 </p>

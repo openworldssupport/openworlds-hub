@@ -11,20 +11,19 @@ const MAX_RECORDS = 500;
 const MAX_MESSAGES = 500;
 
 const requestTypeValidator = v.union(
-  v.literal("internal-safety"),
   v.literal("law-enforcement"),
   v.literal("legal"),
 );
 
 /**
- * Investigation access is intentionally narrower than normal administration:
- * the owner account, with a live authenticator unlock, and a stated reason.
+ * Full-record access is a legal-disclosure path only: the owner account, with
+ * a live authenticator unlock, and a valid law-enforcement or legal request.
  */
 async function requireOwnerInvestigator(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   const actor = userId ? await ctx.db.get(userId) : null;
   if (!isOwnerAdmin(actor)) {
-    throw new Error("Only the owner account can open an investigation file.");
+    throw new Error("Only the owner account can open a legal-disclosure file.");
   }
   await requirePermissionVerification(ctx);
   return actor!;
@@ -120,8 +119,8 @@ export const listRecentInvestigationAccess = query({
 });
 
 /**
- * Owner-only: build one complete investigation file for an account. This is a
- * mutation so the access is written to investigationAccessLog in the same
+ * Owner-only: build one complete legal-disclosure file for an account. This is
+ * a mutation so the access is written to investigationAccessLog in the same
  * transaction as the read. The UI must never cache the result.
  */
 export const openAccountInvestigation = mutation({
@@ -140,20 +139,19 @@ export const openAccountInvestigation = mutation({
       throw new Error("Describe the investigation reason in 10–500 characters.");
     }
 
-    const isLegalRequest = args.requestType !== "internal-safety";
     const legalAuthority = args.legalAuthority?.trim() ?? "";
     const legalReference = args.legalReference?.trim() ?? "";
     const jurisdiction = args.jurisdiction?.trim() ?? "";
-    if (isLegalRequest) {
-      if (legalAuthority.length < 2 || legalAuthority.length > 160) {
-        throw new Error("Record the requesting authority or agency in 2–160 characters.");
-      }
-      if (legalReference.length < 2 || legalReference.length > 120) {
-        throw new Error("Record the case, ticket, or order reference in 2–120 characters.");
-      }
-      if (jurisdiction.length < 2 || jurisdiction.length > 80) {
-        throw new Error("Record the jurisdiction in 2–80 characters.");
-      }
+    // Full account records are a legal-disclosure path only. Internal review
+    // must use the normal masked staff/admin tools.
+    if (legalAuthority.length < 2 || legalAuthority.length > 160) {
+      throw new Error("Record the requesting authority or agency in 2–160 characters.");
+    }
+    if (legalReference.length < 2 || legalReference.length > 120) {
+      throw new Error("Record the case, ticket, or order reference in 2–120 characters.");
+    }
+    if (jurisdiction.length < 2 || jurisdiction.length > 80) {
+      throw new Error("Record the jurisdiction in 2–80 characters.");
     }
 
     const target = await ctx.db.get(args.userId);
@@ -165,7 +163,9 @@ export const openAccountInvestigation = mutation({
       targetId: target._id,
       reason,
       requestType: args.requestType,
-      ...(isLegalRequest ? { legalAuthority, legalReference, jurisdiction } : {}),
+      legalAuthority,
+      legalReference,
+      jurisdiction,
       createdAt: now,
     });
 
@@ -300,9 +300,9 @@ export const openAccountInvestigation = mutation({
       request: {
         type: args.requestType,
         reason,
-        legalAuthority: isLegalRequest ? legalAuthority : null,
-        legalReference: isLegalRequest ? legalReference : null,
-        jurisdiction: isLegalRequest ? jurisdiction : null,
+        legalAuthority,
+        legalReference,
+        jurisdiction,
       },
       actor: {
         userId: actor._id,
