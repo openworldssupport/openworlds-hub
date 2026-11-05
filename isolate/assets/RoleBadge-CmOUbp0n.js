@@ -1,1 +1,0 @@
-import{j as s}from"./framer-motion-D5IBGcks.js";import{b as o}from"./staff-DQGMoFfT.js";const a={staff:"text-[#0052a3]",dev:"text-[#7651c9]"};function m({badge:t,className:e=""}){return s.jsx("span",{title:t==="dev"?"OpenWorlds development team":"OpenWorlds staff",className:`text-xs font-medium ${a[t]} ${e}`,children:o(t)})}export{m as R};
