@@ -6,6 +6,7 @@ import { requireSiteAvailable } from "./siteStatus";
 import { consumeSecondFactor, hashValue, matchingTotpCounter } from "./secondFactor";
 import { assertCleanPublicText } from "../lib/contentFilter";
 import { isEmailAddress } from "../lib/staff";
+import type { Id } from "./_generated/dataModel";
 
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 8;
@@ -261,7 +262,7 @@ export const staffTwoFactorApproved = internalQuery({
 
 export const staffAccountForSignIn = internalQuery({
   args: { email: v.string() },
-  handler: async (ctx, { email }) => {
+  handler: async (ctx, { email }): Promise<{ userId: Id<"users"> | null; twoFactorEnabled: boolean; phoneVerified: boolean } | null> => {
     const normalized = email.trim().toLowerCase();
     const [user, invitation] = await Promise.all([
       ctx.db.query("users").withIndex("email", (q) => q.eq("email", normalized)).first(),
@@ -277,6 +278,7 @@ export const staffAccountForSignIn = internalQuery({
     return {
       userId: user?._id ?? null,
       twoFactorEnabled: Boolean(user?.twoFactorEnabled),
+      phoneVerified: Boolean(user?.phoneNumber && user.phoneVerifiedAt !== undefined),
     };
   },
 });
@@ -293,13 +295,15 @@ export const authorizeStaffTwoFactor = internalMutation({
 
 export const prepareStaffSignIn = action({
   args: { email: v.string(), emailCode: v.string(), authenticatorCode: v.optional(v.string()) },
-  handler: async (ctx, { email: rawEmail, emailCode, authenticatorCode }) => {
+  handler: async (ctx, { email: rawEmail, emailCode, authenticatorCode }): Promise<{ needsTwoFactor: boolean; phoneVerified: boolean }> => {
     const email = rawEmail.trim().toLowerCase();
     const account = await ctx.runQuery(internal.accountSecurity.staffAccountForSignIn, { email });
     if (!account) throw new Error("Staff sign-in verification failed.");
     const validOtp = await ctx.runQuery(internal.accountSecurity.getStaffOtpToken, { email, code: emailCode.trim() });
     if (!validOtp) throw new Error("That email code is incorrect or expired.");
-    if (account.twoFactorEnabled && !authenticatorCode?.trim()) return { needsTwoFactor: true };
+    if (account.twoFactorEnabled && !authenticatorCode?.trim()) {
+      return { needsTwoFactor: true, phoneVerified: account.phoneVerified };
+    }
     if (account.twoFactorEnabled) {
       if (!account.userId) throw new Error("Staff sign-in verification failed.");
       const result = await ctx.runMutation(internal.accountSecurity.consumeStaffSignInCode, {
@@ -309,7 +313,7 @@ export const prepareStaffSignIn = action({
       if (!result.ok) throw new Error(result.message);
       await ctx.runMutation(internal.accountSecurity.authorizeStaffTwoFactor, { userId: account.userId });
     }
-    return { needsTwoFactor: false };
+    return { needsTwoFactor: false, phoneVerified: account.phoneVerified };
   },
 });
 
@@ -338,18 +342,24 @@ export const passwordSignIn = action({
     // Restricted accounts may sign in to reach the restriction and appeal screen.
     if (!account || account.user.role !== "user") throw new Error("Username/email or password is incorrect.");
     const recoveryEmailVerified = Boolean(account.user.recoveryEmail && account.user.recoveryEmailVerifiedAt !== undefined);
-    if (!account.user.twoFactorEnabled) return { required: false, recoveryEmailVerified };
+    const phoneVerified = Boolean(account.user.phoneNumber && account.user.phoneVerifiedAt !== undefined);
+    if (!account.user.twoFactorEnabled) return { required: false, recoveryEmailVerified, phoneVerified };
     const random = new Uint8Array(32);
     crypto.getRandomValues(random);
     const token = Array.from(random, (byte) => byte.toString(16).padStart(2, "0")).join("");
     await ctx.runMutation(internal.accountSecurity.createLoginChallenge, { userId: account.user._id, tokenHash: await hashLoginChallenge(token), expiresAt: Date.now() + 5 * 60 * 1000 });
-    return { required: true, token, recoveryEmailVerified };
+    return { required: true, token, recoveryEmailVerified, phoneVerified };
   },
 });
 
 export const completePasswordSignIn = action({
-  args: { login: v.string(), token: v.string(), code: v.string() },
-  handler: async (ctx, { login: rawLogin, token, code }) => {
+  args: {
+    login: v.string(),
+    token: v.string(),
+    code: v.string(),
+    method: v.optional(v.union(v.literal("authenticator"), v.literal("phone"))),
+  },
+  handler: async (ctx, { login: rawLogin, token, code, method }) => {
     await ctx.runQuery(internal.siteStatus.requireAuthAccess, {});
     const login = rawLogin.trim().toLowerCase();
     const accountId = /^[a-z0-9][a-z0-9._-]{2,23}$/.test(login) ? `${login}@players.openworlds.invalid` : login;
@@ -360,6 +370,14 @@ export const completePasswordSignIn = action({
       throw new Error("Verify a recovery email before signing in to your player account.");
     }
     const tokenHash = await hashLoginChallenge(token);
+    if (method === "phone") {
+      const verified = await ctx.runQuery(internal.phoneVerification.loginChallengeVerified, {
+        tokenHash,
+        userId: account.user._id,
+      });
+      if (!verified) throw new Error("SMS verification expired. Start again.");
+      return { ok: true };
+    }
     const challenge = await ctx.runMutation(internal.accountSecurity.consumeLoginChallenge, { userId: account.user._id, tokenHash, code });
     if (!challenge.ok) throw new Error(challenge.message);
     return { ok: true };

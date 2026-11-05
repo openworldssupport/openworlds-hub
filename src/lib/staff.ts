@@ -40,6 +40,15 @@ export function maskEmail(email?: string | null): string | null {
   return `${local.slice(0, 1)}${"•".repeat(Math.min(Math.max(local.length - 1, 2), 6))}@${domain}`;
 }
 
+/** Privacy-safe phone number for settings and audit views. */
+export function maskPhone(phone?: string | null): string | null {
+  const value = phone?.trim();
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 4) return "Phone hidden";
+  return `${value.startsWith("+") ? "+" : ""}${"•".repeat(Math.min(Math.max(digits.length - 4, 2), 8))}${digits.slice(-4)}`;
+}
+
 /**
  * The CEO is a hidden, owner-appointed position. These aliases must resolve to
  * the same single seat so capacity and authority cannot be bypassed by typing

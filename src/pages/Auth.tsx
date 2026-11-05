@@ -53,6 +53,10 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
   const prepareStaffSignIn = useAction(api.accountSecurity.prepareStaffSignIn);
   const requestStaffRecoveryDelivery = useMutation(api.accountSecurity.requestStaffRecoveryDelivery);
   const requestRecoveryEmailCode = useMutation(api.playerRecovery.requestRecoveryEmailCode);
+  const sendPhoneSignInCode = useAction(api.phoneVerification.sendPhoneSignInCode);
+  const completePhoneSignIn = useAction(api.phoneVerification.completePhoneSignIn);
+  const sendStaffPhoneSignInCode = useAction(api.phoneVerification.sendStaffPhoneSignInCode);
+  const completeStaffPhoneSignIn = useAction(api.phoneVerification.completeStaffPhoneSignIn);
   const beginPasswordReset = useAction(api.playerRecovery.beginPasswordReset);
   const resetPassword = useAction(api.playerRecovery.resetPassword);
   const location = useLocation();
@@ -72,6 +76,9 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
   const [resetCode, setResetCode] = useState("");
   const [twoFactorToken, setTwoFactorToken] = useState("");
   const [twoFactorStep, setTwoFactorStep] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneSent, setPhoneSent] = useState(false);
+  const [phoneNote, setPhoneNote] = useState("");
   const [resetStep, setResetStep] = useState<"closed" | "request" | "verify">("closed");
   const [deliveryNote, setDeliveryNote] = useState("");
   const [notice, setNotice] = useState("");
@@ -82,6 +89,7 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
     setError("");
     setNotice("");
     setDeliveryNote("");
+    setPhoneNote("");
   }
 
   async function finishSignIn() {
@@ -147,6 +155,8 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
       const result = await passwordSignIn({ login: login.trim().toLowerCase(), password });
       if (result.required) {
         setTwoFactorToken(result.token ?? "");
+        setPhoneVerified(Boolean(result.phoneVerified));
+        setPhoneSent(false);
         if (!result.recoveryEmailVerified) {
           await signIn("player-password", {
             flow: "twoFactorSignIn",
@@ -183,7 +193,12 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
     setBusy(true);
     resetMessages();
     try {
-      await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: resetCode.trim().toUpperCase() });
+      if (phoneSent) {
+        await completePhoneSignIn({ token: twoFactorToken, code: resetCode.trim() });
+        await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: "", method: "phone" });
+      } else {
+        await completePasswordSignIn({ login: login.trim().toLowerCase(), token: twoFactorToken, code: resetCode.trim().toUpperCase() });
+      }
       const signInResult = await signIn("player-password", {
         flow: "twoFactorSignIn",
         email: login.trim().toLowerCase(),
@@ -193,7 +208,38 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
       if (!signInResult.signingIn) throw new Error("Two-step sign-in did not complete.");
       await finishSignIn();
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : "Could not verify the authenticator code.");
+      setError(verifyError instanceof Error ? verifyError.message : "Could not verify that code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestPlayerPhoneCode() {
+    setBusy(true);
+    resetMessages();
+    try {
+      const result = await sendPhoneSignInCode({ token: twoFactorToken });
+      setPhoneSent(true);
+      setResetCode("");
+      setPhoneNote(`We texted a six-digit code to ${result.phoneNumber ?? "your verified phone"}. Enter it below instead of an authenticator code.`);
+    } catch (phoneError) {
+      setError(phoneError instanceof Error ? phoneError.message : "Could not send a text-message code.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function requestStaffPhoneCode() {
+    setBusy(true);
+    resetMessages();
+    try {
+      const result = await sendStaffPhoneSignInCode({ email: login.trim().toLowerCase(), emailCode: emailCode.trim() });
+      setTwoFactorToken(result.token);
+      setPhoneSent(true);
+      setAuthenticatorCode("");
+      setPhoneNote(`We texted a six-digit code to ${result.phoneNumber ?? "your verified phone"}. Enter it below instead of an authenticator code.`);
+    } catch (phoneError) {
+      setError(phoneError instanceof Error ? phoneError.message : "Could not send a text-message code.");
     } finally {
       setBusy(false);
     }
@@ -235,6 +281,9 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
     try {
       const result = await prepareStaffSignIn({ email: login.trim().toLowerCase(), emailCode: emailCode.trim() });
       if (result.needsTwoFactor) {
+        setPhoneVerified(Boolean(result.phoneVerified));
+        setPhoneSent(false);
+        setPhoneNote("");
         setEmailStep("two-factor");
         return;
       }
@@ -253,12 +302,21 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
     setBusy(true);
     resetMessages();
     try {
-      const result = await prepareStaffSignIn({
-        email: login.trim().toLowerCase(),
-        emailCode: emailCode.trim(),
-        authenticatorCode: authenticatorCode.trim(),
-      });
-      if (result.needsTwoFactor) throw new Error("Enter a valid authenticator or recovery code.");
+      if (phoneSent) {
+        await completeStaffPhoneSignIn({
+          email: login.trim().toLowerCase(),
+          emailCode: emailCode.trim(),
+          token: twoFactorToken,
+          code: authenticatorCode.trim(),
+        });
+      } else {
+        const result = await prepareStaffSignIn({
+          email: login.trim().toLowerCase(),
+          emailCode: emailCode.trim(),
+          authenticatorCode: authenticatorCode.trim(),
+        });
+        if (result.needsTwoFactor) throw new Error("Enter a valid authenticator or recovery code.");
+      }
       const signInResult = await signIn("email-otp", { email: login.trim().toLowerCase(), code: emailCode.trim() });
       if (!signInResult.signingIn) throw new Error("Sign in did not complete.");
       await finishSignIn();
@@ -364,11 +422,16 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
             </form>
           ) : twoFactorStep ? (
             <form onSubmit={finishTwoFactor} className="mt-6 space-y-4">
-              <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Enter the current authenticator code or one unused recovery code.</p>
-              <div className="space-y-2"><Label htmlFor="player-two-factor-code">Authenticator or recovery code</Label><Input id="player-two-factor-code" autoComplete="one-time-code" required value={resetCode} onChange={(event) => setResetCode(event.target.value.trim())} /></div>
+              <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                {phoneSent ? "Enter the six-digit code from the text message we sent to your verified phone." : "Enter the current authenticator code or one unused recovery code."}
+              </p>
+              <div className="space-y-2"><Label htmlFor="player-two-factor-code">{phoneSent ? "Text-message code" : "Authenticator or recovery code"}</Label><Input id="player-two-factor-code" autoComplete="one-time-code" required value={resetCode} onChange={(event) => setResetCode(event.target.value.trim())} /></div>
+              {phoneNote && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{phoneNote}</p>}
+              {phoneVerified && !phoneSent && <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => void requestPlayerPhoneCode()}>Send a code to my phone instead</Button>}
+              {phoneSent && <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setPhoneSent(false); setResetCode(""); resetMessages(); }}>Use my authenticator app instead</button>}
               {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
               <Button type="submit" className="w-full" disabled={busy || !resetCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
-              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setTwoFactorStep(false); setTwoFactorToken(""); setResetCode(""); resetMessages(); }}>Back to password</button>
+              <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setTwoFactorStep(false); setTwoFactorToken(""); setResetCode(""); setPhoneSent(false); resetMessages(); }}>Back to password</button>
             </form>
           ) : method === "email-code" ? (
             emailStep === "email" ? (
@@ -381,11 +444,14 @@ function UnifiedAuthPage({ isSignup }: { isSignup: boolean }) {
               </form>
             ) : emailStep === "two-factor" ? (
               <form onSubmit={finishEmailTwoFactor} className="mt-6 space-y-4">
-                <p className="text-sm text-slate-600">This account has two-step verification. Enter a current authenticator code or an unused recovery code.</p>
-                <div className="space-y-2"><Label htmlFor="staff-authenticator-code">Authenticator or recovery code</Label><Input id="staff-authenticator-code" autoComplete="one-time-code" required value={authenticatorCode} onChange={(event) => setAuthenticatorCode(event.target.value.trim().toUpperCase())} placeholder="Code" /></div>
+                <p className="text-sm text-slate-600">{phoneSent ? "Enter the six-digit code from the text message we sent to your verified phone." : "This account has two-step verification. Enter a current authenticator code or an unused recovery code."}</p>
+                <div className="space-y-2"><Label htmlFor="staff-authenticator-code">{phoneSent ? "Text-message code" : "Authenticator or recovery code"}</Label><Input id="staff-authenticator-code" autoComplete="one-time-code" required value={authenticatorCode} onChange={(event) => setAuthenticatorCode(event.target.value.trim().toUpperCase())} placeholder="Code" /></div>
+                {phoneNote && <p role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{phoneNote}</p>}
+                {phoneVerified && !phoneSent && <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => void requestStaffPhoneCode()}>Send a code to my phone instead</Button>}
+                {phoneSent && <button type="button" className="w-full text-sm text-[#0066cc] hover:underline" onClick={() => { setPhoneSent(false); setAuthenticatorCode(""); resetMessages(); }}>Use my authenticator app instead</button>}
                 {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
                 <Button type="submit" className="w-full" disabled={busy || !authenticatorCode.trim()}>{busy ? "Verifying…" : "Verify and sign in"}</Button>
-                <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setEmailStep("code"); setAuthenticatorCode(""); resetMessages(); }}>Back to email code</button>
+                <button type="button" className="w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => { setEmailStep("code"); setAuthenticatorCode(""); setPhoneSent(false); setTwoFactorToken(""); resetMessages(); }}>Back to email code</button>
               </form>
             ) : (
               <form onSubmit={verifyEmailCode} className="mt-6 space-y-4">

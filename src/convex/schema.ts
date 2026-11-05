@@ -53,6 +53,18 @@ const schema = defineSchema(
       twoFactorLastCounter: v.optional(v.number()),
       twoFactorRecoveryCodeHashes: v.optional(v.array(v.string())),
 
+      // Optional verified phone number used as an SMS backup second factor.
+      // The full number is only returned to the account owner and in an
+      // owner-only investigation export; staff/admin lists stay masked.
+      phoneNumber: v.optional(v.string()),
+      phoneVerifiedAt: v.optional(v.number()),
+      pendingPhoneNumber: v.optional(v.string()),
+      phoneCodeLastSentAt: v.optional(v.number()),
+      phoneCodeWindowAt: v.optional(v.number()),
+      phoneCodeSendCount: v.optional(v.number()),
+      phoneVerifyAttemptWindowAt: v.optional(v.number()),
+      phoneVerifyAttemptCount: v.optional(v.number()),
+
       // Company org data, assigned from the admin panel. A user with a
       // department and/or position is treated as staff and can use /staff.
       department: v.optional(v.string()),
@@ -107,6 +119,7 @@ const schema = defineSchema(
       .index("by_department", ["department"])
       .index("by_player_login", ["playerLogin"])
       .index("by_recovery_email", ["recoveryEmail"])
+      .index("by_phone", ["phoneNumber"])
       .searchIndex("search_player_profiles", {
         searchField: "playerLogin",
         filterFields: ["role", "profileDiscoverable"],
@@ -389,6 +402,10 @@ const schema = defineSchema(
       expiresAt: v.number(),
       attempts: v.number(),
       verifiedAt: v.optional(v.number()),
+      // SMS backup challenge state. A challenge can use the authenticator or
+      // request one text-message code, not an unlimited stream.
+      phoneSentAt: v.optional(v.number()),
+      phoneAttempts: v.optional(v.number()),
     }).index("by_token_hash", ["tokenHash"]).index("by_user_created", ["userId", "createdAt"]),
 
     staffOtpLoginAttempts: defineTable({

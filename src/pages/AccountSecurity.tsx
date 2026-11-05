@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck } from "lucide-react";
+import { Phone, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DeviceSessionsSettings } from "@/components/DeviceSessionsSettings";
 
@@ -21,6 +21,10 @@ export function AccountSecuritySettings() {
   const verifyRecoveryCode = useMutation(api.playerRecovery.verifyRecoveryEmail);
   const confirmSetup = useMutation(api.accountSecurity.confirmSetup);
   const disable = useMutation(api.accountSecurity.disable);
+  const phoneStatus = useQuery(api.phoneVerification.status, user ? {} : "skip");
+  const requestPhoneVerification = useAction(api.phoneVerification.requestPhoneVerification);
+  const verifyPhoneNumber = useAction(api.phoneVerification.verifyPhoneNumber);
+  const removePhoneNumber = useMutation(api.phoneVerification.removePhoneNumber);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(null);
@@ -32,6 +36,13 @@ export function AccountSecuritySettings() {
   const [recoveryCodeInput, setRecoveryCodeInput] = useState("");
   const [recoveryNote, setRecoveryNote] = useState("");
   const [changingRecovery, setChangingRecovery] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneBusy, setPhoneBusy] = useState(false);
+  const [phoneMessage, setPhoneMessage] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [changingPhone, setChangingPhone] = useState(false);
+  const [phoneRemoveCode, setPhoneRemoveCode] = useState("");
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
@@ -87,6 +98,37 @@ export function AccountSecuritySettings() {
     finally { setBusy(false); }
   }
 
+  async function sendPhoneCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setPhoneBusy(true); setPhoneError(""); setPhoneMessage("");
+    try {
+      const result = await requestPhoneVerification({ phoneNumber: phoneInput });
+      setPhoneCode("");
+      setPhoneMessage(`We texted a six-digit code to ${result.phoneNumber ?? "your phone"}. Enter it below to verify the number.`);
+    } catch (err) { setPhoneError(err instanceof Error ? err.message : "Could not send the verification text."); }
+    finally { setPhoneBusy(false); }
+  }
+
+  async function confirmPhoneCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setPhoneBusy(true); setPhoneError(""); setPhoneMessage("");
+    try {
+      await verifyPhoneNumber({ code: phoneCode });
+      setPhoneCode(""); setPhoneInput(""); setChangingPhone(false);
+      setPhoneMessage("Phone number verified. You can now use a text-message code as a backup second factor.");
+    } catch (err) { setPhoneError(err instanceof Error ? err.message : "Could not verify that text-message code."); }
+    finally { setPhoneBusy(false); }
+  }
+
+  async function removePhone() {
+    if (!window.confirm("Remove this phone number? SMS sign-in will stop working until you verify a new number.")) return;
+    setPhoneBusy(true); setPhoneError(""); setPhoneMessage("");
+    try {
+      await removePhoneNumber({ code: phoneRemoveCode.trim() || undefined });
+      setPhoneRemoveCode(""); setChangingPhone(false);
+      setPhoneMessage("Phone number removed.");
+    } catch (err) { setPhoneError(err instanceof Error ? err.message : "Could not remove the phone number."); }
+    finally { setPhoneBusy(false); }
+  }
+
   if (!user || accountSecurity === undefined) return null;
   const currentName = user.role === "user" ? playerProfile?.displayName : staffProfile?.nickname ?? staffProfile?.name;
   return (
@@ -98,7 +140,7 @@ export function AccountSecuritySettings() {
       </form>
       <div className="mt-6 border-t border-slate-100 pt-4">
         <p className="text-sm font-medium">Two-step verification: {accountSecurity.enabled ? "On" : "Off"}</p>
-        <p className="mt-1 text-xs text-slate-500">{user.role === "user" ? "Optional authenticator app codes add an extra sign-in check. Also required to sign out other devices." : "Needed to unlock staff tools: the admin console, creator approvals, announcements, moderation, and (for administrators) the website status switch. Also required to sign out other devices."}</p>
+        <p className="mt-1 text-xs text-slate-500">{user.role === "user" ? "Optional authenticator app codes add an extra sign-in check. Also required to sign out other devices. A verified phone can receive a backup SMS code at sign-in." : "Needed to unlock staff tools: the admin console, creator approvals, announcements, moderation, and (for administrators) the website status switch. Also required to sign out other devices. A verified phone can receive a backup SMS code at sign-in."}</p>
         {accountSecurity.enabled ? (
           <form onSubmit={(event) => void turnOff(event)} className="mt-3 flex flex-wrap items-end gap-3">
             <div className="w-full max-w-xs space-y-2"><Label htmlFor="disable-two-factor">Authenticator or recovery code</Label><Input id="disable-two-factor" autoComplete="one-time-code" required value={code} onChange={(event) => setCode(event.target.value)} /></div>
@@ -113,6 +155,36 @@ export function AccountSecuritySettings() {
         ) : <Button className="mt-3" variant="outline" disabled={busy} onClick={() => void startSetup()}>{busy ? "Starting…" : "Set up authenticator"}</Button>}
         {recoveryCodes.length > 0 && <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3"><p className="text-sm font-semibold">Recovery codes — save them somewhere safe</p><ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs">{recoveryCodes.map((item) => <li key={item}>{item}</li>)}</ul><Button className="mt-3" size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(recoveryCodes.join("\n")); setMessage("Recovery codes copied."); }}>Copy codes</Button></div>}
       </div>
+      {phoneStatus?.signedIn && (
+        <div className="mt-6 border-t border-slate-100 pt-4">
+          <div className="flex items-center gap-2"><Phone className="size-4 text-slate-500" /><p className="text-sm font-medium">Phone number: {phoneStatus.verified ? "verified" : "not set"}</p></div>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Optional. A verified phone can receive a six-digit text message as a backup second factor when you cannot use your authenticator app. Your full number is never shown in staff or administrator lists.</p>
+          {phoneStatus.verified && !changingPhone ? (
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <p className="text-sm font-medium text-emerald-700">{phoneStatus.phoneNumber}</p>
+              <Button type="button" size="sm" variant="outline" onClick={() => { setChangingPhone(true); setPhoneInput(""); setPhoneCode(""); setPhoneMessage(""); setPhoneError(""); }}>Change number</Button>
+              {accountSecurity.enabled && (
+                <div className="w-full max-w-xs space-y-1.5"><Label htmlFor="remove-phone-code">Authenticator or recovery code</Label><Input id="remove-phone-code" autoComplete="one-time-code" maxLength={40} value={phoneRemoveCode} onChange={(event) => setPhoneRemoveCode(event.target.value.trim().toUpperCase())} placeholder="Required to remove" /></div>
+              )}
+              <Button type="button" size="sm" variant="outline" className="text-red-700" disabled={phoneBusy || (accountSecurity.enabled && !phoneRemoveCode.trim())} onClick={() => void removePhone()}>{phoneBusy ? "Removing…" : "Remove phone"}</Button>
+            </div>
+          ) : phoneStatus.pendingPhoneNumber ? (
+            <form onSubmit={(event) => void confirmPhoneCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-2"><Label htmlFor="phone-verification-code">Code sent to {phoneStatus.pendingPhoneNumber}</Label><Input id="phone-verification-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} required value={phoneCode} onChange={(event) => setPhoneCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6 digits" /></div>
+              <Button type="submit" disabled={phoneBusy || phoneCode.length !== 6}>{phoneBusy ? "Verifying…" : "Verify phone"}</Button>
+              <Button type="button" variant="ghost" onClick={() => { setChangingPhone(true); setPhoneCode(""); setPhoneMessage(""); setPhoneError(""); }}>Use a different number</Button>
+            </form>
+          ) : (
+            <form onSubmit={(event) => void sendPhoneCode(event)} className="mt-3 flex flex-wrap items-end gap-3">
+              <div className="w-full max-w-xs space-y-2"><Label htmlFor="phone-number">Phone number</Label><Input id="phone-number" type="tel" autoComplete="tel" maxLength={24} required value={phoneInput} onChange={(event) => setPhoneInput(event.target.value)} placeholder="+4512345678" /><p className="text-xs text-slate-500">Use international format with the country code. Message rates may apply.</p></div>
+              <Button type="submit" disabled={phoneBusy || !phoneInput.trim()}>{phoneBusy ? "Sending…" : "Send code"}</Button>
+              {changingPhone && <Button type="button" variant="ghost" onClick={() => { setChangingPhone(false); setPhoneInput(""); setPhoneMessage(""); setPhoneError(""); }}>Cancel</Button>}
+            </form>
+          )}
+          {phoneMessage && <p role="status" className="mt-3 text-sm text-emerald-700">{phoneMessage}</p>}
+          {phoneError && <p role="alert" className="mt-3 text-sm text-red-700">{phoneError}</p>}
+        </div>
+      )}
       {user.role !== "user" && (
         <div className="mt-6 border-t border-slate-100 pt-4">
           <p className="text-sm font-medium">Recovery email: {recoveryStatus?.isVerified ? "verified" : "not set"}</p>
