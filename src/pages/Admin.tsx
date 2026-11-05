@@ -76,6 +76,8 @@ type PendingStaffConversion = {
   expired: boolean;
 };
 
+type InvestigationRequestType = "internal-safety" | "law-enforcement" | "legal";
+
 type InvestigationSearchResult = {
   userId: Id<"users">;
   username: string | null;
@@ -1128,15 +1130,31 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<InvestigationSearchResult | null>(null);
   const [reason, setReason] = useState("");
+  const [requestType, setRequestType] = useState<InvestigationRequestType>("internal-safety");
+  const [legalAuthority, setLegalAuthority] = useState("");
+  const [legalReference, setLegalReference] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("");
+  const [legalConfirmed, setLegalConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<unknown>(null);
   const term = search.trim();
+  const isLegalRequest = requestType !== "internal-safety";
+  const legalDetailsComplete = !isLegalRequest || (
+    legalAuthority.trim().length >= 2 &&
+    legalReference.trim().length >= 2 &&
+    jurisdiction.trim().length >= 2 &&
+    legalConfirmed
+  );
   const results = useQuery(
     api.investigations.searchAccounts,
     canOpen && term.length >= 2 ? { search: term } : "skip",
   );
   const openInvestigation = useMutation(api.investigations.openAccountInvestigation);
+  const recentAccess = useQuery(
+    api.investigations.listRecentInvestigationAccess,
+    canOpen ? {} : "skip",
+  );
 
   async function handleOpen() {
     if (!selected) return;
@@ -1144,7 +1162,14 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
     setError("");
     setResult(null);
     try {
-      const dossier = await openInvestigation({ userId: selected.userId, reason: reason.trim() });
+      const dossier = await openInvestigation({
+        userId: selected.userId,
+        reason: reason.trim(),
+        requestType,
+        legalAuthority: isLegalRequest ? legalAuthority.trim() : undefined,
+        legalReference: isLegalRequest ? legalReference.trim() : undefined,
+        jurisdiction: isLegalRequest ? jurisdiction.trim() : undefined,
+      });
       setResult(dossier);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not open the investigation file.");
@@ -1171,7 +1196,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
         <div>
           <h2 className="font-semibold">Investigation access</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Owner-only, authenticator-unlocked access to the full private record for one account. Use this only for a specific safety, fraud, or legal investigation. Every opening is logged with your account, the target, your reason, and the time. The JSON file contains unmasked personal data — store it securely and delete it when no longer needed.
+            Owner-only, authenticator-unlocked access to the full private record for one account. Use this only for a specific safety, fraud, or legal investigation. Every opening is logged with your account, the target, the request type, your reason, and the time. Law-enforcement and legal requests also require the authority, case reference, and jurisdiction to be recorded. The JSON file contains unmasked personal data — store it securely, share only what the request requires, and delete it when no longer needed.
           </p>
         </div>
       </div>
@@ -1185,6 +1210,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
             setSearch(event.target.value);
             setSelected(null);
             setResult(null);
+            setLegalConfirmed(false);
             setError("");
           }}
           maxLength={80}
@@ -1208,6 +1234,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
                 onClick={() => {
                   setSelected(account);
                   setResult(null);
+                  setLegalConfirmed(false);
                   setError("");
                 }}
                 className={`flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm ${selected?.userId === account.userId ? "border-amber-500 bg-white" : "border-amber-200 bg-white/70 hover:bg-white"}`}
@@ -1227,6 +1254,69 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
         <div className="mt-4 max-w-xl space-y-2 rounded-md border border-amber-200 bg-white p-4">
           <p className="text-sm font-medium">Opening the file for {selected.username ? `@${selected.username}` : selected.displayName ?? "this account"}</p>
           <div className="space-y-1">
+            <Label htmlFor="investigation-request-type">Request type</Label>
+            <select
+              id="investigation-request-type"
+              value={requestType}
+              onChange={(event) => {
+                setRequestType(event.target.value as InvestigationRequestType);
+                setLegalConfirmed(false);
+                setResult(null);
+              }}
+              className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            >
+              <option value="internal-safety">Internal safety or fraud investigation</option>
+              <option value="law-enforcement">Law-enforcement request</option>
+              <option value="legal">Court order, subpoena, or other legal request</option>
+            </select>
+          </div>
+          {isLegalRequest && (
+            <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-3">
+              <p className="text-xs leading-5 text-red-900">
+                Verify the request is authentic and legally valid before exporting. Record only the details supplied by the requesting authority, and provide only the records covered by the request.
+              </p>
+              <div className="space-y-1">
+                <Label htmlFor="investigation-authority">Requesting authority or agency</Label>
+                <Input
+                  id="investigation-authority"
+                  value={legalAuthority}
+                  onChange={(event) => setLegalAuthority(event.target.value)}
+                  maxLength={160}
+                  placeholder="Agency, court, or legal representative"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="investigation-reference">Case, ticket, or order reference</Label>
+                <Input
+                  id="investigation-reference"
+                  value={legalReference}
+                  onChange={(event) => setLegalReference(event.target.value)}
+                  maxLength={120}
+                  placeholder="Reference supplied by the requester"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="investigation-jurisdiction">Jurisdiction</Label>
+                <Input
+                  id="investigation-jurisdiction"
+                  value={jurisdiction}
+                  onChange={(event) => setJurisdiction(event.target.value)}
+                  maxLength={80}
+                  placeholder="City, state, country, or court"
+                />
+              </div>
+              <label className="flex items-start gap-2 text-xs leading-5 text-red-950">
+                <input
+                  type="checkbox"
+                  checked={legalConfirmed}
+                  onChange={(event) => setLegalConfirmed(event.target.checked)}
+                  className="mt-0.5 size-4 rounded border-red-300"
+                />
+                <span>I confirmed this request is valid and that the export will be limited to what it legally requires.</span>
+              </label>
+            </div>
+          )}
+          <div className="space-y-1">
             <Label htmlFor="investigation-reason">Reason for access</Label>
             <Textarea
               id="investigation-reason"
@@ -1238,7 +1328,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
             />
             <p className="text-xs text-slate-500">10–500 characters. This reason is written to the access log.</p>
           </div>
-          <Button type="button" disabled={!canOpen || busy || reason.trim().length < 10} onClick={() => void handleOpen()}>
+          <Button type="button" disabled={!canOpen || busy || reason.trim().length < 10 || !legalDetailsComplete} onClick={() => void handleOpen()}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : <FileSearch className="size-4" />}
             {busy ? "Building file…" : "Open investigation file"}
           </Button>
@@ -1254,6 +1344,33 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
             <Button type="button" size="sm" variant="outline" onClick={downloadDossier}><Download className="size-4" /> Download JSON</Button>
           </div>
           <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-slate-950 p-4 text-xs leading-5 text-slate-100">{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+
+      {canOpen && recentAccess && recentAccess.length > 0 && (
+        <div className="mt-5 border-t border-amber-200 pt-4">
+          <h3 className="text-sm font-semibold">Recent account access</h3>
+          <p className="mt-1 text-xs text-slate-500">The most recent dossier openings. Target emails stay masked in this log.</p>
+          <ul className="mt-3 space-y-2">
+            {recentAccess.slice(0, 8).map((entry) => (
+              <li key={entry._id} className="rounded-md border border-amber-200 bg-white/70 px-3 py-2 text-xs text-slate-600">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-semibold text-slate-900">{entry.targetLabel}</span>
+                  <span>{entry.targetEmail ?? "No email on file"}</span>
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
+                    {entry.requestType === "law-enforcement" ? "Law enforcement" : entry.requestType === "legal" ? "Legal request" : "Internal safety"}
+                  </span>
+                  <span>{new Date(entry.createdAt).toLocaleString()}</span>
+                </p>
+                <p className="mt-1 line-clamp-2">{entry.reason}</p>
+                {entry.legalReference && (
+                  <p className="mt-1 text-slate-500">
+                    {entry.legalAuthority} · Ref {entry.legalReference}{entry.jurisdiction ? ` · ${entry.jurisdiction}` : ""}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>

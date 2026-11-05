@@ -415,11 +415,21 @@ const schema = defineSchema(
       .index("by_user_device", ["userId", "deviceId"]),
 
     // Owner-only investigation access. Each dossier opening is recorded with
-    // the actor, target, stated reason, and timestamp for accountability.
+    // the actor, target, stated reason, request type, and timestamp for
+    // accountability. Legal/law-enforcement requests also retain the authority,
+    // case reference, and jurisdiction supplied by the requester.
     investigationAccessLog: defineTable({
       actorId: v.id("users"),
       targetId: v.id("users"),
       reason: v.string(),
+      requestType: v.optional(v.union(
+        v.literal("internal-safety"),
+        v.literal("law-enforcement"),
+        v.literal("legal"),
+      )),
+      legalAuthority: v.optional(v.string()),
+      legalReference: v.optional(v.string()),
+      jurisdiction: v.optional(v.string()),
       createdAt: v.number(),
     })
       .index("by_created", ["createdAt"])

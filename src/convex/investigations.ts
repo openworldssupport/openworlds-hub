@@ -10,6 +10,12 @@ import { isEmailAddress, maskEmail } from "../lib/staff";
 const MAX_RECORDS = 500;
 const MAX_MESSAGES = 500;
 
+const requestTypeValidator = v.union(
+  v.literal("internal-safety"),
+  v.literal("law-enforcement"),
+  v.literal("legal"),
+);
+
 /**
  * Investigation access is intentionally narrower than normal administration:
  * the owner account, with a live authenticator unlock, and a stated reason.
@@ -85,18 +91,69 @@ export const searchAccounts = query({
   },
 });
 
+/** Owner-only: recent dossier openings, including legal-request details. */
+export const listRecentInvestigationAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireOwnerInvestigator(ctx);
+    const rows = await ctx.db
+      .query("investigationAccessLog")
+      .withIndex("by_created")
+      .order("desc")
+      .take(50);
+    return await Promise.all(rows.map(async (row) => {
+      const target = await ctx.db.get(row.targetId);
+      return {
+        _id: row._id,
+        targetId: row.targetId,
+        targetLabel: target ? accountLabel(target) : "Deleted account",
+        targetEmail: target ? maskEmail(target.email) : null,
+        requestType: row.requestType ?? "internal-safety" as const,
+        reason: row.reason,
+        legalAuthority: row.legalAuthority ?? null,
+        legalReference: row.legalReference ?? null,
+        jurisdiction: row.jurisdiction ?? null,
+        createdAt: row.createdAt,
+      };
+    }));
+  },
+});
+
 /**
  * Owner-only: build one complete investigation file for an account. This is a
  * mutation so the access is written to investigationAccessLog in the same
  * transaction as the read. The UI must never cache the result.
  */
 export const openAccountInvestigation = mutation({
-  args: { userId: v.id("users"), reason: v.string() },
+  args: {
+    userId: v.id("users"),
+    reason: v.string(),
+    requestType: requestTypeValidator,
+    legalAuthority: v.optional(v.string()),
+    legalReference: v.optional(v.string()),
+    jurisdiction: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const actor = await requireOwnerInvestigator(ctx);
     const reason = args.reason.trim();
     if (reason.length < 10 || reason.length > 500) {
       throw new Error("Describe the investigation reason in 10–500 characters.");
+    }
+
+    const isLegalRequest = args.requestType !== "internal-safety";
+    const legalAuthority = args.legalAuthority?.trim() ?? "";
+    const legalReference = args.legalReference?.trim() ?? "";
+    const jurisdiction = args.jurisdiction?.trim() ?? "";
+    if (isLegalRequest) {
+      if (legalAuthority.length < 2 || legalAuthority.length > 160) {
+        throw new Error("Record the requesting authority or agency in 2–160 characters.");
+      }
+      if (legalReference.length < 2 || legalReference.length > 120) {
+        throw new Error("Record the case, ticket, or order reference in 2–120 characters.");
+      }
+      if (jurisdiction.length < 2 || jurisdiction.length > 80) {
+        throw new Error("Record the jurisdiction in 2–80 characters.");
+      }
     }
 
     const target = await ctx.db.get(args.userId);
@@ -107,6 +164,8 @@ export const openAccountInvestigation = mutation({
       actorId: actor._id,
       targetId: target._id,
       reason,
+      requestType: args.requestType,
+      ...(isLegalRequest ? { legalAuthority, legalReference, jurisdiction } : {}),
       createdAt: now,
     });
 
@@ -238,7 +297,13 @@ export const openAccountInvestigation = mutation({
 
     return {
       generatedAt: now,
-      reason,
+      request: {
+        type: args.requestType,
+        reason,
+        legalAuthority: isLegalRequest ? legalAuthority : null,
+        legalReference: isLegalRequest ? legalReference : null,
+        jurisdiction: isLegalRequest ? jurisdiction : null,
+      },
       actor: {
         userId: actor._id,
         label: accountLabel(actor),
