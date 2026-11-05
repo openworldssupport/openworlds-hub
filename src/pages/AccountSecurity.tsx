@@ -164,7 +164,7 @@ export function AccountSecuritySettings() {
           {smsStatus?.signedIn && !smsStatus.configured && (
             <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950">
               <p className="font-medium">SMS is not configured on this deployment yet.</p>
-              <p className="mt-1">Add {smsStatus.missing.join(", ")} to the deployment environment before a text can be sent. No code has been sent.</p>
+              <p className="mt-1">Add {smsStatus.missing.join(", ")} in the project's Keys/API keys tab before a text can be sent. On a Vonage trial, add the destination number under Test numbers first. No code has been sent.</p>
             </div>
           )}
           {phoneStatus.verified && !changingPhone ? (

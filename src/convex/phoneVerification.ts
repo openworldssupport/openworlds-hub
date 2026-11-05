@@ -13,7 +13,7 @@ import { v } from "convex/values";
 import { consumeSecondFactor, hashValue } from "./secondFactor";
 import { maskPhone } from "../lib/staff";
 import { requireSiteAvailable } from "./siteStatus";
-import { twilioConfigStatus } from "./twilioConfig";
+import { smsConfigStatus } from "./smsConfig";
 
 const RESEND_COOLDOWN_MS = 60 * 1000;
 const SEND_WINDOW_MS = 60 * 60 * 1000;
@@ -79,7 +79,7 @@ export const smsStatus = query({
   handler: async (ctx) => {
     await requireSiteAvailable(ctx);
     const userId = await getAuthUserId(ctx);
-    return { signedIn: Boolean(userId), ...twilioConfigStatus() };
+    return { signedIn: Boolean(userId), ...smsConfigStatus() };
   },
 });
 
@@ -88,7 +88,7 @@ export const pendingForUser = internalQuery({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user || !user.pendingPhoneNumber) return null;
-    return { phoneNumber: user.pendingPhoneNumber };
+    return { phoneNumber: user.pendingPhoneNumber, requestId: user.pendingPhoneVerificationId };
   },
 });
 
@@ -115,6 +115,7 @@ export const preparePhoneVerification = internalMutation({
     if (count >= MAX_SENDS_PER_HOUR) throw new Error("Too many text messages requested. Try again later.");
     await ctx.db.patch(user._id, {
       pendingPhoneNumber: phoneNumber,
+      pendingPhoneVerificationId: undefined,
       phoneCodeLastSentAt: now,
       phoneCodeWindowAt: count === 0 ? now : user.phoneCodeWindowAt,
       phoneCodeSendCount: count + 1,
@@ -130,12 +131,13 @@ export const cancelPhoneVerification = internalMutation({
   handler: async (ctx, { userId, phoneNumber }) => {
     const user = await ctx.db.get(userId);
     if (user?.pendingPhoneNumber === phoneNumber) {
-      // A failed Twilio request should not consume the resend cooldown or the
+      // A failed SMS request should not consume the resend cooldown or the
       // hourly quota. Roll back the reservation made by preparePhoneVerification.
       const sends = user.phoneCodeSendCount ?? 1;
       const remainingSends = Math.max(sends - 1, 0);
       await ctx.db.patch(user._id, {
         pendingPhoneNumber: undefined,
+        pendingPhoneVerificationId: undefined,
         phoneCodeLastSentAt: undefined,
         phoneCodeWindowAt: remainingSends === 0 ? undefined : user.phoneCodeWindowAt,
         phoneCodeSendCount: remainingSends === 0 ? undefined : remainingSends,
@@ -175,6 +177,7 @@ export const markPhoneVerified = internalMutation({
       phoneNumber,
       phoneVerifiedAt: Date.now(),
       pendingPhoneNumber: undefined,
+      pendingPhoneVerificationId: undefined,
       phoneVerifyAttemptCount: 0,
       phoneVerifyAttemptWindowAt: undefined,
     });
@@ -199,6 +202,7 @@ export const removePhoneNumber = mutation({
       phoneNumber: undefined,
       phoneVerifiedAt: undefined,
       pendingPhoneNumber: undefined,
+      pendingPhoneVerificationId: undefined,
       phoneCodeLastSentAt: undefined,
       phoneCodeWindowAt: undefined,
       phoneCodeSendCount: undefined,
@@ -210,6 +214,17 @@ export const removePhoneNumber = mutation({
 });
 
 /** Sends a setup code to a new number. */
+export const setPhoneVerificationId = internalMutation({
+  args: { userId: v.id("users"), phoneNumber: v.string(), requestId: v.string() },
+  handler: async (ctx, { userId, phoneNumber, requestId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.pendingPhoneNumber !== phoneNumber) {
+      throw new Error("That phone verification expired. Request a new code.");
+    }
+    await ctx.db.patch(user._id, { pendingPhoneVerificationId: requestId });
+  },
+});
+
 export const requestPhoneVerification = action({
   args: { phoneNumber: v.string() },
   handler: async (ctx, { phoneNumber }): Promise<{ ok: true; phoneNumber: string | null }> => {
@@ -220,7 +235,12 @@ export const requestPhoneVerification = action({
       phoneNumber,
     });
     try {
-      await ctx.runAction(internal.phone.sendCode, { phoneNumber: prepared.phoneNumber });
+      const sent = await ctx.runAction(internal.phone.sendCode, { phoneNumber: prepared.phoneNumber });
+      await ctx.runMutation(internal.phoneVerification.setPhoneVerificationId, {
+        userId,
+        phoneNumber: prepared.phoneNumber,
+        requestId: sent.requestId,
+      });
     } catch (error) {
       await ctx.runMutation(internal.phoneVerification.cancelPhoneVerification, {
         userId,
@@ -240,9 +260,9 @@ export const verifyPhoneNumber = action({
     if (!userId) throw new Error("Sign in to verify a phone number.");
     if (!/^\d{6}$/.test(code.trim())) throw new Error("Enter the six-digit code from the text message.");
     const pending = await ctx.runQuery(internal.phoneVerification.pendingForUser, { userId });
-    if (!pending) throw new Error("Request a new phone verification code.");
+    if (!pending?.requestId) throw new Error("Request a new phone verification code.");
     const checked = await ctx.runAction(internal.phone.checkCode, {
-      phoneNumber: pending.phoneNumber,
+      requestId: pending.requestId,
       code: code.trim(),
     });
     if (!checked.approved) {
@@ -276,7 +296,7 @@ export const preparePhoneSignInSend = internalMutation({
     if ((challenge.phoneSentAt ?? 0) > Date.now() - RESEND_COOLDOWN_MS) {
       throw new Error("Wait a minute before requesting another text message.");
     }
-    await ctx.db.patch(challenge._id, { phoneSentAt: Date.now() });
+    await ctx.db.patch(challenge._id, { phoneSentAt: Date.now(), phoneVerificationId: undefined });
     return { phoneNumber: user.phoneNumber, maskedPhone: maskPhone(user.phoneNumber) };
   },
 });
@@ -287,7 +307,20 @@ export const cancelPhoneSignInSend = internalMutation({
     const challenge = await ctx.db.query("twoFactorLoginChallenges")
       .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
       .unique();
-    if (challenge) await ctx.db.patch(challenge._id, { phoneSentAt: undefined });
+    if (challenge) await ctx.db.patch(challenge._id, { phoneSentAt: undefined, phoneVerificationId: undefined });
+  },
+});
+
+export const setPhoneSignInRequestId = internalMutation({
+  args: { tokenHash: v.string(), requestId: v.string() },
+  handler: async (ctx, { tokenHash, requestId }) => {
+    const challenge = await ctx.db.query("twoFactorLoginChallenges")
+      .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+      .unique();
+    if (!challenge || challenge.expiresAt < Date.now() || challenge.verifiedAt !== undefined) {
+      throw new Error("Two-step sign-in expired. Start again.");
+    }
+    await ctx.db.patch(challenge._id, { phoneVerificationId: requestId });
   },
 });
 
@@ -303,6 +336,7 @@ export const phoneSignInTarget = internalQuery({
     return {
       userId: challenge.userId,
       phoneNumber: user.phoneNumber,
+      requestId: challenge.phoneVerificationId,
       attempts: challenge.phoneAttempts ?? 0,
     };
   },
@@ -334,7 +368,7 @@ export const markPhoneSignInVerified = internalMutation({
     if (!challenge || challenge.userId !== userId || challenge.expiresAt < Date.now()) {
       throw new Error("Two-step sign-in expired. Start again.");
     }
-    await ctx.db.patch(challenge._id, { verifiedAt: Date.now() });
+    await ctx.db.patch(challenge._id, { verifiedAt: Date.now(), phoneVerificationId: undefined });
     return { ok: true as const };
   },
 });
@@ -356,7 +390,11 @@ export const sendPhoneSignInCode = action({
     const tokenHash = await hashValue(token);
     const prepared = await ctx.runMutation(internal.phoneVerification.preparePhoneSignInSend, { tokenHash });
     try {
-      await ctx.runAction(internal.phone.sendCode, { phoneNumber: prepared.phoneNumber });
+      const sent = await ctx.runAction(internal.phone.sendCode, { phoneNumber: prepared.phoneNumber });
+      await ctx.runMutation(internal.phoneVerification.setPhoneSignInRequestId, {
+        tokenHash,
+        requestId: sent.requestId,
+      });
     } catch (error) {
       await ctx.runMutation(internal.phoneVerification.cancelPhoneSignInSend, { tokenHash });
       throw error;
@@ -372,9 +410,9 @@ export const completePhoneSignIn = action({
     if (!/^\d{6}$/.test(code.trim())) throw new Error("Enter the six-digit code from the text message.");
     const tokenHash = await hashValue(token);
     const target = await ctx.runQuery(internal.phoneVerification.phoneSignInTarget, { tokenHash });
-    if (!target) throw new Error("Two-step sign-in expired. Start again.");
+    if (!target?.requestId) throw new Error("Two-step sign-in expired. Start again.");
     const checked = await ctx.runAction(internal.phone.checkCode, {
-      phoneNumber: target.phoneNumber,
+      requestId: target.requestId,
       code: code.trim(),
     });
     if (!checked.approved) {
@@ -423,6 +461,19 @@ export const createStaffPhoneChallenge = internalMutation({
   },
 });
 
+export const setStaffPhoneRequestId = internalMutation({
+  args: { tokenHash: v.string(), userId: v.id("users"), requestId: v.string() },
+  handler: async (ctx, { tokenHash, userId, requestId }) => {
+    const challenge = await ctx.db.query("twoFactorLoginChallenges")
+      .withIndex("by_token_hash", (q) => q.eq("tokenHash", tokenHash))
+      .unique();
+    if (!challenge || challenge.userId !== userId || challenge.expiresAt < Date.now()) {
+      throw new Error("The SMS sign-in request expired. Request a new code.");
+    }
+    await ctx.db.patch(challenge._id, { phoneVerificationId: requestId });
+  },
+});
+
 export const rollbackStaffPhoneSend = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -447,7 +498,7 @@ export const staffPhoneChallengeTarget = internalQuery({
     const user = await ctx.db.get(userId);
     if (!challenge || challenge.userId !== userId || !user || challenge.expiresAt < Date.now()) return null;
     if (!user.phoneNumber || user.phoneVerifiedAt === undefined) return null;
-    return { phoneNumber: user.phoneNumber };
+    return { phoneNumber: user.phoneNumber, requestId: challenge.phoneVerificationId };
   },
 });
 
@@ -476,7 +527,12 @@ export const sendStaffPhoneSignInCode = action({
       userId: account.userId,
     });
     try {
-      await ctx.runAction(internal.phone.sendCode, { phoneNumber: challenge.phoneNumber });
+      const sent = await ctx.runAction(internal.phone.sendCode, { phoneNumber: challenge.phoneNumber });
+      await ctx.runMutation(internal.phoneVerification.setStaffPhoneRequestId, {
+        tokenHash: challenge.tokenHash,
+        userId: challenge.userId,
+        requestId: sent.requestId,
+      });
     } catch (error) {
       await ctx.runMutation(internal.phoneVerification.deletePhoneChallenge, { tokenHash: challenge.tokenHash });
       await ctx.runMutation(internal.phoneVerification.rollbackStaffPhoneSend, { userId: challenge.userId });
@@ -503,9 +559,9 @@ export const completeStaffPhoneSignIn = action({
       tokenHash,
       userId: account.userId,
     });
-    if (!target) throw new Error("The SMS sign-in request expired. Request a new code.");
+    if (!target?.requestId) throw new Error("The SMS sign-in request expired. Request a new code.");
     const checked = await ctx.runAction(internal.phone.checkCode, {
-      phoneNumber: target.phoneNumber,
+      requestId: target.requestId,
       code: code.trim(),
     });
     if (!checked.approved) throw new Error("That code is incorrect or expired.");

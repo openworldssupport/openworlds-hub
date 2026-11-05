@@ -59,6 +59,7 @@ const schema = defineSchema(
       phoneNumber: v.optional(v.string()),
       phoneVerifiedAt: v.optional(v.number()),
       pendingPhoneNumber: v.optional(v.string()),
+      pendingPhoneVerificationId: v.optional(v.string()),
       phoneCodeLastSentAt: v.optional(v.number()),
       phoneCodeWindowAt: v.optional(v.number()),
       phoneCodeSendCount: v.optional(v.number()),
@@ -405,6 +406,7 @@ const schema = defineSchema(
       // SMS backup challenge state. A challenge can use the authenticator or
       // request one text-message code, not an unlimited stream.
       phoneSentAt: v.optional(v.number()),
+      phoneVerificationId: v.optional(v.string()),
       phoneAttempts: v.optional(v.number()),
     }).index("by_token_hash", ["tokenHash"]).index("by_user_created", ["userId", "createdAt"]),
 
