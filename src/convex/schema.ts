@@ -448,6 +448,7 @@ const schema = defineSchema(
       legalAuthority: v.optional(v.string()),
       legalReference: v.optional(v.string()),
       jurisdiction: v.optional(v.string()),
+      legalBasis: v.optional(v.string()),
       createdAt: v.number(),
     })
       .index("by_created", ["createdAt"])

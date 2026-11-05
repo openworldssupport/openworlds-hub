@@ -112,6 +112,7 @@ export const listRecentInvestigationAccess = query({
         legalAuthority: row.legalAuthority ?? null,
         legalReference: row.legalReference ?? null,
         jurisdiction: row.jurisdiction ?? null,
+        legalBasis: row.legalBasis ?? null,
         createdAt: row.createdAt,
       };
     }));
@@ -131,6 +132,7 @@ export const openAccountInvestigation = mutation({
     legalAuthority: v.optional(v.string()),
     legalReference: v.optional(v.string()),
     jurisdiction: v.optional(v.string()),
+    legalBasis: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const actor = await requireOwnerInvestigator(ctx);
@@ -142,6 +144,7 @@ export const openAccountInvestigation = mutation({
     const legalAuthority = args.legalAuthority?.trim() ?? "";
     const legalReference = args.legalReference?.trim() ?? "";
     const jurisdiction = args.jurisdiction?.trim() ?? "";
+    const legalBasis = args.legalBasis?.trim() ?? "";
     // Full account records are a legal-disclosure path only. Internal review
     // must use the normal masked staff/admin tools.
     if (legalAuthority.length < 2 || legalAuthority.length > 160) {
@@ -152,6 +155,9 @@ export const openAccountInvestigation = mutation({
     }
     if (jurisdiction.length < 2 || jurisdiction.length > 80) {
       throw new Error("Record the jurisdiction in 2–80 characters.");
+    }
+    if (legalBasis.length < 3 || legalBasis.length > 300) {
+      throw new Error("Record the legal basis under the GDPR and Danish law in 3–300 characters.");
     }
 
     const target = await ctx.db.get(args.userId);
@@ -166,6 +172,7 @@ export const openAccountInvestigation = mutation({
       legalAuthority,
       legalReference,
       jurisdiction,
+      legalBasis,
       createdAt: now,
     });
 
@@ -303,6 +310,7 @@ export const openAccountInvestigation = mutation({
         legalAuthority,
         legalReference,
         jurisdiction,
+        legalBasis,
       },
       actor: {
         userId: actor._id,

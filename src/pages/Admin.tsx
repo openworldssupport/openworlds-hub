@@ -1133,7 +1133,8 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
   const [requestType, setRequestType] = useState<InvestigationRequestType>("law-enforcement");
   const [legalAuthority, setLegalAuthority] = useState("");
   const [legalReference, setLegalReference] = useState("");
-  const [jurisdiction, setJurisdiction] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("Denmark");
+  const [legalBasis, setLegalBasis] = useState("");
   const [legalConfirmed, setLegalConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1143,6 +1144,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
     legalAuthority.trim().length >= 2 &&
     legalReference.trim().length >= 2 &&
     jurisdiction.trim().length >= 2 &&
+    legalBasis.trim().length >= 3 &&
     legalConfirmed;
   const results = useQuery(
     api.investigations.searchAccounts,
@@ -1167,6 +1169,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
         legalAuthority: legalAuthority.trim(),
         legalReference: legalReference.trim(),
         jurisdiction: jurisdiction.trim(),
+        legalBasis: legalBasis.trim(),
       });
       setResult(dossier);
     } catch (err) {
@@ -1194,7 +1197,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
         <div>
           <h2 className="font-semibold">Legal disclosure access</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Full private records are not available for internal review. This owner-only, authenticator-unlocked panel opens a record only after a valid law-enforcement or court/legal request has been received. The requesting authority, case or order reference, jurisdiction, your reason, and the time are logged. The JSON file contains unmasked personal data — disclose only what the request legally requires, store it securely, and delete it when no longer needed.
+            Full private records are not available for internal review. This owner-only, authenticator-unlocked panel opens a record only after a valid law-enforcement or court/legal request has been received. The requesting authority, case or order reference, jurisdiction, Danish/EU legal basis, your reason, and the time are logged. Our rule is stricter than Danish law requires. The JSON file contains unmasked personal data — disclose only what the request legally requires, store it securely, and delete it when no longer needed.
           </p>
         </div>
       </div>
@@ -1271,6 +1274,17 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
               <p className="text-xs leading-5 text-red-900">
                 Verify the request is authentic and legally valid before exporting. Record only the details supplied by the requesting authority, and provide only the records covered by the request.
               </p>
+              <div className="space-y-1">
+                <Label htmlFor="investigation-legal-basis">Legal basis under Danish law</Label>
+                <Input
+                  id="investigation-legal-basis"
+                  value={legalBasis}
+                  onChange={(event) => setLegalBasis(event.target.value)}
+                  maxLength={300}
+                  placeholder="e.g. GDPR Art. 6(1)(f); Danish Data Protection Act § 8"
+                />
+                <p className="text-xs leading-5 text-red-900">Record the provision relied on. A court order, if one exists, should also be referenced below.</p>
+              </div>
               <div className="space-y-1">
                 <Label htmlFor="investigation-authority">Requesting authority or agency</Label>
                 <Input
@@ -1360,7 +1374,7 @@ function InvestigationPanel({ canOpen }: { canOpen: boolean }) {
                 <p className="mt-1 line-clamp-2">{entry.reason}</p>
                 {entry.legalReference && (
                   <p className="mt-1 text-slate-500">
-                    {entry.legalAuthority} · Ref {entry.legalReference}{entry.jurisdiction ? ` · ${entry.jurisdiction}` : ""}
+                    {entry.legalAuthority} · Ref {entry.legalReference}{entry.jurisdiction ? ` · ${entry.jurisdiction}` : ""}{entry.legalBasis ? ` · ${entry.legalBasis}` : ""}
                   </p>
                 )}
               </li>
