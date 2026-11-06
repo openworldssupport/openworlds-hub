@@ -7,9 +7,17 @@ import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
-/** The public site serves the email-safe PNG logo. SITE_URL points at the
- *  Convex site on this deployment, where public Vite assets are not served. */
-const EMAIL_LOGO_URL = (process.env.EMAIL_LOGO_URL ?? "https://openworlds.dk/logo-email.png").replace(/\/+$/, "");
+/** The Convex HTTP site serves the email-safe PNG mark, so the image works
+ *  before the website deploy. EMAIL_LOGO_URL can point at another public copy. */
+const EMAIL_LOGO_BASE_URL = (
+  process.env.SITE_URL ??
+  process.env.CONVEX_SITE_URL ??
+  "https://openworlds.dk"
+).replace(/\/+$/, "");
+const EMAIL_LOGO_URL = (process.env.EMAIL_LOGO_URL ?? `${EMAIL_LOGO_BASE_URL}/logo-email-person.png`).replace(
+  /\/+$/,
+  "",
+);
 const CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <contact@openworlds.dk>";
@@ -449,7 +457,7 @@ function emailRule(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse"><tr>${cell(SITE_THEME.red, "34%")}${cell(SITE_THEME.green, "49%")}${cell(SITE_THEME.gold, "17%")}</tr></table>`;
 }
 
-/** The real logo, served from the site (a PNG, because mail clients block SVG).
+/** The email-header mark, served as a PNG because mail clients block SVG.
  *  If images are switched off, the alt text still identifies the sender. */
 function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>

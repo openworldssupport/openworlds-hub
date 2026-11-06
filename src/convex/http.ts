@@ -2,10 +2,32 @@ import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { EMAIL_LOGO_PNG_BASE64 } from "./emailLogo";
 
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
+
+/** Email clients need a public PNG, and this stays available before the
+ *  marketing site deploy. The filename is versioned to avoid stale caches. */
+http.route({
+  path: "/logo-email-person.png",
+  method: "GET",
+  handler: httpAction(async () => {
+    const binary = atob(EMAIL_LOGO_PNG_BASE64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new Response(bytes, {
+      headers: {
+        "content-type": "image/png",
+        "cache-control": "public, max-age=31536000, immutable",
+        "access-control-allow-origin": "*",
+      },
+    });
+  }),
+});
 
 async function secretMatches(provided: string, expected: string): Promise<boolean> {
   if (!provided || !expected) return false;
