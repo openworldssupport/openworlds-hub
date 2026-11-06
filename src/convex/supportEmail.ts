@@ -7,8 +7,9 @@ import { AgentMailClient } from "agentmail";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 const DEFAULT_SUPPORT_EMAIL = "contact@openworlds.dk";
-/** Where the site's public assets and links live, independent of the sender. */
-const SITE_URL = (process.env.SITE_URL ?? "https://openworlds.dk").replace(/\/+$/, "");
+/** The public site serves the email-safe PNG logo. SITE_URL points at the
+ *  Convex site on this deployment, where public Vite assets are not served. */
+const EMAIL_LOGO_URL = (process.env.EMAIL_LOGO_URL ?? "https://openworlds.dk/logo-email.png").replace(/\/+$/, "");
 const CAREERS_EMAIL = "careers@openworlds.dk";
 const VLY_EMAIL_ENDPOINT = "https://integrations.vly.ai/v1/email/send";
 const SUPPORT_BOT_FROM = "OpenWorlds Support Bot <contact@openworlds.dk>";
@@ -453,7 +454,7 @@ function emailRule(): string {
 function emailLogo(): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
     <td valign="middle" style="padding:0">
-      <img src="${SITE_URL}/logo-email.png" width="40" height="40" alt="OpenWorlds" style="display:block;width:40px;height:40px;border:0;outline:none;text-decoration:none" />
+      <img src="${EMAIL_LOGO_URL}" width="40" height="40" alt="OpenWorlds" style="display:block;width:40px;height:40px;border:0;outline:none;text-decoration:none" />
     </td>
     <td valign="middle" style="padding-left:12px">
       <div style="font:700 17px/1.2 ${SITE_THEME.font};color:${SITE_THEME.heroInk};letter-spacing:-0.2px">OpenWorlds</div>
