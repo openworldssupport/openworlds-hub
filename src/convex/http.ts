@@ -8,6 +8,26 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
+/** Keep the download button on the site's own domain. The launcher binary is
+ *  stored as a release asset, so this route redirects to the file itself
+ *  rather than sending visitors to the release page. */
+const WINDOWS_LAUNCHER_URL =
+  "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.11.06.2038/OpenWorldsLauncher.exe";
+
+http.route({
+  path: "/downloads/windows",
+  method: "GET",
+  handler: httpAction(async () => {
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: WINDOWS_LAUNCHER_URL,
+        "cache-control": "public, max-age=300",
+      },
+    });
+  }),
+});
+
 /** Email clients need a public PNG, and this stays available before the
  *  marketing site deploy. The filename is versioned to avoid stale caches. */
 http.route({

@@ -5,12 +5,15 @@ import {
   CalendarDays,
   CheckCircle2,
   Download,
-  ExternalLink,
   Laptop,
   Monitor,
   ShieldCheck,
   Terminal,
 } from "lucide-react";
+
+const convexSiteUrl = (import.meta.env.VITE_CONVEX_URL || "https://blissful-lynx-171.convex.cloud")
+  .replace(/\/+$/, "")
+  .replace(/\.convex\.cloud$/, ".convex.site");
 
 const release = {
   name: "Launcher 66",
@@ -19,10 +22,7 @@ const release = {
   file: "OpenWorldsLauncher.exe",
   size: "146 MB",
   sha256: "8c3efec7ee99aaac03bf2cbc0a59e5ab36ed776d01014588c104538710445422",
-  downloadUrl:
-    "https://github.com/openworldssupport/openworlds-hub/releases/download/v2026.11.06.2038/OpenWorldsLauncher.exe",
-  releaseUrl:
-    "https://github.com/openworldssupport/openworlds-hub/releases/tag/v2026.11.06.2038",
+  downloadUrl: `${convexSiteUrl}/downloads/windows`,
 };
 
 const platforms = [
@@ -68,13 +68,11 @@ export default function Downloads() {
               Download for Windows
             </a>
             <a
-              href={release.releaseUrl}
-              target="_blank"
-              rel="noreferrer"
+              href="#checksum"
               className="inline-flex h-11 items-center gap-2 rounded-sm border border-white/50 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              Release notes
-              <ExternalLink className="size-4" />
+              <ShieldCheck className="size-4" />
+              Verify checksum
             </a>
           </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm text-blue-50" role="status">
@@ -110,7 +108,7 @@ export default function Downloads() {
                 <div>
                   <h3 className="text-lg font-semibold">OpenWorlds Launcher</h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    The official Windows build, published by OpenWorlds Support on GitHub.
+                    The official Windows build, published by OpenWorlds Support.
                   </p>
                 </div>
               </div>
@@ -146,19 +144,10 @@ export default function Downloads() {
                 <Download className="size-4" />
                 Download launcher
               </a>
-              <a
-                href={release.releaseUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-11 items-center gap-2 rounded-sm border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                View release
-                <ExternalLink className="size-4" />
-              </a>
             </div>
           </article>
 
-          <aside className="rounded-xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+          <aside id="checksum" className="scroll-mt-24 rounded-xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-5 text-[#176b45]" />
               <h3 className="font-semibold">Verify your download</h3>
@@ -180,8 +169,7 @@ export default function Downloads() {
               Get-FileHash .\OpenWorldsLauncher.exe -Algorithm SHA256
             </code>
             <p className="mt-4 text-xs leading-5 text-slate-500">
-              Only download the launcher from this page or the official GitHub release. Do not use
-              re-uploaded copies.
+              Only download the launcher from this page. Do not use re-uploaded copies.
             </p>
           </aside>
         </div>
