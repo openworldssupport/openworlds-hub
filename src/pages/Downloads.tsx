@@ -5,10 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Download,
-  Laptop,
   Monitor,
-  ShieldCheck,
-  Terminal,
 } from "lucide-react";
 
 const convexSiteUrl = (import.meta.env.VITE_CONVEX_URL || "https://blissful-lynx-171.convex.cloud")
@@ -17,34 +14,11 @@ const convexSiteUrl = (import.meta.env.VITE_CONVEX_URL || "https://blissful-lynx
 
 const release = {
   name: "Launcher 66",
-  version: "v2026.11.06.2038",
   published: "November 7, 2026",
   file: "OpenWorldsLauncher.exe",
   size: "146 MB",
-  sha256: "8c3efec7ee99aaac03bf2cbc0a59e5ab36ed776d01014588c104538710445422",
   downloadUrl: `${convexSiteUrl}/downloads/windows`,
 };
-
-const platforms = [
-  {
-    name: "Windows",
-    detail: "Available now for Windows. Download the launcher above.",
-    icon: Monitor,
-    available: true,
-  },
-  {
-    name: "macOS",
-    detail: "No macOS launcher is included in this release.",
-    icon: Laptop,
-    available: false,
-  },
-  {
-    name: "Linux",
-    detail: "No Linux launcher is included in this release.",
-    icon: Terminal,
-    available: false,
-  },
-];
 
 export default function Downloads() {
   return (
@@ -57,7 +31,7 @@ export default function Downloads() {
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Downloads</h1>
           <p className="mt-4 max-w-2xl leading-7 text-blue-50">
             The official OpenWorlds Launcher for Windows is available now. Download the latest
-            build, verify its checksum, and start playing.
+            build and start playing.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <a
@@ -67,17 +41,10 @@ export default function Downloads() {
               <Download className="size-4" />
               Download for Windows
             </a>
-            <a
-              href="#checksum"
-              className="inline-flex h-11 items-center gap-2 rounded-sm border border-white/50 px-5 text-sm font-semibold text-white transition hover:bg-white/10"
-            >
-              <ShieldCheck className="size-4" />
-              Verify checksum
-            </a>
           </div>
           <p className="mt-5 inline-flex items-center gap-2 text-sm text-blue-50" role="status">
             <CheckCircle2 className="size-4" />
-            Windows build available · {release.version}
+            Windows build available
           </p>
         </div>
       </section>
@@ -98,7 +65,7 @@ export default function Downloads() {
           </span>
         </div>
 
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-6">
           <article className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-4">
@@ -117,11 +84,7 @@ export default function Downloads() {
               </span>
             </div>
 
-            <dl className="mt-6 grid gap-x-6 gap-y-4 border-t border-slate-100 pt-5 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Version</dt>
-                <dd className="mt-1 font-medium">{release.version}</dd>
-              </div>
+            <dl className="mt-6 grid gap-x-6 gap-y-4 border-t border-slate-100 pt-5 text-sm sm:grid-cols-3">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Released</dt>
                 <dd className="mt-1 font-medium">{release.published}</dd>
@@ -146,68 +109,6 @@ export default function Downloads() {
               </a>
             </div>
           </article>
-
-          <aside id="checksum" className="scroll-mt-24 rounded-xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-[#176b45]" />
-              <h3 className="font-semibold">Verify your download</h3>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Compare the SHA-256 checksum after downloading. It should match the value below
-              exactly.
-            </p>
-            <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-              SHA-256
-            </p>
-            <code className="mt-1.5 block break-all bg-white p-3 font-mono text-xs leading-5 text-slate-700 ring-1 ring-slate-200">
-              {release.sha256}
-            </code>
-            <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">
-              PowerShell
-            </p>
-            <code className="mt-1.5 block overflow-x-auto bg-white p-3 font-mono text-xs leading-5 text-slate-700 ring-1 ring-slate-200">
-              Get-FileHash .\OpenWorldsLauncher.exe -Algorithm SHA256
-            </code>
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              Only download the launcher from this page. Do not use re-uploaded copies.
-            </p>
-          </aside>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-100 bg-slate-50 px-5 py-12 sm:px-8 sm:py-16">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Available platforms</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            {platforms.map(({ name, detail, icon: Icon, available }) => (
-              <article key={name} className="border-t-2 border-slate-900 pt-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="flex items-center gap-2 font-semibold">
-                    <Icon className="size-4 text-[#176b45]" />
-                    {name}
-                  </h3>
-                  <span
-                    className={
-                      available
-                        ? "text-xs font-medium text-[#176b45]"
-                        : "text-xs font-medium text-slate-400"
-                    }
-                  >
-                    {available ? "Available" : "Not in this release"}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{detail}</p>
-                {available && (
-                  <a
-                    href={release.downloadUrl}
-                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[#176b45] hover:underline"
-                  >
-                    Download <ArrowRight className="size-4" />
-                  </a>
-                )}
-              </article>
-            ))}
-          </div>
         </div>
       </section>
 
