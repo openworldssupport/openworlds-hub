@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps" width="512" height="512" viewBox="0 0 512 512">
+  <title>OpenWorlds</title>
+  <desc>OpenWorlds globe logo</desc>
+  <rect width="512" height="512" fill="#0875D1"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#FFFFFF" stroke-width="28"/>
+  <path d="M76 256h360M256 76c50 49 76 110 76 180s-26 131-76 180m0-360c-50 49-76 110-76 180s26 131 76 180" fill="none" stroke="#FFFFFF" stroke-width="26"/>
+</svg>
